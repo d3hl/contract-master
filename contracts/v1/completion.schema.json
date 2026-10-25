@@ -1,0 +1,104 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "const": "codex",
+      "type": "string"
+    },
+    "accepted_commit": {
+      "type": "string",
+      "pattern": "[0-9a-f]{40}"
+    },
+    "merged_commit": {
+      "type": "string",
+      "pattern": "[0-9a-f]{40}"
+    },
+    "pr_url": {
+      "type": "string",
+      "pattern": "https://.+"
+    },
+    "human_reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "human_merger": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provider_evidence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "correspondence_evidence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "[0-9a-f]{40}"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "commit",
+          "passed",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "version",
+    "task_id",
+    "author",
+    "accepted_commit",
+    "merged_commit",
+    "pr_url",
+    "human_reviewer",
+    "human_merger",
+    "provider_evidence",
+    "correspondence_evidence",
+    "acceptance_evidence",
+    "checks"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d3hl/contract-master/contracts/v1/completion.schema.json",
+  "title": "completion"
+}

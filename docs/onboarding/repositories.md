@@ -1,0 +1,29 @@
+# Register a target repository
+
+1. Confirm owner, repo identity, default base and explicitly allowed Linear project
+   UUIDs. New projects are opt-in. Resolve stable IDs using Orca discovery.
+2. Keep a concise target AGENTS.md linking target architecture, API contracts,
+   setup and test commands. Add a shared-context loader instruction; cross-repo
+   links alone do not load files. Copy [target directory template](../templates/target-AGENTS.md).
+3. Add the registry entry: remote identity, Orca repo ID, base ref, local entry
+   points, required shared files, narrow allowed paths, check IDs with argv/timeouts,
+   installed dependency versions, planning/implementation/verification runners,
+   Linear mapping and 1Password references. Never add a machine-specific checkout
+   path; the host supplies workspace placement.
+4. Review the master commit and build/pin its bundle. Verify required local docs at
+   the task base. Existing sessions keep their previous bundle.
+5. Prove the runner's editing, command, Git and structured-result capabilities in a
+   disposable fixture. Capture client version, model identity, execution host,
+   isolation/mount settings, test evidence and account reference. A simulated
+   capability declaration is insufficient for `mode: live`.
+6. Audit integration automation settings and required human review. Record evidence
+   before setting `merge_gate_audited`. Do not change team-wide settings casually;
+   choose a dedicated team if existing projects require conflicting automations.
+7. Run the scenario suite and [bounded pilot](../operations/pilot.md). Enable only
+   after its activation gates are met. Adding future repositories is a reviewed
+   registry change, not an issue instruction.
+
+The bootstrap registration is the manager itself for a narrow docs-only pilot.
+Ordinary product tasks should target other registered repositories. The current
+bootstrap implementation issue has wider scope than the pilot and is managed
+manually; do not rewrite it into an automatically eligible task.

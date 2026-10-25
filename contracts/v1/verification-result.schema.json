@@ -1,0 +1,125 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "const": "codex",
+      "type": "string"
+    },
+    "reviewed_commit": {
+      "type": "string",
+      "pattern": "[0-9a-f]{40}"
+    },
+    "plan_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "context_digest": {
+      "type": "string",
+      "pattern": "[0-9a-f]{64}"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "rework"
+      ]
+    },
+    "acceptance_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "criterion",
+          "passed",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "[0-9a-f]{40}"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "commit",
+          "passed",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "diff_evidence": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "version",
+    "task_id",
+    "author",
+    "reviewed_commit",
+    "plan_revision",
+    "context_digest",
+    "verdict",
+    "acceptance_evidence",
+    "checks",
+    "corrections",
+    "diff_evidence"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d3hl/contract-master/contracts/v1/verification-result.schema.json",
+  "title": "verification-result"
+}

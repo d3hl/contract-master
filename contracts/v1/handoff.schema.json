@@ -1,0 +1,81 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "[0-9a-f]{40}"
+    },
+    "completed_work": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "verification_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "version",
+    "task_id",
+    "phase",
+    "owner",
+    "workspace",
+    "branch",
+    "commit",
+    "completed_work",
+    "verification_evidence",
+    "blockers",
+    "next_action"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d3hl/contract-master/contracts/v1/handoff.schema.json",
+  "title": "handoff"
+}

@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "id": "deepseek-portable",
+  "role": "deepseek",
+  "mode": "simulated",
+  "capabilities": ["read_files", "edit_files", "execute_commands", "git", "structured_results"],
+  "evidence": "Simulation only: tests validate the portable envelope. No real model/client capability or account has been verified.",
+  "agent": "unconfigured",
+  "enabled": false
+}

@@ -1,0 +1,61 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "deepseek"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "simulated",
+        "live"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "evidence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "enabled": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "version",
+    "id",
+    "role",
+    "mode",
+    "capabilities",
+    "evidence",
+    "agent",
+    "enabled"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d3hl/contract-master/contracts/v1/runner.schema.json",
+  "title": "runner"
+}
