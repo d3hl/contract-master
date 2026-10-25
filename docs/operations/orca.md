@@ -1,10 +1,11 @@
 # Orca coordination and recovery
 
 Verified against installed Orca **1.4.235**, using its own version-matched guides
-and command help on 2026-10-25. Re-read the installed guide after upgrades. Resolve
-the executable once: `ORCA_CLI_COMMAND`, otherwise `orca-dev` in an advertised dev
-session, otherwise `orca-ide` on Linux. Never use Linux's bare GNOME `orca`.
-The Python adapter follows this resolution and never switches builds on failure.
+and command help on 2026-10-25, and rechecked on installed **1.4.240** (2026-10-25).
+Re-read the installed guide after upgrades. Resolve the executable once:
+`ORCA_CLI_COMMAND`, otherwise `orca-dev` in an advertised dev session, otherwise
+`orca-ide` on Linux. Never use Linux's bare GNOME `orca`. The Python adapter
+follows this resolution and never switches builds on failure.
 
 ## Intake and scheduling
 
@@ -115,7 +116,9 @@ HANDOFF is stored in SQLite before export and enqueue. `export-handoffs` recreat
 `.state/handoffs/*.json` after an interrupted export. The outbox survives process
 restart, preserves order and reconciles delivery without duplicate updates.
 
-Installed-version quirk verified during bootstrap: `linear issue` rejects raw
-issue UUIDs (even with `--id`). Read and write through provider identifiers such
-as D3S-99; preserve UUIDs for durable task/dependency identity. Intake uses listing
-and relation identifiers, and outbox entries carry provider identifiers.
+Installed Orca 1.4.235 rejected raw issue UUIDs with `linear issue` (even with
+`--id`). That limitation is fixed in installed **1.4.240**, whose help accepts a
+Linear key, raw issue ID or URL for both the positional argument and `--id`. Use
+provider identifiers such as D3S-99 in human-facing text, and preserve UUIDs for
+durable task/dependency identity. Intake uses listing and relation identifiers,
+and outbox entries carry provider identifiers.
