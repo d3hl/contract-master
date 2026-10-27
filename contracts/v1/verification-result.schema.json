@@ -15,7 +15,7 @@
     },
     "reviewed_commit": {
       "type": "string",
-      "pattern": "[0-9a-f]{40}"
+      "pattern": "^[0-9a-f]{40}$"
     },
     "plan_revision": {
       "type": "integer",
@@ -23,7 +23,7 @@
     },
     "context_digest": {
       "type": "string",
-      "pattern": "[0-9a-f]{64}"
+      "pattern": "^[0-9a-f]{64}$"
     },
     "verdict": {
       "type": "string",
@@ -70,7 +70,7 @@
           },
           "commit": {
             "type": "string",
-            "pattern": "[0-9a-f]{40}"
+            "pattern": "^[0-9a-f]{40}$"
           },
           "passed": {
             "type": "boolean"

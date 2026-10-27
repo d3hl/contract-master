@@ -28,7 +28,7 @@
     },
     "context_digest": {
       "type": "string",
-      "pattern": "[0-9a-f]{64}"
+      "pattern": "^[0-9a-f]{64}$"
     },
     "read_documents": {
       "type": "array",
@@ -69,7 +69,7 @@
             "minItems": 1,
             "items": {
               "type": "string",
-              "pattern": "https://.+"
+              "pattern": "^https://.+$"
             }
           },
           "notes": {

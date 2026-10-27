@@ -15,15 +15,15 @@
     },
     "accepted_commit": {
       "type": "string",
-      "pattern": "[0-9a-f]{40}"
+      "pattern": "^[0-9a-f]{40}$"
     },
     "merged_commit": {
       "type": "string",
-      "pattern": "[0-9a-f]{40}"
+      "pattern": "^[0-9a-f]{40}$"
     },
     "pr_url": {
       "type": "string",
-      "pattern": "https://.+"
+      "pattern": "^https://.+$"
     },
     "human_reviewer": {
       "type": "string",
@@ -61,7 +61,7 @@
           },
           "commit": {
             "type": "string",
-            "pattern": "[0-9a-f]{40}"
+            "pattern": "^[0-9a-f]{40}$"
           },
           "passed": {
             "type": "boolean"

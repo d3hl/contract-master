@@ -1,4 +1,6 @@
 """Small validator for the JSON Schema subset used by our portable v1 contracts."""
+import functools
+import hashlib
 import json
 import re
 from pathlib import Path, PurePosixPath
@@ -15,7 +17,6 @@ class ProviderError(ContractError):
 
 
 def digest(value):
-    import hashlib
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -31,16 +32,46 @@ def within(path, scopes):
     return any(path == s or path.startswith(s.rstrip("/") + "/") for s in scopes)
 
 
+TYPES = {"object": dict, "array": list, "string": str, "integer": int, "boolean": bool}
+# The JSON Schema subset _validate implements. Anything else in a schema is an
+# error, so a new keyword can never be silently ignored.
+KEYWORDS = {"$schema", "$id", "title", "type", "properties", "required", "additionalProperties", "items",
+            "const", "enum", "minItems", "uniqueItems", "minLength", "pattern", "minimum"}
+
+
+@functools.lru_cache(maxsize=None)
+def schema(name):
+    value = json.loads((ROOT / "contracts" / "v1" / (name + ".schema.json")).read_text())
+    check_schema(value, name)
+    return value
+
+
+def check_schema(node, location="schema"):
+    unknown = set(node) - KEYWORDS
+    if unknown:
+        raise ContractError(location + ": unsupported schema keyword " + ", ".join(sorted(unknown)))
+    if "type" in node and node["type"] not in TYPES:
+        raise ContractError(location + ": unsupported type " + str(node["type"]))
+    if not isinstance(node.get("additionalProperties", False), bool):
+        raise ContractError(location + ": additionalProperties must be true or false")
+    pattern = node.get("pattern")
+    if pattern is not None and not (pattern.startswith("^") and pattern.endswith("$")):
+        # Standard validators search; ours full-matches. Anchors make both agree.
+        raise ContractError(location + ": pattern must be anchored with ^ and $")
+    for key, child in node.get("properties", {}).items():
+        check_schema(child, location + "." + key)
+    if "items" in node:
+        check_schema(node["items"], location + "[]")
+
+
 def validate(name, value):
-    schema = json.loads((ROOT / "contracts" / "v1" / (name + ".schema.json")).read_text())
-    _validate(schema, value, name)
+    _validate(schema(name), value, name)
     return value
 
 
 def _validate(schema, value, location):
-    types = {"object": dict, "array": list, "string": str, "integer": int, "boolean": bool}
     kind = schema.get("type")
-    if kind and (not isinstance(value, types[kind]) or (kind == "integer" and isinstance(value, bool))):
+    if kind and (not isinstance(value, TYPES[kind]) or (kind == "integer" and isinstance(value, bool))):
         raise ContractError(location + ": invalid type")
     if "const" in schema and value != schema["const"]:
         raise ContractError(location + ": unsupported constant/version")
@@ -64,6 +95,7 @@ def _validate(schema, value, location):
         for i, item in enumerate(value):
             _validate(schema.get("items", {}), item, location + "[" + str(i) + "]")
     if isinstance(value, str):
+        # Deliberately stricter than JSON Schema: whitespace-only text does not count.
         if len(value.strip()) < schema.get("minLength", 0):
             raise ContractError(location + ": empty string")
         if schema.get("pattern") and not re.fullmatch(schema["pattern"], value):

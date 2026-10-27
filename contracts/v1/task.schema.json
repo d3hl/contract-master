@@ -19,11 +19,21 @@
     },
     "base_commit": {
       "type": "string",
-      "pattern": "[0-9a-f]{40}"
+      "pattern": "^[0-9a-f]{40}$"
     },
     "phase": {
       "type": "string",
-      "minLength": 1
+      "enum": [
+        "planning",
+        "ready",
+        "implementing",
+        "verifying",
+        "rework",
+        "awaiting_review",
+        "done",
+        "escalated",
+        "superseded"
+      ]
     },
     "plan_revision": {
       "type": "integer",
@@ -34,11 +44,11 @@
       "properties": {
         "source_commit": {
           "type": "string",
-          "pattern": "[0-9a-f]{40}"
+          "pattern": "^[0-9a-f]{40}$"
         },
         "digest": {
           "type": "string",
-          "pattern": "[0-9a-f]{64}"
+          "pattern": "^[0-9a-f]{64}$"
         },
         "path": {
           "type": "string",
@@ -109,7 +119,7 @@
         },
         "context_digest": {
           "type": "string",
-          "pattern": "[0-9a-f]{64}"
+          "pattern": "^[0-9a-f]{64}$"
         },
         "read_documents": {
           "type": "array",
@@ -150,7 +160,7 @@
                 "minItems": 1,
                 "items": {
                   "type": "string",
-                  "pattern": "https://.+"
+                  "pattern": "^https://.+$"
                 }
               },
               "notes": {
@@ -180,10 +190,7 @@
         "latest_handoff_read",
         "documentation_sources"
       ],
-      "additionalProperties": false,
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$id": "https://github.com/d3hl/contract-master/contracts/v1/plan.schema.json",
-      "title": "plan"
+      "additionalProperties": false
     },
     "attempt": {
       "type": "integer",
@@ -198,7 +205,7 @@
     },
     "execution_policy_digest": {
       "type": "string",
-      "pattern": "[0-9a-f]{64}"
+      "pattern": "^[0-9a-f]{64}$"
     },
     "check_commands": {
       "type": "array",

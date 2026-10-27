@@ -19,11 +19,11 @@
     },
     "context_digest": {
       "type": "string",
-      "pattern": "[0-9a-f]{64}"
+      "pattern": "^[0-9a-f]{64}$"
     },
     "output_commit": {
       "type": "string",
-      "pattern": "[0-9a-f]{40}"
+      "pattern": "^[0-9a-f]{40}$"
     },
     "change_summary": {
       "type": "string",
@@ -40,7 +40,7 @@
           },
           "commit": {
             "type": "string",
-            "pattern": "[0-9a-f]{40}"
+            "pattern": "^[0-9a-f]{40}$"
           },
           "passed": {
             "type": "boolean"
