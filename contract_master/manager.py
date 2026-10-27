@@ -4,11 +4,29 @@ import json
 import os
 import uuid
 from pathlib import Path
-from . import context
+from . import context, phases
 from .contracts import ContractError, digest, safe_path, validate, within
 from .store import Store
 
+# Fields whose change makes a new task revision. Comments, labels and status do not.
+MATERIAL_FIELDS = ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria",
+                   "required_checks")
+
+
+def revision_of(issue):
+    return digest({k: issue[k] for k in MATERIAL_FIELDS})
+
+
 REQUIRED_CAPABILITIES = {"read_files", "edit_files", "execute_commands", "git", "structured_results"}
+MERGE_FIELDS = ("accepted_commit", "merged_commit", "human_reviewer", "human_merger", "pr_url")
+
+
+def queue_comment(db, key, identifier, body):
+    Store.enqueue(db, key, identifier, {"kind": "comment", "body": body})
+
+
+def queue_status(db, key, identifier, state):
+    Store.enqueue(db, key, identifier, {"kind": "status", "state": state})
 
 
 class Manager:
@@ -35,7 +53,7 @@ class Manager:
                 raise ContractError("Issue cannot expand registered scope")
         if not set(issue["required_checks"]).issubset(repo["checks"]):
             raise ContractError("Issue cannot introduce commands")
-        material = {k: issue[k] for k in ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")}
+        material = {k: issue[k] for k in MATERIAL_FIELDS}
         revision = digest(material)
         task_id = "task-" + digest([issue["issue_id"], revision])[:24]
         with self.store.transaction() as db:
@@ -60,32 +78,38 @@ class Manager:
             if active:
                 task = json.loads(active[0])
                 task["blocked"] = reason
-                task["needs_replan"] = task["revision"] != revision
                 if task["revision"] == revision:
                     task["issue"] = issue
-                if task["revision"] != revision:
+                    task["needs_replan"] = False
+                else:
                     task["needs_replan"] = True
                     reason = "Material revision: settle current worker, then replan"
                 Store.save(db, task)
                 return {"queued": False, "task_id": task["id"], "reason": reason or "Existing execution"}
-            existing = db.execute("SELECT id FROM tasks WHERE issue=? AND revision=?", (issue["issue_id"], revision)).fetchone()
+            existing = db.execute("SELECT id FROM tasks WHERE issue=? AND revision=?",
+                                  (issue["issue_id"], revision)).fetchone()
             if existing:
                 return {"queued": False, "task_id": existing[0], "reason": "Revision already accounted for"}
             if reason:
-                Store.enqueue(db, "triage:" + digest([material, reason]), issue["identifier"], {"kind": "comment", "body": "TRIAGE: " + reason})
+                queue_comment(db, "triage:" + digest([material, reason]), issue["identifier"], "TRIAGE: " + reason)
                 return {"queued": False, "reason": reason}
             task = {"id": task_id, "issue": issue, "revision": revision, "phase": "planning", "plan_revision": 0,
-                    "attempt": 0, "policy": copy.deepcopy(repo), "policy_digest": digest(repo), "context": None, "output_commit": None, "verification": None,
-                    "needs_replan": False, "blocked": None, "workspace": None, "branch": None}
-            db.execute("INSERT INTO tasks VALUES(?,?,?,?,?)", (task_id, issue["issue_id"], revision, 1, json.dumps(task)))
-            Store.enqueue(db, task_id + ":triage", issue["identifier"], {"kind": "comment", "body": "TRIAGE: eligible; Codex planning. " + task_id})
+                    "attempt": 0, "policy": copy.deepcopy(repo), "policy_digest": digest(repo), "context": None,
+                    "output_commit": None, "verification": None, "needs_replan": False, "blocked": None,
+                    "workspace": None, "branch": None}
+            db.execute("INSERT INTO tasks VALUES(?,?,?,?,?)",
+                       (task_id, issue["issue_id"], revision, 1, json.dumps(task)))
+            queue_comment(db, task_id + ":triage", issue["identifier"], "TRIAGE: eligible; Codex planning. " + task_id)
             return {"queued": True, "task_id": task_id}
 
     @staticmethod
     def _dependency(db, issue_id, status, updated_at):
         if status not in ("open", "done", "canceled"):
             raise ContractError("Unknown dependency status")
-        db.execute("INSERT INTO dependencies VALUES(?,?,?) ON CONFLICT(issue) DO UPDATE SET status=excluded.status, updated_at=excluded.updated_at WHERE excluded.updated_at >= dependencies.updated_at", (issue_id, status, updated_at))
+        # Newer-or-equal provider timestamps win; an older read never overwrites.
+        db.execute("INSERT INTO dependencies VALUES(?,?,?) ON CONFLICT(issue) DO UPDATE"
+                   " SET status=excluded.status, updated_at=excluded.updated_at"
+                   " WHERE excluded.updated_at >= dependencies.updated_at", (issue_id, status, updated_at))
 
     def dependency(self, issue_id, status, updated_at):
         with self.store.transaction() as db:
@@ -110,7 +134,7 @@ class Manager:
         workspace = os.path.normcase(str(Path(workspace).resolve()))
         with self.store.transaction() as db:
             task = Store.task(db, task_id)
-            if task["phase"] in ("done", "escalated", "superseded"):
+            if task["phase"] in phases.SETTLED:
                 raise ContractError("Task is settled")
             current = db.execute("SELECT * FROM ownership WHERE task=?", (task_id,)).fetchone()
             if current:
@@ -126,13 +150,12 @@ class Manager:
             Store.save(db, task)
             return token
 
-    def _owned(self, db, task_id, token, phases=None, allow_blocked=False):
+    def _owned(self, db, task_id, token, operation, allow_blocked=False):
         row = db.execute("SELECT * FROM ownership WHERE task=? AND token=?", (task_id, token)).fetchone()
         if not row:
             raise ContractError("Stale or absent ownership token")
         task = Store.task(db, task_id)
-        if phases and task["phase"] not in phases:
-            raise ContractError("Invalid phase: " + task["phase"])
+        phases.check(operation, task["phase"])
         if not allow_blocked:
             for dep in task["issue"]["dependencies"]:
                 status = db.execute("SELECT status FROM dependencies WHERE issue=?", (dep,)).fetchone()
@@ -144,7 +167,7 @@ class Manager:
 
     def pin_context(self, task_id, token, reference):
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["planning"])
+            task = self._owned(db, task_id, token, "pin_context")
             repo = task["policy"]
             if reference["source_commit"] not in self.registry["reviewed_master_commits"]:
                 raise ContractError("Unreviewed master commit")
@@ -157,7 +180,7 @@ class Manager:
     def record_plan(self, task_id, token, plan):
         validate("plan", plan)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["planning"])
+            task = self._owned(db, task_id, token, "record_plan")
             self._binding(task, plan)
             repo = task["policy"]
             context.load(task["context"], repo["required_context"])
@@ -167,15 +190,19 @@ class Manager:
             if plan["revision"] != task["plan_revision"] + 1:
                 raise ContractError("Plan revision mismatch")
             for library, version in repo.get("dependency_versions", {}).items():
-                if not any(d["library_id"] == library and d["version"] == version for d in plan["documentation_sources"]):
+                sources = plan["documentation_sources"]
+                if not any(d["library_id"] == library and d["version"] == version for d in sources):
                     raise ContractError("Context7 documentation for installed dependency version is required")
-            task.update(plan=plan, plan_revision=plan["revision"], phase="ready")
+            task.update(plan=plan, plan_revision=plan["revision"])
+            phases.advance(task, "ready")
             Store.save(db, task)
-            Store.enqueue(db, task_id + ":plan:" + str(plan["revision"]), task["issue"]["identifier"], {"kind": "comment", "body": "PLAN\n" + json.dumps(plan, indent=2)})
+            queue_comment(db, task_id + ":plan:" + str(plan["revision"]), task["issue"]["identifier"],
+                    "PLAN\n" + json.dumps(plan, indent=2))
 
     @staticmethod
     def _binding(task, report):
-        if report["task_id"] != task["id"] or not task["context"] or report["context_digest"] != task["context"]["digest"]:
+        context_ref = task["context"]
+        if report["task_id"] != task["id"] or not context_ref or report["context_digest"] != context_ref["digest"]:
             raise ContractError("Report identity/context mismatch")
         if "plan_revision" in report and report["plan_revision"] != task["plan_revision"]:
             raise ContractError("Report plan mismatch")
@@ -183,19 +210,21 @@ class Manager:
     def prepare_dispatch(self, task_id, token, runner, live=False):
         validate("runner", runner)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["ready", "rework"])
+            task = self._owned(db, task_id, token, "prepare_dispatch")
             repo = task["policy"]
             if runner["role"] != "deepseek" or not REQUIRED_CAPABILITIES.issubset(runner["capabilities"]):
                 raise ContractError("Unsupported implementation runner capabilities")
             if runner["id"] != repo["implementation_runner"]:
                 raise ContractError("Runner is not registered for this repository")
-            if live and (not self.registry["automation_enabled"] or not runner["enabled"] or runner["mode"] != "live" or not repo["merge_gate_audited"]):
+            gates_open = (self.registry["automation_enabled"] and runner["enabled"] and runner["mode"] == "live"
+                          and repo["merge_gate_audited"])
+            if live and not gates_open:
                 raise ContractError("Live activation gates are not satisfied")
             context.load(task["context"], repo["required_context"])
             if task["attempt"] >= 2:
                 raise ContractError("Implementation attempt limit reached")
             task["attempt"] += 1
-            task["phase"] = "implementing"
+            phases.advance(task, "implementing")
             task["dispatch_mode"] = "live" if live else "simulated"
             task["dispatch_request_id"] = str(uuid.uuid4())
             Store.save(db, task)
@@ -203,15 +232,17 @@ class Manager:
 
     @staticmethod
     def envelope(task):
-        result = {"version": "1.0", "task_id": task["id"], "issue_id": task["issue"]["issue_id"],
-                  "repo_id": task["issue"]["repo_id"], "base_commit": task["issue"]["base_commit"],
+        issue, checks = task["issue"], task["policy"]["checks"]
+        result = {"version": "1.0", "task_id": task["id"], "issue_id": issue["issue_id"],
+                  "repo_id": issue["repo_id"], "base_commit": issue["base_commit"],
                   "phase": task["phase"], "plan_revision": task["plan_revision"], "context": task["context"],
-                  "allowed_scope": task["issue"]["allowed_scope"], "acceptance_criteria": task["issue"]["acceptance_criteria"],
-                  "required_checks": task["issue"]["required_checks"], "plan": task["plan"], "attempt": task["attempt"],
+                  "allowed_scope": issue["allowed_scope"], "acceptance_criteria": issue["acceptance_criteria"],
+                  "required_checks": issue["required_checks"], "plan": task["plan"], "attempt": task["attempt"],
                   "corrections": (task.get("verification") or {}).get("corrections", []),
                   "execution_policy_digest": task["policy_digest"],
-                  "check_commands": [{"id": check_id, "argv": task["policy"]["checks"][check_id]["argv"],
-                      "timeout_seconds": task["policy"]["checks"][check_id].get("timeout_seconds", 120)} for check_id in task["issue"]["required_checks"]]}
+                  "check_commands": [{"id": check_id, "argv": checks[check_id]["argv"],
+                                      "timeout_seconds": checks[check_id].get("timeout_seconds", 120)}
+                                     for check_id in issue["required_checks"]]}
         return validate("task", result)
 
     @staticmethod
@@ -225,7 +256,7 @@ class Manager:
     def implementation(self, task_id, token, result):
         validate("implementation-result", result)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["implementing"])
+            task = self._owned(db, task_id, token, "implementation")
             self._binding(task, result)
             if result["attempt"] != task["attempt"]:
                 raise ContractError("Stale implementation attempt")
@@ -233,15 +264,17 @@ class Manager:
                 if not within(path, task["issue"]["allowed_scope"]):
                     raise ContractError("Reported changes exceed allowed scope")
             self._checks(task, result["tests"], result["output_commit"], require_pass=False)
-            task.update(implementation=result, output_commit=result["output_commit"], phase="verifying", verification=None)
+            task.update(implementation=result, output_commit=result["output_commit"], verification=None)
+            phases.advance(task, "verifying")
             Store.save(db, task)
             if all(c["passed"] for c in result["tests"]):
-                Store.enqueue(db, task_id + ":review:" + result["output_commit"], task["issue"]["identifier"], {"kind": "status", "state": "In Review"})
+                queue_status(db, task_id + ":review:" + result["output_commit"], task["issue"]["identifier"],
+                             "In Review")
 
     def verify(self, task_id, token, result):
         validate("verification-result", result)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["verifying"])
+            task = self._owned(db, task_id, token, "verify")
             self._binding(task, result)
             if result["reviewed_commit"] != task["output_commit"]:
                 raise ContractError("Verification commit is stale")
@@ -256,17 +289,22 @@ class Manager:
             if result["verdict"] == "rework" and not result["corrections"]:
                 raise ContractError("Rework needs actionable corrections")
             task["verification"] = result
-            task["phase"] = "awaiting_review" if result["verdict"] == "pass" else ("rework" if task["attempt"] < 2 else "escalated")
+            if result["verdict"] == "pass":
+                phases.advance(task, "awaiting_review")
+            else:
+                phases.advance(task, "rework" if task["attempt"] < 2 else "escalated")
             Store.save(db, task)
-            Store.enqueue(db, task_id + ":verification:" + digest(result), task["issue"]["identifier"], {"kind": "comment", "body": "VERIFICATION\n" + json.dumps(result, indent=2) + "\nNext phase: " + task["phase"]})
+            queue_comment(db, task_id + ":verification:" + digest(result), task["issue"]["identifier"],
+                    "VERIFICATION\n" + json.dumps(result, indent=2) + "\nNext phase: " + task["phase"])
 
     def observe_head(self, task_id, token, commit):
         if len(commit) != 40 or any(c not in "0123456789abcdef" for c in commit):
             raise ContractError("Expected full commit")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["verifying", "awaiting_review", "rework"])
+            task = self._owned(db, task_id, token, "observe_head")
             if task["output_commit"] != commit:
-                task.update(output_commit=commit, verification=None, merge_receipt=None, phase="verifying")
+                task.update(output_commit=commit, verification=None, merge_receipt=None)
+                phases.advance(task, "verifying")
                 Store.save(db, task)
 
     def confirm_merge(self, task_id, token, provider, pr_url):
@@ -278,7 +316,7 @@ class Manager:
         if set(receipt) != required or not all(isinstance(v, str) and v for v in receipt.values()):
             raise ContractError("Provider merge receipt is incomplete")
         with self.store.transaction() as db:
-            current = self._owned(db, task_id, token, ["awaiting_review"])
+            current = self._owned(db, task_id, token, "confirm_merge")
             if receipt["accepted_commit"] != current["output_commit"]:
                 raise ContractError("Provider head differs from currently verified commit")
             current["merge_receipt"] = receipt
@@ -288,24 +326,27 @@ class Manager:
     def complete(self, task_id, token, evidence):
         validate("completion", evidence)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["awaiting_review"])
+            task = self._owned(db, task_id, token, "complete")
             verification = task["verification"]
-            if evidence["task_id"] != task_id or not verification or verification["verdict"] != "pass" or evidence["accepted_commit"] != task["output_commit"]:
+            verified = bool(verification) and verification["verdict"] == "pass"
+            if evidence["task_id"] != task_id or not verified or evidence["accepted_commit"] != task["output_commit"]:
                 raise ContractError("Current verification and accepted commit required")
             receipt = task.get("merge_receipt")
-            if not receipt or any(evidence[k] != receipt[k] for k in ("accepted_commit", "merged_commit", "human_reviewer", "human_merger", "pr_url")):
+            if not receipt or any(evidence[k] != receipt[k] for k in MERGE_FIELDS):
                 raise ContractError("Independent provider confirmation of human review and merge required")
             self._checks(task, evidence["checks"], evidence["merged_commit"])
-            task.update(phase="done", completion=evidence)
+            task.update(completion=evidence)
+            phases.advance(task, "done")
             Store.save(db, task)
-            Store.enqueue(db, task_id + ":completion", task["issue"]["identifier"], {"kind": "comment", "body": "COMPLETION\n" + json.dumps(evidence, indent=2)})
-            Store.enqueue(db, task_id + ":done", task["issue"]["identifier"], {"kind": "status", "state": "Done"})
+            identifier = task["issue"]["identifier"]
+            queue_comment(db, task_id + ":completion", identifier, "COMPLETION\n" + json.dumps(evidence, indent=2))
+            queue_status(db, task_id + ":done", identifier, "Done")
 
     def release(self, task_id, token, settlement_evidence):
         if not settlement_evidence:
             raise ContractError("Positive Orca settlement evidence required")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["done", "escalated"], allow_blocked=True)
+            task = self._owned(db, task_id, token, "release", allow_blocked=True)
             task["release_evidence"] = settlement_evidence
             Store.save(db, task)
             db.execute("DELETE FROM ownership WHERE task=?", (task_id,))
@@ -316,7 +357,7 @@ class Manager:
         if set(receipt) != required or not all(isinstance(v, str) and v for v in receipt.values()):
             raise ContractError("Incomplete Orca authority receipt")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, allow_blocked=True)
+            task = self._owned(db, task_id, token, "record_orca_receipt", allow_blocked=True)
             if receipt["request_id"] != task.get("dispatch_request_id"):
                 raise ContractError("Orca receipt request differs from prepared attempt")
             task.setdefault("orca_receipts", []).append(receipt)
@@ -327,17 +368,19 @@ class Manager:
         if not settlement_evidence:
             raise ContractError("Settlement evidence required")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, allow_blocked=True)
+            task = self._owned(db, task_id, token, "supersede", allow_blocked=True)
             if not task["needs_replan"]:
                 raise ContractError("No material revision pending")
-            snapshot = db.execute("SELECT data FROM snapshots WHERE issue=?", (task["issue"]["issue_id"],)).fetchone()
+            snapshot = db.execute("SELECT data FROM snapshots WHERE issue=?",
+                                  (task["issue"]["issue_id"],)).fetchone()
             if not snapshot:
                 raise ContractError("Clarify incomplete issue before superseding its preserved identity")
             current = json.loads(snapshot[0])
-            revision = digest({k: current[k] for k in ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")})
+            revision = revision_of(current)
             if revision == task["revision"]:
                 raise ContractError("Unchanged revision must resume its existing identity")
-            task.update(phase="superseded", settlement_evidence=settlement_evidence)
+            task.update(settlement_evidence=settlement_evidence)
+            phases.advance(task, "superseded")
             Store.save(db, task)
             db.execute("DELETE FROM ownership WHERE task=?", (task_id,))
         return self.reconsider()
@@ -345,14 +388,18 @@ class Manager:
     def handoff(self, task_id, token, report):
         validate("handoff", report)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, allow_blocked=True)
-            if report["task_id"] != task_id or report["phase"] != task["phase"] or os.path.normcase(str(Path(report["workspace"]).resolve())) != task["workspace"] or report["branch"] != task["branch"]:
+            task = self._owned(db, task_id, token, "handoff", allow_blocked=True)
+            workspace = os.path.normcase(str(Path(report["workspace"]).resolve()))
+            describes_task = (report["task_id"] == task_id and report["phase"] == task["phase"]
+                              and workspace == task["workspace"] and report["branch"] == task["branch"])
+            if not describes_task:
                 raise ContractError("HANDOFF does not describe authoritative task")
             owner = db.execute("SELECT owner FROM ownership WHERE task=?", (task_id,)).fetchone()[0]
             if report["owner"] != owner:
                 raise ContractError("HANDOFF owner mismatch")
             db.execute("INSERT OR REPLACE INTO handoffs VALUES(?,?)", (task_id, json.dumps(report)))
-            Store.enqueue(db, task_id + ":handoff:" + digest(report), task["issue"]["identifier"], {"kind": "comment", "body": "HANDOFF\n" + json.dumps(report, indent=2)})
+            queue_comment(db, task_id + ":handoff:" + digest(report), task["issue"]["identifier"],
+                    "HANDOFF\n" + json.dumps(report, indent=2))
         self.export_handoffs()
 
     def export_handoffs(self):

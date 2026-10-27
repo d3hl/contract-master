@@ -1,17 +1,11 @@
-import copy
-import json
 import subprocess
 import tempfile
 import unittest
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from contract_master import context
-from contract_master.adapters import Intake, LinearTransport, Orca, normalize
-from contract_master.contracts import ContractError, digest, validate
-from contract_master.evidence import inspect_checkout
 from contract_master.manager import Manager
-from contract_master.outbox import BeforeSendError, Outbox
+from contract_master.outbox import BeforeSendError
 
 A = "a" * 40
 B = "b" * 40

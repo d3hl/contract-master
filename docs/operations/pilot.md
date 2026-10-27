@@ -10,26 +10,29 @@
 - Work budget: one issue, one active writer, initial implementation plus one rework.
 - Human reviews and merges; Codex checks merged result before Done.
 
-The pilot is **not running**. Config files are proposals; no automation/worker has
-been launched. The API credential provided in chat was not used or stored. The
-bootstrap was implemented directly by Codex; simulations are not a DeepSeek run.
+The pilot is **not running**. No scheduled automation is installed. A separate
+user-authorized [DeepSeek/OpenCode capability probe](runner-verification.md) passed
+with its worker released. That probe used existing client authentication and did
+not store/provision credentials. It does not assert production eligibility.
 
 ## Activation gates
 
 1. Human reviews/merges the bootstrap. Record the reviewed master SHA, create a
    context bundle with `bundle SHA`, verify its digest and required documents.
-2. Verify the configured target base exists. The initial checkout has no commits
-   and `origin/main` does not yet exist; no executable issue may use a placeholder SHA.
-3. Choose a portable DeepSeek coding client and prove file reading/editing, command
-   execution, Git and structured output on the intended host. Capture real model and
-   client version, capability evidence, runner isolation and `op://` references.
-   Do not merely switch the simulated runner to live.
+2. Verify the configured target base and approved context. The bootstrap now exists
+   at commit `32e4e4630b237cb1a9c442355940bba1eb6a2dae` on `main`/`origin/main`;
+   its presence does not establish human review approval. No executable issue may
+   use a placeholder SHA.
+3. The OpenCode 2.1.4 capability probe passed. Before production, apply the verified
+   target-workspace model configuration, verify actual session model identity,
+   configure runner isolation and approved `op://` references. Keep the runner
+   disabled until the other gates pass.
 4. Recheck Linear context completeness and project pagination after any Orca upgrade.
    Blocking relation direction was verified live on the newly created D3S-99/100 pair
    and is covered by an adapter test.
 5. Audit Linear's GitHub/GitLab workflow automations. Disable any merge/PR rule that
-   can mark participating issues Done before final Codex confirmation. Use link-only
-   issue associations rather than closing references. Record a settings screenshot
+   can mark participating issues Done before final Codex confirmation. Use status-neutral `Related to D3S-123`
+   associations, and audit branch/title auto-linking as well as closing keywords. Record a settings screenshot
    or admin receipt and date; set `merge_gate_audited` only after verification.
 6. Audit required human review and human merge in the target host. Bots must not merge.
    The adapter requires an approval on the exact head, including after new commits.
@@ -40,12 +43,17 @@ bootstrap was implemented directly by Codex; simulations are not a DeepSeek run.
 8. Create one executable issue using the issue template and real base SHA. Observe
    all ten scenarios with simulated fault injection before widening registration.
 
+The [completion-automation audit](linear-status-audit.md) is complete and **fails**:
+D3S maps PR merge to Done, automatically closes parents and cancels stale work.
+No branch overrides are configured. Remediate the applicable rules and capture
+readback before this gate can pass; no settings were changed by the inspection.
+
 ## External configuration limits
 
 Installed Orca exposes scheduled automations and Linear issue APIs. The available
 Linear connector does not expose a verified setter for GitHub issue-status workflow
-automations, and no live DeepSeek coding integration is established. Consequently
-those settings are **not configured** by bootstrap. Automatic execution remains
+automations. A live DeepSeek capability probe is now verified; production
+configuration and the external status settings remain separate gates. Automatic execution remains
 blocked by default (`automation_enabled=false`, runner disabled,
 `merge_gate_audited=false`, empty reviewed commit allowlist). These are activation
 prerequisites, not extra plan approval for otherwise eligible work.

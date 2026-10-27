@@ -22,6 +22,12 @@ listings, rejects partial/capped required context and revisits stored waiting
 snapshots. It enqueues comments locally; `flush-one` is the separate serialized
 writer. Both are suitable for a bounded Orca coordinator turn.
 
+A failed or incomplete provider read (`ProviderError`) says nothing about the
+issue. That issue is skipped with `retry: true` in the output: no triage comment,
+no fencing of its active task. Other issues continue; a failed project listing
+still aborts the pass. Coordinators should surface issues that keep returning
+`retry`, since they never receive a triage comment.
+
 Live reads of new issues D3S-99 and D3S-100 verified the provider relation shape:
 `type: blocks`, `direction: inbound`, `relationship: blockedBy` blocks execution;
 `direction: outbound`, `relationship: blocks` identifies a downstream issue.

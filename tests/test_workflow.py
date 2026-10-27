@@ -1,46 +1,15 @@
 import copy
-import json
-import subprocess
-import tempfile
-import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from contract_master import context
-from contract_master.adapters import Intake, LinearTransport, Orca, normalize
-from contract_master.contracts import ContractError, digest, validate
+from contract_master.adapters import Orca
+from contract_master.contracts import ContractError
 from contract_master.evidence import inspect_checkout
 from contract_master.manager import Manager
-from contract_master.outbox import BeforeSendError, Outbox
+from contract_master.outbox import Outbox
 
-A = "a" * 40
-B = "b" * 40
-C = "c" * 40
-
-
-class FakeLinear:
-    """Deterministic transport; NOT a model run or proof of provider compatibility."""
-    def __init__(self):
-        self.messages = {}
-        self.calls = 0
-        self.offline = False
-        self.lose_ack = False
-
-    def send(self, entry):
-        if self.offline:
-            raise BeforeSendError("not sent")
-        self.calls += 1
-        self.messages[entry["key"]] = {"id": str(self.calls)}
-        if self.lose_ack:
-            self.lose_ack = False
-            raise TimeoutError("accepted but response lost")
-        return self.messages[entry["key"]]
-
-    def lookup(self, entry):
-        return self.messages.get(entry["key"])
-
-
-from support import WorkflowFixture
+from support import FakeLinear, WorkflowFixture, A, B, C
 
 
 class WorkflowTests(WorkflowFixture):
@@ -262,6 +231,19 @@ class WorkflowTests(WorkflowFixture):
         self.assertIn("src/parser.py", evidence["changed_files"])
         self.assertTrue(evidence["checks"][0]["passed"])
         with self.assertRaises(ContractError): inspect_checkout(self.master, self.commit, B, ["src"], {})
+
+    def test_independent_checkout_rejects_unrelated_base_and_times_out_checks(self):
+        (self.master / "src").mkdir()
+        (self.master / "src/parser.py").write_text("x = 1\n")
+        self.git("add", "."); self.git("commit", "-qm", "Implementation fixture")
+        output = self.git("rev-parse", "HEAD").strip()
+        hang = {"slow": {"argv": ["python3", "-c", "import time; time.sleep(30)"], "timeout_seconds": 1}}
+        evidence = inspect_checkout(self.master, self.commit, output, ["src"], hang)
+        self.assertEqual((evidence["checks"][0]["passed"], evidence["checks"][0]["evidence"]), (False, "timed out after 1 seconds"))
+        self.git("checkout", "-q", self.commit)
+        with self.assertRaises(ContractError) as caught:
+            inspect_checkout(self.master, output, self.commit, ["src"], {})
+        self.assertIn("does not descend", str(caught.exception))
 
     def test_dependency_reopening_fences_dispatch_without_new_identity(self):
         self.issue["dependencies"] = ["dependency"]

@@ -7,6 +7,10 @@ class BeforeSendError(ConnectionError):
     """Transport guarantees the remote write was never attempted."""
 
 
+def error_receipt(exc):
+    return json.dumps({"error": str(exc), "type": type(exc).__name__})
+
+
 class Outbox:
     def __init__(self, store):
         self.store = store
@@ -29,15 +33,17 @@ class Outbox:
                 receipt = transport.send(entry)
             except BeforeSendError as exc:
                 with self.store.transaction() as db:
-                    db.execute("UPDATE outbox SET status='pending',receipt=? WHERE sequence=?", (json.dumps({"error": str(exc), "type": type(exc).__name__}), entry["sequence"]))
+                    db.execute("UPDATE outbox SET status='pending',receipt=? WHERE sequence=?",
+                               (error_receipt(exc), entry["sequence"]))
                 return "offline"
             except Exception as exc:
                 with self.store.transaction() as db:
                     db.execute("UPDATE outbox SET receipt=? WHERE sequence=? AND status!='delivered'",
-                               (json.dumps({"error": str(exc), "type": type(exc).__name__}), entry["sequence"]))
+                               (error_receipt(exc), entry["sequence"]))
                 return "uncertain"
         with self.store.transaction() as db:
-            db.execute("UPDATE outbox SET status='delivered',receipt=? WHERE sequence=?", (json.dumps(receipt), entry["sequence"]))
+            db.execute("UPDATE outbox SET status='delivered',receipt=? WHERE sequence=?",
+                       (json.dumps(receipt), entry["sequence"]))
         return "delivered"
 
     def enqueue(self, key, issue, payload):

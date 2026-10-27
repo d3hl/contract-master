@@ -11,7 +11,17 @@
     },
     "phase": {
       "type": "string",
-      "minLength": 1
+      "enum": [
+        "planning",
+        "ready",
+        "implementing",
+        "verifying",
+        "rework",
+        "awaiting_review",
+        "done",
+        "escalated",
+        "superseded"
+      ]
     },
     "owner": {
       "type": "string",
@@ -27,7 +37,7 @@
     },
     "commit": {
       "type": "string",
-      "pattern": "[0-9a-f]{40}"
+      "pattern": "^[0-9a-f]{40}$"
     },
     "completed_work": {
       "type": "array",
