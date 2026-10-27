@@ -1,7 +1,5 @@
-import copy
 import json
-import unittest
-from contract_master.adapters import Intake, LinearTransport, Orca, normalize
+from contract_master.adapters import Intake, Orca, normalize, provider_status
 from contract_master.contracts import ContractError, ProviderError
 from contract_master.github import GitHub
 from support import WorkflowFixture, A, B, C
@@ -15,6 +13,11 @@ class AdapterTests(WorkflowFixture):
         value = {"issue": issue, "children": [], "relations": [], "comments": []}
         value.update(updates)
         return value
+
+    def test_provider_status_is_one_mapping(self):
+        cases = {"completed": "done", "canceled": "canceled", "duplicate": "canceled", "started": "open", "unstarted": "open"}
+        for state, status in cases.items():
+            self.assertEqual(provider_status(state), status)
 
     def test_normalize_real_orca_directional_dependency_shape(self):
         inbound = {"type": "blocks", "direction": "inbound", "relationship": "blockedBy", "relatedIssue": {"id": "dependency"}}

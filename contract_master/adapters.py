@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 from .contracts import ContractError, ProviderError, digest, validate
+from .outbox import BeforeSendError, Outbox
 
 
 class Orca:
@@ -68,6 +69,13 @@ class Orca:
                 "--retry-request", request_id, "--json"]}
 
 
+def provider_status(state_type):
+    """Map a Linear workflow state type to the manager's issue/dependency status."""
+    if state_type == "completed":
+        return "done"
+    return "canceled" if state_type in ("canceled", "duplicate") else "open"
+
+
 def normalize(full):
     issue = full["issue"]
     matches = re.findall(r"```contract-master\s*\n(.*?)\n```", issue.get("description") or "", re.S)
@@ -93,7 +101,7 @@ def normalize(full):
             raise ContractError("Unknown dependency relation shape")
     data.update(issue_id=issue["id"], identifier=issue["identifier"], project_id=issue["project"]["id"],
                 kind="tracking" if full.get("children") else "executable", dependencies=dependencies,
-                status="done" if state == "completed" else ("canceled" if state in ("canceled", "duplicate") else "open"),
+                status=provider_status(state),
                 updated_at=issue["updatedAt"])
     return validate("issue", data)
 
@@ -121,7 +129,7 @@ class Intake:
     def _triage(self, summary):
         full = self.orca.issue(summary["identifier"], self.workspace)
         state = full["issue"]["state"]["type"]
-        self.manager.dependency(summary["id"], "done" if state == "completed" else "open", full["issue"]["updatedAt"])
+        self.manager.dependency(summary["id"], provider_status(state), full["issue"]["updatedAt"])
         try:
             if full.get("children"):
                 raise ContractError("Tracking parent; executable children own the work")
@@ -131,14 +139,13 @@ class Intake:
                 if not references.get(dep):
                     raise ContractError("Dependency identifier missing from provider context")
                 dependency = self.orca.issue(references[dep], self.workspace)["issue"]
-                self.manager.dependency(dep, "done" if dependency["state"]["type"] == "completed" else "open", dependency["updatedAt"])
+                self.manager.dependency(dep, provider_status(dependency["state"]["type"]), dependency["updatedAt"])
             return self.manager.intake(snapshot)
         except ProviderError:
             raise
         except (ValueError, KeyError, TypeError) as exc:
             # Human-authored issues remain visible but cannot dispatch without complete scope.
             self.manager.invalidate_issue(summary["id"], str(exc))
-            from .outbox import Outbox
             Outbox(self.manager.store).enqueue("incomplete:" + digest([summary["id"], str(exc)]), summary["identifier"],
                 {"kind": "comment", "body": "TRIAGE: " + str(exc)})
             return {"queued": False, "reason": str(exc)}
@@ -167,7 +174,6 @@ class LinearTransport:
     def send(self, entry):
         payload = json.loads(entry["payload"])
         # Read first also handles a previous accepted write whose local ack was interrupted.
-        from .outbox import BeforeSendError
         try:
             existing = self.lookup(entry)
         except Exception as exc:

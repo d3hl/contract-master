@@ -1,6 +1,7 @@
 """One-shot manager operations; the Orca coordinator drives every next action."""
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 from . import context
@@ -73,6 +74,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (ContractError, OSError, ValueError, KeyError) as exc:
+    # SubprocessError covers failed or timed-out git/gh calls, so errors stay JSON.
+    except (ContractError, OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
         sys.exit(1)

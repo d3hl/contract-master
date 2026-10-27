@@ -8,6 +8,14 @@ from . import context, phases
 from .contracts import ContractError, digest, safe_path, validate, within
 from .store import Store
 
+# Fields whose change makes a new task revision. Comments, labels and status do not.
+MATERIAL_FIELDS = ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")
+
+
+def revision_of(issue):
+    return digest({k: issue[k] for k in MATERIAL_FIELDS})
+
+
 REQUIRED_CAPABILITIES = {"read_files", "edit_files", "execute_commands", "git", "structured_results"}
 
 
@@ -35,7 +43,7 @@ class Manager:
                 raise ContractError("Issue cannot expand registered scope")
         if not set(issue["required_checks"]).issubset(repo["checks"]):
             raise ContractError("Issue cannot introduce commands")
-        material = {k: issue[k] for k in ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")}
+        material = {k: issue[k] for k in MATERIAL_FIELDS}
         revision = digest(material)
         task_id = "task-" + digest([issue["issue_id"], revision])[:24]
         with self.store.transaction() as db:
@@ -337,7 +345,7 @@ class Manager:
             if not snapshot:
                 raise ContractError("Clarify incomplete issue before superseding its preserved identity")
             current = json.loads(snapshot[0])
-            revision = digest({k: current[k] for k in ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")})
+            revision = revision_of(current)
             if revision == task["revision"]:
                 raise ContractError("Unchanged revision must resume its existing identity")
             task.update(settlement_evidence=settlement_evidence)

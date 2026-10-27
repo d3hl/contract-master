@@ -11,7 +11,10 @@ def inspect_checkout(workspace, base, output, allowed_scope, checks):
         raise ContractError("Checkout HEAD differs from output commit")
     if git(workspace, "status", "--porcelain"):
         raise ContractError("Independent verification requires a clean checkout")
-    subprocess.run(["git", "-C", str(workspace), "merge-base", "--is-ancestor", base, output], check=True, capture_output=True)
+    ancestry = subprocess.run(["git", "-C", str(workspace), "merge-base", "--is-ancestor", base, output],
+                              capture_output=True, check=False)
+    if ancestry.returncode:
+        raise ContractError("Output commit does not descend from the task base")
     paths = git(workspace, "diff", "--name-only", "-z", base, output).decode().strip("\x00").split("\x00")
     for name in paths:
         if not name or not within(name, allowed_scope):
@@ -20,8 +23,15 @@ def inspect_checkout(workspace, base, output, allowed_scope, checks):
     diff = git(workspace, "diff", "--no-ext-diff", base, output).decode()
     results = []
     for check_id, config in checks.items():
-        run = subprocess.run(config["argv"], cwd=str(workspace), capture_output=True, text=True,
-                             timeout=config.get("timeout_seconds", 120), check=False)
+        timeout = config.get("timeout_seconds", 120)
+        try:
+            run = subprocess.run(config["argv"], cwd=str(workspace), capture_output=True, text=True,
+                                 timeout=timeout, check=False)
+        except subprocess.TimeoutExpired:
+            # A hung check is a failed check, not a crash of the verifier.
+            results.append({"id": check_id, "commit": output, "passed": False,
+                            "evidence": "timed out after " + str(timeout) + " seconds"})
+            continue
         results.append({"id": check_id, "commit": output, "passed": run.returncode == 0,
                         "evidence": (run.stdout + run.stderr).strip() or "exit=" + str(run.returncode)})
     if git(workspace, "rev-parse", "HEAD").decode().strip() != output or git(workspace, "status", "--porcelain"):
