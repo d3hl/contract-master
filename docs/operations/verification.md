@@ -27,19 +27,20 @@ created D3S-99/D3S-100 to establish dependency direction. Shared agent notes and
 were unavailable; neither was treated as evidence. A separate [live DeepSeek/OpenCode capability probe](runner-verification.md)
 subsequently passed 7 fixture and 38 repository checks independently at its output
 commit. Actual GitHub merge verification remains unperformed; no merge is
-authorized by the capability probe. Python 3.13 coverage is prepared in CI, not claimed as
-locally executed (local runtime is Python 3.9.25).
+authorized by the capability probe. Python 3.13 runs in CI only (local runtime is
+Python 3.9.25).
 
 Final local run: **38 tests passed** on Python 3.9.25 (42.229 seconds). CLI
 help/doctor, bytecode compilation, documentation-link, JSON, whitespace and
 credential-pattern checks also passed. Log: `.state/verification.log` (ignored).
 
-Post-bootstrap changes on branch `fix/phase-gates-provider-errors` add
+Post-bootstrap changes merged via PR #11 (`e5d69e4`) add
 `tests/test_phase_gates.py` (every operation × phase pair, transition table,
 rework cannot skip dispatch), `tests/test_schemas.py` (schema subset, phase enums,
 `jsonschema` cross-check), `tests/test_cli.py`, `tests/test_style.py` and adapter
 tests for provider read failures. Local run: **57 tests passed** on Python 3.9.25
-(about 71 seconds), with `jsonschema` 3.2.0 installed.
+(about 71 seconds), with `jsonschema` 3.2.0 installed. CI passed on Python 3.9
+and 3.13 with `jsonschema` 4.23.0.
 
 A live **read-only** reconciliation of the new project completed successfully:
 three ineligible/tracking issues, zero tasks, zero Linear writes, zero workers.
