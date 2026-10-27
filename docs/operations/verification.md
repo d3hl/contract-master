@@ -34,10 +34,12 @@ Final local run: **38 tests passed** on Python 3.9.25 (42.229 seconds). CLI
 help/doctor, bytecode compilation, documentation-link, JSON, whitespace and
 credential-pattern checks also passed. Log: `.state/verification.log` (ignored).
 
-Post-bootstrap (uncommitted) changes add `tests/test_phase_gates.py` (every
-operation × phase pair, transition table, rework cannot skip dispatch) and adapter
-tests for provider read failures. Local run on `23ec8b7` plus those changes:
-**45 tests passed** on Python 3.9.25 (about 62 seconds).
+Post-bootstrap changes on branch `fix/phase-gates-provider-errors` add
+`tests/test_phase_gates.py` (every operation × phase pair, transition table,
+rework cannot skip dispatch), `tests/test_schemas.py` (schema subset, phase enums,
+`jsonschema` cross-check), `tests/test_cli.py`, `tests/test_style.py` and adapter
+tests for provider read failures. Local run: **57 tests passed** on Python 3.9.25
+(about 71 seconds), with `jsonschema` 3.2.0 installed.
 
 A live **read-only** reconciliation of the new project completed successfully:
 three ineligible/tracking issues, zero tasks, zero Linear writes, zero workers.

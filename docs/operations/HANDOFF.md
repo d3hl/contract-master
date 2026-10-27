@@ -27,10 +27,11 @@
   `merge_gate_audited=false`, no reviewed context registered. No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
   merged on GitHub by account `d3adc3ii`; that is not recorded human-review evidence.
-- Local code changes (uncommitted, outside D3S-101): rework can no longer skip
-  dispatch via `observe-head`; provider read failures no longer post triage
-  comments or fence tasks; phase rules live in `contract_master/phases.py`.
-  45 tests pass.
+- Code changes on branch `fix/phase-gates-provider-errors` (outside D3S-101, not
+  yet reviewed): rework can no longer skip dispatch via `observe-head`; provider
+  read failures no longer post triage comments or fence tasks; phase rules live in
+  `contract_master/phases.py`; schema validation rejects unsupported keywords and
+  is cross-checked with `jsonschema` in CI. 57 tests pass.
 - Exact next action: review the team-wide impact and select a scoped remediation
   for merge → Done, automatic parent closure and stale cancellation. An admin
   should save the agreed rules, then Codex reads them back before accepting the
