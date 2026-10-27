@@ -3,7 +3,7 @@ import json
 import os
 import re
 import subprocess
-from .contracts import ContractError, digest, validate
+from .contracts import ContractError, ProviderError, digest, validate
 
 
 class Orca:
@@ -12,15 +12,18 @@ class Orca:
         self.executable = executable or os.environ.get("ORCA_CLI_COMMAND") or ("orca-dev" if os.environ.get("ORCA_DEV_REPO_ROOT") else "orca-ide")
 
     def call(self, *argv, body=None):
-        result = subprocess.run([self.executable, *argv, "--json"], input=body, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45, check=False)
+        try:
+            result = subprocess.run([self.executable, *argv, "--json"], input=body, text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45, check=False)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ProviderError("Orca CLI did not complete: " + type(exc).__name__) from exc
         try:
             value = json.loads(result.stdout)
         except ValueError as exc:
-            raise ContractError("Orca returned an unreadable receipt") from exc
+            raise ProviderError("Orca returned an unreadable receipt") from exc
         if result.returncode or not value.get("ok", True):
             # Keep typed error/nextSteps for exact recovery; never replay a mutation here.
-            raise ContractError(json.dumps(value.get("error", value)))
+            raise ProviderError(json.dumps(value.get("error", value)))
         return value.get("result", value)
 
     def project_issues(self, project, workspace):
@@ -31,25 +34,25 @@ class Orca:
                 args += ["--cursor", cursor]
             result = self.call(*args)
             if result.get("meta", {}).get("partial"):
-                raise ContractError("Partial project listing; reconciliation must retry")
+                raise ProviderError("Partial project listing; reconciliation must retry")
             yield from result["issues"]
             if not result.get("truncated", False) and not result.get("meta", {}).get("hasMore", False):
                 return
             next_cursor = result.get("nextCursor") or result.get("meta", {}).get("nextCursor")
             if not next_cursor or next_cursor == cursor:
-                raise ContractError("Truncated listing without progress cursor")
+                raise ProviderError("Truncated listing without progress cursor")
             cursor = next_cursor
 
     def issue(self, issue_id, workspace):
         result = self.call("linear", "issue", issue_id, "--workspace", workspace, "--full")
         meta = result.get("meta", {})
         if meta.get("partial") is not False or meta.get("includeErrors") != []:
-            raise ContractError("Incomplete issue context")
+            raise ProviderError("Incomplete issue context")
         for section in ("comments", "children", "relations"):
             details = meta.get("sections", {}).get(section, {})
             complete_key = "mayHaveMore" if section == "children" else "hasMore"
             if not isinstance(result.get(section), list) or details.get(complete_key) is not False or details.get("capReached") is not False:
-                raise ContractError("Required issue context is truncated")
+                raise ProviderError("Required issue context is truncated")
         return result
 
     def worker_command(self, task, orca_task_id, run_id, runner, request_id, workspace):
@@ -104,31 +107,41 @@ class Intake:
         projects = {p for r in self.manager.registry["repositories"].values() for p in r["linear_projects"]}
         outcomes = []
         for project in sorted(projects):
+            # A failed listing still aborts the pass: without it the project cannot be enumerated.
             for summary in self.orca.project_issues(project, self.workspace):
-                full = self.orca.issue(summary["identifier"], self.workspace)
-                state = full["issue"]["state"]["type"]
-                self.manager.dependency(summary["id"], "done" if state == "completed" else "open", full["issue"]["updatedAt"])
                 try:
-                    if full.get("children"):
-                        raise ContractError("Tracking parent; executable children own the work")
-                    snapshot = normalize(full)
-                    references = {r["relatedIssue"]["id"]: r["relatedIssue"].get("identifier") for r in full.get("relations", []) if "relatedIssue" in r}
-                    for dep in snapshot["dependencies"]:
-                        if not references.get(dep):
-                            raise ContractError("Dependency identifier missing from provider context")
-                        dependency = self.orca.issue(references[dep], self.workspace)["issue"]
-                        self.manager.dependency(dep, "done" if dependency["state"]["type"] == "completed" else "open", dependency["updatedAt"])
-                    outcomes.append(self.manager.intake(snapshot))
-                except (ValueError, KeyError, TypeError) as exc:
-                    # Human-authored issues remain visible but cannot dispatch without complete scope.
-                    self.manager.invalidate_issue(summary["id"], str(exc))
-                    from .outbox import Outbox
-                    Outbox(self.manager.store).enqueue("incomplete:" + digest([summary["id"], str(exc)]), summary["identifier"],
-                        {"kind": "comment", "body": "TRIAGE: " + str(exc)})
-                    outcomes.append({"queued": False, "reason": str(exc)})
-                    continue
+                    outcomes.append(self._triage(summary))
+                except ProviderError as exc:
+                    # A failed read says nothing about the issue: no comment, no fencing. The next pass retries.
+                    outcomes.append({"queued": False, "issue": summary.get("identifier"),
+                                     "reason": "Provider read failed: " + str(exc), "retry": True})
         outcomes.extend(self.manager.reconsider())
         return outcomes
+
+    def _triage(self, summary):
+        full = self.orca.issue(summary["identifier"], self.workspace)
+        state = full["issue"]["state"]["type"]
+        self.manager.dependency(summary["id"], "done" if state == "completed" else "open", full["issue"]["updatedAt"])
+        try:
+            if full.get("children"):
+                raise ContractError("Tracking parent; executable children own the work")
+            snapshot = normalize(full)
+            references = {r["relatedIssue"]["id"]: r["relatedIssue"].get("identifier") for r in full.get("relations", []) if "relatedIssue" in r}
+            for dep in snapshot["dependencies"]:
+                if not references.get(dep):
+                    raise ContractError("Dependency identifier missing from provider context")
+                dependency = self.orca.issue(references[dep], self.workspace)["issue"]
+                self.manager.dependency(dep, "done" if dependency["state"]["type"] == "completed" else "open", dependency["updatedAt"])
+            return self.manager.intake(snapshot)
+        except ProviderError:
+            raise
+        except (ValueError, KeyError, TypeError) as exc:
+            # Human-authored issues remain visible but cannot dispatch without complete scope.
+            self.manager.invalidate_issue(summary["id"], str(exc))
+            from .outbox import Outbox
+            Outbox(self.manager.store).enqueue("incomplete:" + digest([summary["id"], str(exc)]), summary["identifier"],
+                {"kind": "comment", "body": "TRIAGE: " + str(exc)})
+            return {"queued": False, "reason": str(exc)}
 
 
 class LinearTransport:

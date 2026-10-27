@@ -2,7 +2,7 @@
 import json
 import re
 import subprocess
-from .contracts import ContractError
+from .contracts import ContractError, ProviderError
 
 
 class GitHub:
@@ -10,7 +10,7 @@ class GitHub:
     def api(path):
         run = subprocess.run(["gh", "api", path], capture_output=True, text=True, timeout=45, check=False)
         if run.returncode:
-            raise ContractError("GitHub read failed; preserve review state")
+            raise ProviderError("GitHub read failed; preserve review state")
         return json.loads(run.stdout)
 
     def confirm(self, repository_url, pr_url, accepted_commit):

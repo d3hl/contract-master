@@ -4,7 +4,7 @@ import json
 import os
 import uuid
 from pathlib import Path
-from . import context
+from . import context, phases
 from .contracts import ContractError, digest, safe_path, validate, within
 from .store import Store
 
@@ -110,7 +110,7 @@ class Manager:
         workspace = os.path.normcase(str(Path(workspace).resolve()))
         with self.store.transaction() as db:
             task = Store.task(db, task_id)
-            if task["phase"] in ("done", "escalated", "superseded"):
+            if task["phase"] in phases.SETTLED:
                 raise ContractError("Task is settled")
             current = db.execute("SELECT * FROM ownership WHERE task=?", (task_id,)).fetchone()
             if current:
@@ -126,13 +126,12 @@ class Manager:
             Store.save(db, task)
             return token
 
-    def _owned(self, db, task_id, token, phases=None, allow_blocked=False):
+    def _owned(self, db, task_id, token, operation, allow_blocked=False):
         row = db.execute("SELECT * FROM ownership WHERE task=? AND token=?", (task_id, token)).fetchone()
         if not row:
             raise ContractError("Stale or absent ownership token")
         task = Store.task(db, task_id)
-        if phases and task["phase"] not in phases:
-            raise ContractError("Invalid phase: " + task["phase"])
+        phases.check(operation, task["phase"])
         if not allow_blocked:
             for dep in task["issue"]["dependencies"]:
                 status = db.execute("SELECT status FROM dependencies WHERE issue=?", (dep,)).fetchone()
@@ -144,7 +143,7 @@ class Manager:
 
     def pin_context(self, task_id, token, reference):
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["planning"])
+            task = self._owned(db, task_id, token, "pin_context")
             repo = task["policy"]
             if reference["source_commit"] not in self.registry["reviewed_master_commits"]:
                 raise ContractError("Unreviewed master commit")
@@ -157,7 +156,7 @@ class Manager:
     def record_plan(self, task_id, token, plan):
         validate("plan", plan)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["planning"])
+            task = self._owned(db, task_id, token, "record_plan")
             self._binding(task, plan)
             repo = task["policy"]
             context.load(task["context"], repo["required_context"])
@@ -169,7 +168,8 @@ class Manager:
             for library, version in repo.get("dependency_versions", {}).items():
                 if not any(d["library_id"] == library and d["version"] == version for d in plan["documentation_sources"]):
                     raise ContractError("Context7 documentation for installed dependency version is required")
-            task.update(plan=plan, plan_revision=plan["revision"], phase="ready")
+            task.update(plan=plan, plan_revision=plan["revision"])
+            phases.advance(task, "ready")
             Store.save(db, task)
             Store.enqueue(db, task_id + ":plan:" + str(plan["revision"]), task["issue"]["identifier"], {"kind": "comment", "body": "PLAN\n" + json.dumps(plan, indent=2)})
 
@@ -183,7 +183,7 @@ class Manager:
     def prepare_dispatch(self, task_id, token, runner, live=False):
         validate("runner", runner)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["ready", "rework"])
+            task = self._owned(db, task_id, token, "prepare_dispatch")
             repo = task["policy"]
             if runner["role"] != "deepseek" or not REQUIRED_CAPABILITIES.issubset(runner["capabilities"]):
                 raise ContractError("Unsupported implementation runner capabilities")
@@ -195,7 +195,7 @@ class Manager:
             if task["attempt"] >= 2:
                 raise ContractError("Implementation attempt limit reached")
             task["attempt"] += 1
-            task["phase"] = "implementing"
+            phases.advance(task, "implementing")
             task["dispatch_mode"] = "live" if live else "simulated"
             task["dispatch_request_id"] = str(uuid.uuid4())
             Store.save(db, task)
@@ -225,7 +225,7 @@ class Manager:
     def implementation(self, task_id, token, result):
         validate("implementation-result", result)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["implementing"])
+            task = self._owned(db, task_id, token, "implementation")
             self._binding(task, result)
             if result["attempt"] != task["attempt"]:
                 raise ContractError("Stale implementation attempt")
@@ -233,7 +233,8 @@ class Manager:
                 if not within(path, task["issue"]["allowed_scope"]):
                     raise ContractError("Reported changes exceed allowed scope")
             self._checks(task, result["tests"], result["output_commit"], require_pass=False)
-            task.update(implementation=result, output_commit=result["output_commit"], phase="verifying", verification=None)
+            task.update(implementation=result, output_commit=result["output_commit"], verification=None)
+            phases.advance(task, "verifying")
             Store.save(db, task)
             if all(c["passed"] for c in result["tests"]):
                 Store.enqueue(db, task_id + ":review:" + result["output_commit"], task["issue"]["identifier"], {"kind": "status", "state": "In Review"})
@@ -241,7 +242,7 @@ class Manager:
     def verify(self, task_id, token, result):
         validate("verification-result", result)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["verifying"])
+            task = self._owned(db, task_id, token, "verify")
             self._binding(task, result)
             if result["reviewed_commit"] != task["output_commit"]:
                 raise ContractError("Verification commit is stale")
@@ -256,7 +257,7 @@ class Manager:
             if result["verdict"] == "rework" and not result["corrections"]:
                 raise ContractError("Rework needs actionable corrections")
             task["verification"] = result
-            task["phase"] = "awaiting_review" if result["verdict"] == "pass" else ("rework" if task["attempt"] < 2 else "escalated")
+            phases.advance(task, "awaiting_review" if result["verdict"] == "pass" else ("rework" if task["attempt"] < 2 else "escalated"))
             Store.save(db, task)
             Store.enqueue(db, task_id + ":verification:" + digest(result), task["issue"]["identifier"], {"kind": "comment", "body": "VERIFICATION\n" + json.dumps(result, indent=2) + "\nNext phase: " + task["phase"]})
 
@@ -264,9 +265,10 @@ class Manager:
         if len(commit) != 40 or any(c not in "0123456789abcdef" for c in commit):
             raise ContractError("Expected full commit")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["verifying", "awaiting_review", "rework"])
+            task = self._owned(db, task_id, token, "observe_head")
             if task["output_commit"] != commit:
-                task.update(output_commit=commit, verification=None, merge_receipt=None, phase="verifying")
+                task.update(output_commit=commit, verification=None, merge_receipt=None)
+                phases.advance(task, "verifying")
                 Store.save(db, task)
 
     def confirm_merge(self, task_id, token, provider, pr_url):
@@ -278,7 +280,7 @@ class Manager:
         if set(receipt) != required or not all(isinstance(v, str) and v for v in receipt.values()):
             raise ContractError("Provider merge receipt is incomplete")
         with self.store.transaction() as db:
-            current = self._owned(db, task_id, token, ["awaiting_review"])
+            current = self._owned(db, task_id, token, "confirm_merge")
             if receipt["accepted_commit"] != current["output_commit"]:
                 raise ContractError("Provider head differs from currently verified commit")
             current["merge_receipt"] = receipt
@@ -288,7 +290,7 @@ class Manager:
     def complete(self, task_id, token, evidence):
         validate("completion", evidence)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["awaiting_review"])
+            task = self._owned(db, task_id, token, "complete")
             verification = task["verification"]
             if evidence["task_id"] != task_id or not verification or verification["verdict"] != "pass" or evidence["accepted_commit"] != task["output_commit"]:
                 raise ContractError("Current verification and accepted commit required")
@@ -296,7 +298,8 @@ class Manager:
             if not receipt or any(evidence[k] != receipt[k] for k in ("accepted_commit", "merged_commit", "human_reviewer", "human_merger", "pr_url")):
                 raise ContractError("Independent provider confirmation of human review and merge required")
             self._checks(task, evidence["checks"], evidence["merged_commit"])
-            task.update(phase="done", completion=evidence)
+            task.update(completion=evidence)
+            phases.advance(task, "done")
             Store.save(db, task)
             Store.enqueue(db, task_id + ":completion", task["issue"]["identifier"], {"kind": "comment", "body": "COMPLETION\n" + json.dumps(evidence, indent=2)})
             Store.enqueue(db, task_id + ":done", task["issue"]["identifier"], {"kind": "status", "state": "Done"})
@@ -305,7 +308,7 @@ class Manager:
         if not settlement_evidence:
             raise ContractError("Positive Orca settlement evidence required")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, ["done", "escalated"], allow_blocked=True)
+            task = self._owned(db, task_id, token, "release", allow_blocked=True)
             task["release_evidence"] = settlement_evidence
             Store.save(db, task)
             db.execute("DELETE FROM ownership WHERE task=?", (task_id,))
@@ -316,7 +319,7 @@ class Manager:
         if set(receipt) != required or not all(isinstance(v, str) and v for v in receipt.values()):
             raise ContractError("Incomplete Orca authority receipt")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, allow_blocked=True)
+            task = self._owned(db, task_id, token, "record_orca_receipt", allow_blocked=True)
             if receipt["request_id"] != task.get("dispatch_request_id"):
                 raise ContractError("Orca receipt request differs from prepared attempt")
             task.setdefault("orca_receipts", []).append(receipt)
@@ -327,7 +330,7 @@ class Manager:
         if not settlement_evidence:
             raise ContractError("Settlement evidence required")
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, allow_blocked=True)
+            task = self._owned(db, task_id, token, "supersede", allow_blocked=True)
             if not task["needs_replan"]:
                 raise ContractError("No material revision pending")
             snapshot = db.execute("SELECT data FROM snapshots WHERE issue=?", (task["issue"]["issue_id"],)).fetchone()
@@ -337,7 +340,8 @@ class Manager:
             revision = digest({k: current[k] for k in ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")})
             if revision == task["revision"]:
                 raise ContractError("Unchanged revision must resume its existing identity")
-            task.update(phase="superseded", settlement_evidence=settlement_evidence)
+            task.update(settlement_evidence=settlement_evidence)
+            phases.advance(task, "superseded")
             Store.save(db, task)
             db.execute("DELETE FROM ownership WHERE task=?", (task_id,))
         return self.reconsider()
@@ -345,7 +349,7 @@ class Manager:
     def handoff(self, task_id, token, report):
         validate("handoff", report)
         with self.store.transaction() as db:
-            task = self._owned(db, task_id, token, allow_blocked=True)
+            task = self._owned(db, task_id, token, "handoff", allow_blocked=True)
             if report["task_id"] != task_id or report["phase"] != task["phase"] or os.path.normcase(str(Path(report["workspace"]).resolve())) != task["workspace"] or report["branch"] != task["branch"]:
                 raise ContractError("HANDOFF does not describe authoritative task")
             owner = db.execute("SELECT owner FROM ownership WHERE task=?", (task_id,)).fetchone()[0]

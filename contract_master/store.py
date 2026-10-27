@@ -3,6 +3,7 @@ import json
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
+from .phases import SETTLED
 
 
 class Store:
@@ -57,7 +58,7 @@ class Store:
     @staticmethod
     def save(db, task):
         db.execute("UPDATE tasks SET data=?,active=? WHERE id=?",
-                   (json.dumps(task), int(task['phase'] not in ('done', 'escalated', 'superseded')), task['id']))
+                   (json.dumps(task), int(task['phase'] not in SETTLED), task['id']))
 
     @staticmethod
     def enqueue(db, key, issue, payload):

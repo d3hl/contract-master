@@ -10,6 +10,10 @@ class ContractError(ValueError):
     pass
 
 
+class ProviderError(ContractError):
+    """A provider call failed or returned incomplete data. Says nothing about the issue itself."""
+
+
 def digest(value):
     import hashlib
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
