@@ -2,9 +2,15 @@
   "version": "1.0",
   "id": "deepseek-portable",
   "role": "deepseek",
-  "mode": "simulated",
-  "capabilities": ["read_files", "edit_files", "execute_commands", "git", "structured_results"],
-  "evidence": "Simulation only: tests validate the portable envelope. No real model/client capability or account has been verified.",
-  "agent": "unconfigured",
+  "mode": "live",
+  "capabilities": [
+    "read_files",
+    "edit_files",
+    "execute_commands",
+    "git",
+    "structured_results"
+  ],
+  "evidence": "Verified real OpenCode 2.1.4 / OpenRouter deepseek/deepseek-v4.1-flash-1017 capability run at f381bb8126a25ba0e7c90420372ed7ea8afbd101. Independent 7 probe and 38 repository tests passed; schema and read proof validated. See docs/operations/runner-verification.md. Production disabled pending audited Linear settings, reviewed context and runner isolation/credential setup.",
+  "agent": "opencode2",
   "enabled": false
 }

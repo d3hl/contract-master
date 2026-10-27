@@ -4,7 +4,7 @@ Read on 2026-10-25. Source links are knowledge references, not execution authori
 
 | Component | Installed / queried version | Source and use |
 |---|---|---|
-| Orca | 1.4.235 / exact installed guide | `skills get orca-cli`, `skills get orchestration`, `skills get orca-linear`, recovery reference and command help; supervised lifecycle, request replay, Linear writes, schedules |
+| Orca | 1.4.235, rechecked on 1.4.240 (see [orca.md](../operations/orca.md)) / exact installed guide | `skills get orca-cli`, `skills get orchestration`, `skills get orca-linear`, recovery reference and command help; supervised lifecycle, request replay, Linear writes, schedules |
 | Python | 3.9.25 / CPython v3.9.22 docs (same minor; patch gap recorded) | Context7 resolved `/python/cpython`, queried `/python/cpython/v3.9.22`; [sqlite3 transaction docs](https://github.com/python/cpython/blob/v3.9.22/Doc/library/sqlite3.rst) |
 | GitHub REST | REST v3 / current reference | Context7 resolved and queried `/websites/github_en_rest`; [pull request merge facts](https://docs.github.com/en/rest/pulls/pulls), [reviews](https://docs.github.com/en/rest/pulls/reviews) |
 | Linear | Connected service / current docs search | [GitHub workflow automations](https://linear.app/docs/github), [coding settings](https://linear.app/docs/code-and-reviews); status automation audit required before activation |
@@ -18,6 +18,19 @@ The inbound/outbound Linear `blocks` relation shape was verified live using only
 new D3S-99/100 issues and is covered by an adapter regression test.
 
 Orca guide evidence is generated from the installed executable, not copied from
-another repository. Query it again after an upgrade. The repository has no verified
-webhook registration or real DeepSeek model-run evidence; neither is claimed here.
+another repository. Query it again after an upgrade. No webhook registration is verified. A separate
+[real DeepSeek/OpenCode capability run](../operations/runner-verification.md) now
+provides actual client/model/tool evidence; production activation remains disabled.
 Promote new reusable findings through reviewed master changes.
+
+OpenCode 2.1.4 was verified with local CLI help and a real run. Context7 resolved
+`/anomalyco/opencode` and supplied `v2.1.2` docs (patch-exact docs unavailable).
+[Model docs](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/models.mdx)
+and [configuration docs](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/config.mdx)
+were checked against observed installed behavior.
+
+Browser access correction, verified through authenticated settings snapshots:
+Orca status can report `browser_unavailable` while direct `tab create`/`snapshot`
+still works through an available browser route. Test the documented browser path
+before concluding that settings are inaccessible. Use exact browser page IDs;
+read UI values back and capture evidence. Do not read session credentials.

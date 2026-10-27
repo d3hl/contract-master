@@ -38,7 +38,8 @@ Linear: [Contract Master Automation](https://linear.app/d3space/project/contract
 tracking [D3S-98](https://linear.app/d3space/issue/D3S-98),
 implementation [D3S-99](https://linear.app/d3space/issue/D3S-99).
 
-The automation configuration is a disabled proposal. No live DeepSeek model run
-has been performed. Context pinning remains blocked until a human-reviewed master
-commit exists. [Activation gates](docs/operations/pilot.md) describe the remaining
+The automation configuration is a disabled proposal. A
+[real DeepSeek/OpenCode capability probe](docs/operations/runner-verification.md)
+passed; the production runner remains disabled. Context pinning remains blocked
+until a human-reviewed master commit is registered. [Activation gates](docs/operations/pilot.md) describe the remaining
 integration setup, including settings that exposed APIs cannot configure.

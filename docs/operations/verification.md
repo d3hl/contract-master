@@ -24,16 +24,28 @@ checkout/diff/test evidence. Failed acceptance evidence cannot be marked passing
 
 Live read-only verification used Orca 1.4.235's exact guides and full reads of newly
 created D3S-99/D3S-100 to establish dependency direction. Shared agent notes and Mem0
-were unavailable; neither was treated as evidence. Live model execution and actual
-GitHub merge verification remain unperformed because the pilot is disabled and
-there is no merged change. Python 3.13 coverage is prepared in CI, not claimed as
+were unavailable; neither was treated as evidence. A separate [live DeepSeek/OpenCode capability probe](runner-verification.md)
+subsequently passed 7 fixture and 38 repository checks independently at its output
+commit. Actual GitHub merge verification remains unperformed; no merge is
+authorized by the capability probe. Python 3.13 coverage is prepared in CI, not claimed as
 locally executed (local runtime is Python 3.9.25).
 
 Final local run: **38 tests passed** on Python 3.9.25 (42.229 seconds). CLI
 help/doctor, bytecode compilation, documentation-link, JSON, whitespace and
 credential-pattern checks also passed. Log: `.state/verification.log` (ignored).
 
+Post-bootstrap (uncommitted) changes add `tests/test_phase_gates.py` (every
+operation × phase pair, transition table, rework cannot skip dispatch) and adapter
+tests for provider read failures. Local run on `23ec8b7` plus those changes:
+**45 tests passed** on Python 3.9.25 (about 62 seconds).
+
 A live **read-only** reconciliation of the new project completed successfully:
 three ineligible/tracking issues, zero tasks, zero Linear writes, zero workers.
 It also exposed and fixed the installed Orca UUID-read limitation; a regression
 test preserves UUID task identity while using provider identifiers in the outbox.
+
+A subsequent [authenticated Linear settings inspection](linear-status-audit.md)
+read and captured the actual D3S default PR destinations, empty branch-override
+section, auto-close rules, disabled commit linking, empty GitHub issue-sync list,
+GitLab Enable state and paid-plan Loops gate. Inspection completed without changing
+settings; the completion gate fails on PR merge → Done and automatic parent closure.
