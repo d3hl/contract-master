@@ -3,9 +3,8 @@
 - Issue: [D3S-101](https://linear.app/d3space/issue/D3S-101), parent D3S-98.
 - Phase: inspection and verification complete; In Review. No Done transition.
 - Owner: human reviews evidence and remediation scope; Codex confirms resulting gates.
-- Workspace: manager `main` at `23ec8b7` (synced with `origin/main`, which merged
-  PR #8 runner probe and PR #9 D3S-99 review); documentation/config changes remain
-  uncommitted.
+- Workspace: manager `main` at `e5d69e4` (PR #8 runner probe, PR #9 D3S-99 review
+  and PR #11 manager fixes merged); the documentation/config changes are committed.
 - Runner: OpenCode 2.1.4 / Orca `opencode2`, actual OpenRouter
   `deepseek/deepseek-v4.1-flash-1017`. Probe commit
   `f381bb8126a25ba0e7c90420372ed7ea8afbd101` from `d3adc3II/deepseek-runner-probe`
@@ -27,8 +26,8 @@
   `merge_gate_audited=false`, no reviewed context registered. No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
   merged on GitHub by account `d3adc3ii`; that is not recorded human-review evidence.
-- Code changes on branch `fix/phase-gates-provider-errors` (outside D3S-101, not
-  yet reviewed): rework can no longer skip dispatch via `observe-head`; provider
+- Code changes merged via PR #11 (`e5d69e4`, outside D3S-101) by `d3adc3II` with
+  no recorded GitHub approval; CI passed on Python 3.9 and 3.13. Rework can no longer skip dispatch via `observe-head`; provider
   read failures no longer post triage comments or fence tasks; phase rules live in
   `contract_master/phases.py`; schema validation rejects unsupported keywords and
   is cross-checked with `jsonschema` in CI. 57 tests pass.
