@@ -10,64 +10,112 @@ from .contracts import ContractError, ROOT
 from .manager import Manager
 from .outbox import Outbox
 
+REPORT = ("task", "token", "file")
+SETTLEMENT = ("task", "token", "settlement_evidence")
+
+# Subcommand -> positional arguments, in help order.
+COMMANDS = {
+    "doctor": (),
+    "reconcile": (),
+    "flush-one": (),
+    "export-handoffs": (),
+    "intake": ("file",),
+    "inspect-checkout": ("task", "workspace", "commit"),
+    "show": ("task",),
+    "claim": ("task", "owner", "workspace", "branch"),
+    "pin-context": REPORT,
+    "plan": REPORT,
+    "implementation": REPORT,
+    "verify": REPORT,
+    "complete": REPORT,
+    "handoff": REPORT,
+    "orca-receipt": REPORT,
+    "prepare-dispatch": ("task", "token", "runner"),
+    "observe-head": ("task", "token", "commit"),
+    "confirm-merge": ("task", "token", "pr_url"),
+    "release": SETTLEMENT,
+    "supersede": SETTLEMENT,
+    "bundle": ("commit",),
+}
+
+# Commands that take (task, token, JSON report file).
+REPORT_METHODS = {
+    "pin-context": "pin_context",
+    "plan": "record_plan",
+    "implementation": "implementation",
+    "verify": "verify",
+    "complete": "complete",
+    "handoff": "handoff",
+    "orca-receipt": "record_orca_receipt",
+}
+
 
 def read(path):
     return json.loads(Path(path).read_text())
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--registry", default=str(ROOT / "config/registry.json"))
-    parser.add_argument("--database", default=str(ROOT / ".state/manager.sqlite3"))
-    sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("doctor")
-    sub.add_parser("reconcile")
-    sub.add_parser("flush-one")
-    sub.add_parser("export-handoffs")
-    p = sub.add_parser("intake"); p.add_argument("file")
-    p = sub.add_parser("inspect-checkout"); p.add_argument("task"); p.add_argument("workspace"); p.add_argument("commit")
-    p = sub.add_parser("show"); p.add_argument("task")
-    p = sub.add_parser("claim"); p.add_argument("task"); p.add_argument("owner"); p.add_argument("workspace"); p.add_argument("branch")
-    for name in ("pin-context", "plan", "implementation", "verify", "complete", "handoff", "orca-receipt"):
-        p = sub.add_parser(name); p.add_argument("task"); p.add_argument("token"); p.add_argument("file")
-    p = sub.add_parser("prepare-dispatch"); p.add_argument("task"); p.add_argument("token"); p.add_argument("runner"); p.add_argument("--live", action="store_true")
-    p = sub.add_parser("observe-head"); p.add_argument("task"); p.add_argument("token"); p.add_argument("commit")
-    p = sub.add_parser("confirm-merge"); p.add_argument("task"); p.add_argument("token"); p.add_argument("pr_url")
-    p = sub.add_parser("release"); p.add_argument("task"); p.add_argument("token"); p.add_argument("settlement_evidence")
-    p = sub.add_parser("supersede"); p.add_argument("task"); p.add_argument("token"); p.add_argument("settlement_evidence")
-    p = sub.add_parser("bundle"); p.add_argument("commit"); p.add_argument("--destination", default=str(ROOT / ".state/context"))
-    args = parser.parse_args()
+def parser():
+    root = argparse.ArgumentParser(description=__doc__)
+    root.add_argument("--registry", default=str(ROOT / "config/registry.json"))
+    root.add_argument("--database", default=str(ROOT / ".state/manager.sqlite3"))
+    sub = root.add_subparsers(dest="command", required=True)
+    for name, positionals in COMMANDS.items():
+        command = sub.add_parser(name)
+        for argument in positionals:
+            command.add_argument(argument)
+        if name == "prepare-dispatch":
+            command.add_argument("--live", action="store_true")
+        if name == "bundle":
+            command.add_argument("--destination", default=str(ROOT / ".state/context"))
+    return root
+
+
+def run(args):
     registry = read(args.registry)
     manager = Manager(args.database, registry)
-    result = None
-    if args.command == "doctor":
+    command = args.command
+    if command in REPORT_METHODS:
+        return getattr(manager, REPORT_METHODS[command])(args.task, args.token, read(args.file))
+    if command == "doctor":
         from .readiness import report
-        result = report(registry)
-    elif args.command == "bundle":
+        return report(registry)
+    if command == "bundle":
         docs = sorted({d for r in registry["repositories"].values() for d in r["required_context"]})
-        result = context.build(ROOT, args.commit, docs, args.destination, registry["reviewed_master_commits"])
-    elif args.command == "intake": result = manager.intake(read(args.file))
-    elif args.command == "inspect-checkout":
+        return context.build(ROOT, args.commit, docs, args.destination, registry["reviewed_master_commits"])
+    if command == "intake":
+        return manager.intake(read(args.file))
+    if command == "inspect-checkout":
         from .evidence import inspect_checkout
         task = manager.task(args.task)
-        check_configs = {key: task["policy"]["checks"][key] for key in task["issue"]["required_checks"]}
-        result = inspect_checkout(args.workspace, task["issue"]["base_commit"], args.commit, task["issue"]["allowed_scope"], check_configs)
-    elif args.command == "show": result = manager.task(args.task)
-    elif args.command == "claim": result = {"token": manager.claim(args.task, args.owner, args.workspace, args.branch)}
-    elif args.command == "prepare-dispatch": result = manager.prepare_dispatch(args.task, args.token, read(args.runner), args.live)
-    elif args.command == "observe-head": result = manager.observe_head(args.task, args.token, args.commit)
-    elif args.command == "confirm-merge":
+        issue = task["issue"]
+        checks = {key: task["policy"]["checks"][key] for key in issue["required_checks"]}
+        return inspect_checkout(args.workspace, issue["base_commit"], args.commit, issue["allowed_scope"], checks)
+    if command == "show":
+        return manager.task(args.task)
+    if command == "claim":
+        return {"token": manager.claim(args.task, args.owner, args.workspace, args.branch)}
+    if command == "prepare-dispatch":
+        return manager.prepare_dispatch(args.task, args.token, read(args.runner), args.live)
+    if command == "observe-head":
+        return manager.observe_head(args.task, args.token, args.commit)
+    if command == "confirm-merge":
         from .github import GitHub
-        result = manager.confirm_merge(args.task, args.token, GitHub(), args.pr_url)
-    elif args.command == "release": result = manager.release(args.task, args.token, args.settlement_evidence)
-    elif args.command == "supersede": result = manager.supersede(args.task, args.token, args.settlement_evidence)
-    elif args.command == "export-handoffs": result = manager.export_handoffs()
-    elif args.command == "reconcile": result = Intake(manager, Orca(), registry["linear_workspace"]).reconcile()
-    elif args.command == "flush-one": result = Outbox(manager.store).flush_one(LinearTransport(Orca(), registry["linear_workspace"]))
-    else:
-        methods = {"pin-context": manager.pin_context, "plan": manager.record_plan, "implementation": manager.implementation,
-                   "verify": manager.verify, "complete": manager.complete, "handoff": manager.handoff, "orca-receipt": manager.record_orca_receipt}
-        result = methods[args.command](args.task, args.token, read(args.file))
+        return manager.confirm_merge(args.task, args.token, GitHub(), args.pr_url)
+    if command == "release":
+        return manager.release(args.task, args.token, args.settlement_evidence)
+    if command == "supersede":
+        return manager.supersede(args.task, args.token, args.settlement_evidence)
+    if command == "export-handoffs":
+        return manager.export_handoffs()
+    if command == "reconcile":
+        return Intake(manager, Orca(), registry["linear_workspace"]).reconcile()
+    if command == "flush-one":
+        return Outbox(manager.store).flush_one(LinearTransport(Orca(), registry["linear_workspace"]))
+    raise ContractError("Unknown command: " + command)
+
+
+def main():
+    result = run(parser().parse_args())
     print(json.dumps({"ok": True, "result": result}, indent=2))
 
 

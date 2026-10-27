@@ -22,7 +22,9 @@ class GitHub:
             raise ContractError("PR must belong to registered repository")
         endpoint = "repos/" + repo[1] + "/pulls/" + pr[1]
         value = self.api(endpoint)
-        if not value.get("merged") or value["head"]["sha"] != accepted_commit or value.get("merged_by", {}).get("type") != "User":
+        # merged_by can be null; `or {}` keeps that a clean refusal rather than a crash.
+        human_merge = (value.get("merged_by") or {}).get("type") == "User"
+        if not value.get("merged") or value["head"]["sha"] != accepted_commit or not human_merge:
             raise ContractError("Human merge of current accepted head is not confirmed")
         # Page every review; later dismissals/changes-requested replace earlier decisions per user.
         latest = {}
@@ -38,6 +40,7 @@ class GitHub:
         approved = [r for r in latest.values() if r["state"] == "APPROVED" and r["commit_id"] == accepted_commit]
         if not approved:
             raise ContractError("No current human approval on accepted head")
-        return {"accepted_commit": accepted_commit, "merged_commit": value["merge_commit_sha"], "human_reviewer": approved[0]["user"]["login"],
-                "human_merger": value["merged_by"]["login"], "pr_url": pr_url,
+        return {"accepted_commit": accepted_commit, "merged_commit": value["merge_commit_sha"],
+                "human_reviewer": approved[0]["user"]["login"], "human_merger": value["merged_by"]["login"],
+                "pr_url": pr_url,
                 "evidence": "GitHub REST " + endpoint + ": merged; User merger; latest User approval on exact head"}

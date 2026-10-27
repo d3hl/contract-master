@@ -13,7 +13,8 @@ class Store:
         with self.connect() as db:
             db.executescript('''
                 PRAGMA journal_mode=WAL;
-                CREATE TABLE IF NOT EXISTS dependencies(issue TEXT PRIMARY KEY, status TEXT NOT NULL, updated_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS dependencies(issue TEXT PRIMARY KEY, status TEXT NOT NULL,
+                    updated_at TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS snapshots(issue TEXT PRIMARY KEY, data TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY, issue TEXT NOT NULL,
                     revision TEXT NOT NULL, active INTEGER NOT NULL, data TEXT NOT NULL,

@@ -19,11 +19,16 @@ def report(registry):
             continue
         try:
             runner = validate("runner", json.loads((ROOT / config).read_text()))
-            if runner["id"] != policy["implementation_runner"] or runner["role"] != "deepseek" or runner["mode"] != "live" or not runner["enabled"] or not REQUIRED_CAPABILITIES.issubset(runner["capabilities"]):
+            verified = (runner["id"] == policy["implementation_runner"] and runner["role"] == "deepseek"
+                        and runner["mode"] == "live" and runner["enabled"]
+                        and REQUIRED_CAPABILITIES.issubset(runner["capabilities"]))
+            if not verified:
                 blockers.append(repo_id + ": verify and enable real DeepSeek runner capabilities")
         except (OSError, ValueError):
             blockers.append(repo_id + ": invalid runner configuration")
-    return {"automation_enabled": registry["automation_enabled"], "reviewed_master_commits": registry["reviewed_master_commits"],
+    return {"automation_enabled": registry["automation_enabled"],
+            "reviewed_master_commits": registry["reviewed_master_commits"],
             "configuration_ready": not blockers, "blockers": blockers,
-            "note": "Configuration readiness does not prove model access, bundle availability, base commit or execution-host isolation; validate per task before dispatch.",
+            "note": ("Configuration readiness does not prove model access, bundle availability, base commit or "
+                     "execution-host isolation; validate per task before dispatch."),
             "simulation_command": "python3 -m unittest discover -s tests -v"}

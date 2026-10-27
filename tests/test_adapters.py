@@ -115,6 +115,13 @@ class AdapterTests(WorkflowFixture):
             with self.assertRaises(ContractError): provider.confirm("https://github.com/example/repo", url, B)
         with self.assertRaises(ContractError): Provider().confirm("https://github.com/example/repo", "https://github.com/other/repo/pull/1", B)
 
+    def test_null_merged_by_is_a_clean_refusal(self):
+        class Provider(GitHub):
+            def api(self, path):
+                return {"merged": True, "head": {"sha": B}, "merged_by": None, "merge_commit_sha": C}
+        with self.assertRaises(ContractError):
+            Provider().confirm("https://github.com/example/repo", "https://github.com/example/repo/pull/1", B)
+
     def test_newer_dismissed_review_invalidates_old_approval(self):
         class Provider(GitHub):
             def api(self, path):

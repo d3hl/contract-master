@@ -10,7 +10,8 @@ from .outbox import BeforeSendError, Outbox
 class Orca:
     def __init__(self, executable=None):
         # Resolve once. Never fall through to Linux's GNOME screen reader.
-        self.executable = executable or os.environ.get("ORCA_CLI_COMMAND") or ("orca-dev" if os.environ.get("ORCA_DEV_REPO_ROOT") else "orca-ide")
+        default = "orca-dev" if os.environ.get("ORCA_DEV_REPO_ROOT") else "orca-ide"
+        self.executable = executable or os.environ.get("ORCA_CLI_COMMAND") or default
 
     def call(self, *argv, body=None):
         try:
@@ -52,7 +53,8 @@ class Orca:
         for section in ("comments", "children", "relations"):
             details = meta.get("sections", {}).get(section, {})
             complete_key = "mayHaveMore" if section == "children" else "hasMore"
-            if not isinstance(result.get(section), list) or details.get(complete_key) is not False or details.get("capReached") is not False:
+            complete = details.get(complete_key) is False and details.get("capReached") is False
+            if not isinstance(result.get(section), list) or not complete:
                 raise ProviderError("Required issue context is truncated")
         return result
 
@@ -134,7 +136,8 @@ class Intake:
             if full.get("children"):
                 raise ContractError("Tracking parent; executable children own the work")
             snapshot = normalize(full)
-            references = {r["relatedIssue"]["id"]: r["relatedIssue"].get("identifier") for r in full.get("relations", []) if "relatedIssue" in r}
+            related = [r["relatedIssue"] for r in full.get("relations", []) if "relatedIssue" in r]
+            references = {issue["id"]: issue.get("identifier") for issue in related}
             for dep in snapshot["dependencies"]:
                 if not references.get(dep):
                     raise ContractError("Dependency identifier missing from provider context")
@@ -187,5 +190,6 @@ class LinearTransport:
             current = self.orca.issue(entry["issue"], self.workspace)["issue"]["state"]
             if current["type"] in ("completed", "canceled", "duplicate"):
                 raise ContractError("Closed issue state must be reconciled by Codex before update")
-            return self.orca.call("linear", "status", "set", entry["issue"], "--workspace", self.workspace, "--to", payload["state"])
+            return self.orca.call("linear", "status", "set", entry["issue"], "--workspace", self.workspace,
+                                  "--to", payload["state"])
         raise ContractError("Unsupported outbox operation")
