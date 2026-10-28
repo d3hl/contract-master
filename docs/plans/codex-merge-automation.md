@@ -104,12 +104,12 @@ DeepSeek output commit
   "github_apps": {
     "pr":    {"slug": "d3hl-orca",  "app_id": null, "installation_id": null, "key_reference": null},
     "merge": {"slug": "d3hl-codex", "app_id": 5511451, "installation_id": 176202750,
-              "key_reference": "op://d3HL/<App private key item>/private key"}
+              "key_reference": "op://d3HL/d3hl-codex.2026-10-28.private-key/private key"}
   }
   ```
   Keep `merge_identity`; readiness checks it equals `<merge.slug>[bot]` / `Bot`.
 - `readiness.py` blockers: either App incomplete; both Apps the same; key reference
-  not an `op://` path; current reference still points at an SSH-key item.
+  not an `op://` path.
 
 ## Tests (fake GitHub and fake `op`/`openssl`; no network)
 
@@ -138,8 +138,8 @@ DeepSeek output commit
 1. Create GitHub App `d3hl-orca` in the `d3hl` org: Contents read & write,
    Pull requests read & write, Metadata read; no webhook; install on selected repos.
    Do **not** add it to `main`'s push allowlist.
-2. Store both App private keys (`.pem`, not SSH keys) in 1Password; record their
-   `op://` references, App IDs and installation IDs in the registry.
+2. Store the `d3hl-orca` App private key (`.pem`) in 1Password next to the
+   `d3hl-codex` key; record its `op://` reference, App ID and installation ID.
 3. Create a 1Password service account limited to those two items; provide
    `OP_SERVICE_ACCOUNT_TOKEN` to the coordinator host only.
 4. Run `open-pr` and `codex-merge --live` once against a throwaway repository and
