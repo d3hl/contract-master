@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "automation_enabled": false,
+  "linear_workspace": "8828a093-3bc4-4cc9-a943-f139ade20a88",
+  "reviewed_master_commits": [],
+  "repositories": {
+    "d3hl/contract-master": {
+      "url": "https://github.com/d3hl/contract-master",
+      "orca_repo_id": "69bbbaf1-d19e-4a11-9805-674381577ea4",
+      "base_ref": "origin/main",
+      "linear_projects": [
+        "aefa51f9-333f-4c60-96b8-e0f4fc534b7d"
+      ],
+      "documentation_entrypoints": [
+        "AGENTS.md",
+        "README.md",
+        "docs/operations/HANDOFF.md"
+      ],
+      "required_context": [
+        "AGENTS.md",
+        "docs/policies/workflow.md",
+        "docs/policies/context-and-security.md",
+        "docs/contracts/v1.md",
+        "docs/operations/orca.md"
+      ],
+      "allowed_scope": [
+        "docs/knowledge"
+      ],
+      "checks": {
+        "unit": {
+          "argv": [
+            "python3",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests",
+            "-v"
+          ],
+          "timeout_seconds": 120
+        }
+      },
+      "planning_runner": "claude",
+      "implementation_runner": "deepseek-portable",
+      "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_identity": null,
+      "merge_gate_audited": false,
+      "credential_references": [],
+      "dependency_versions": {},
+      "runner_config": "config/deepseek-runner.json"
+    }
+  }
+}
