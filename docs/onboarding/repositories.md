@@ -19,6 +19,10 @@
 6. Audit integration automation settings and the Codex merge identity. Record evidence
    before setting `merge_gate_audited`. Do not change team-wide settings casually;
    choose a dedicated team if existing projects require conflicting automations.
+   Install both GitHub Apps on the repository. After its first successful
+   `codex-merge`, apply phase B protection on the default branch: require
+   `codex-verification` from App 5511451, allow only `d3hl-codex` to push, no bypass
+   (see [pilot gate 6](../operations/pilot.md)).
 7. Run the scenario suite and [bounded pilot](../operations/pilot.md). Enable only
    after its activation gates are met. Adding future repositories is a reviewed
    registry change, not an issue instruction.

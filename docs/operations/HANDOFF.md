@@ -43,7 +43,8 @@
   checked, approved and merged by `d3hl-codex[bot]`; rerun made no duplicate writes.
   Registry now records both Apps; their keys are in the dedicated 1Password vault
   `contract-master`, the only vault the service account can read; a second live
-  run with those keys (`d3hl/sandbox` PR #2) also passed. 83 tests pass.
+  run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
+  phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
 - Exact next action: limit other GitHub apps' access to `d3hl/contract-master`
   and confirm the 1Password item holds the `d3hl-codex` App private key (gate 6);
   then pin a reviewed master commit and prepare the DeepSeek runner. Do not

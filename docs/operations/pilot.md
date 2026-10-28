@@ -55,9 +55,14 @@ not store/provision credentials. It does not assert production eligibility.
    ([PR #2](https://github.com/d3hl/sandbox/pull/2): opened by `d3hl-orca[bot]`,
    `codex-verification` success and APPROVED on `4352260`, merged by
    `d3hl-codex[bot]` as `2cc428e`); its rerun made no new writes.
-   Remaining:
-   - Require `codex-verification` from App 5511451 on `main`, allow only
-     `d3hl-codex` to push and block bypass (phase B branch protection).
+   Branch protection: `contract-master` **stays on phase A** (PR required, `unit`
+   checks from GitHub Actions, push limited to `d3hl-codex` and the owner, admin
+   bypass allowed). Its own PRs are opened by people or Claude, not by the manager,
+   so `codex-merge` never runs on them and a required `codex-verification` would
+   block every merge. Phase B (require `codex-verification` from App 5511451, push
+   only `d3hl-codex`, no bypass) applies to target repositories when they are
+   onboarded, after their first `codex-merge`. Revisit if contract-master gets a
+   command for Codex to review and merge non-task PRs.
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
    automation with the documented `automations create` command. Use the coordinator
    prompt, existing manager workspace and Asia/Singapore timezone. Configure 1Password
