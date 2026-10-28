@@ -48,12 +48,12 @@
       "merge_identity": {"login": "d3hl-codex[bot]", "type": "Bot"},
       "github_apps": {
         "pr": {"slug": "d3hl-orca", "app_id": 5516831, "installation_id": 176325322,
-               "key_reference": "op://d3HL/SSH Key-d3hl-orca-github/private key"},
+               "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"},
         "merge": {"slug": "d3hl-codex", "app_id": 5511451, "installation_id": 176202750,
-                  "key_reference": "op://d3HL/SSH Key-d3hl-codex/private key"}
+                  "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"}
       },
-      "credential_references": ["op://d3HL/SSH Key-d3hl-orca-github/private key",
-                                "op://d3HL/SSH Key-d3hl-codex/private key"],
+      "credential_references": ["op://contract-master/SSH Key-d3hl-orca-github/private key",
+                                "op://contract-master/SSH Key-d3hl-codex/private key"],
       "dependency_versions": {},
       "runner_config": "config/deepseek-runner.json"
     }

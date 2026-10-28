@@ -49,9 +49,13 @@ not store/provision credentials. It does not assert production eligibility.
    merge commit `eb980c3`; read-only gate confirmed. A second run of both commands
    made no new PR, review or check. Manager state was a temporary database; no
    Linear writes.
+   Both App keys now live in the dedicated 1Password vault `contract-master`; the
+   service account can read only that vault (verified 2026-10-29: one vault, two
+   items). A second live run with those references passed the same day
+   ([PR #2](https://github.com/d3hl/sandbox/pull/2): opened by `d3hl-orca[bot]`,
+   `codex-verification` success and APPROVED on `4352260`, merged by
+   `d3hl-codex[bot]` as `2cc428e`); its rerun made no new writes.
    Remaining:
-   - Narrow the 1Password service account: during the test it could read the whole
-     `d3HL` vault, not only the two App keys. Use a dedicated vault for the two keys.
    - Require `codex-verification` from App 5511451 on `main`, allow only
      `d3hl-codex` to push and block bypass (phase B branch protection).
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
