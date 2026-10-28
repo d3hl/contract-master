@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Team Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+    }
+    
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+    
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    
+    svg {
+      width: 100%;
+      min-width: 900px;
+      display: block;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+    
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .toolbar-toggle {
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: color 0.2s, background 0.2s;
+    }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions {
+      display: none;
+      gap: 0.5rem;
+    }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toolbar-actions button:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: white;
+      border-color: #475569;
+    }
+
+    @media print {
+      body { background: #020617; padding: 1rem; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Contract Master Agent Team · High-Level Architecture</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">Linear issue → Orca coordinator → Claude plan → DeepSeek build → Codex verify + merge → Claude confirm → Linear Done</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1200 720" font-family="JetBrains Mono, monospace">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrow-main" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- ================= BOUNDARIES ================= -->
+        <rect x="235" y="38" width="770" height="232" rx="12" fill="rgba(251, 191, 36, 0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="247" y="56" fill="#fbbf24" font-size="10" font-weight="600">Coordinator host · trusted (host location: unknown)</text>
+
+        <rect x="235" y="300" width="770" height="200" rx="12" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="360" y="318" fill="#fb7185" font-size="10" font-weight="600">Orca-placed worker workspaces · untrusted output</text>
+        <text x="360" y="332" fill="#fb7185" font-size="8">return JSON only · no manager tokens, DB or Linear credentials · isolation/mounts: not yet configured</text>
+
+        <text x="1030" y="292" fill="#94a3b8" font-size="10" font-weight="600">External services</text>
+
+        <!-- ================= ARROWS (behind boxes) ================= -->
+        <!-- 1 Humans -> Linear -->
+        <line x1="110" y1="98" x2="110" y2="148" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="118" y="127" fill="#22d3ee" font-size="9">① issue</text>
+        <!-- 2 Linear -> Coordinator -->
+        <line x1="180" y1="190" x2="253" y2="190" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="186" y="182" fill="#22d3ee" font-size="8">② full read</text>
+        <!-- trigger -> coordinator -->
+        <line x1="340" y1="108" x2="340" y2="148" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="348" y="132" fill="#94a3b8" font-size="8">wakes</text>
+        <!-- webhook (unknown) -> coordinator -->
+        <path d="M 520 108 L 520 128 L 410 128 L 410 148" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>
+        <!-- 3 Coordinator -> Manager -->
+        <line x1="425" y1="190" x2="528" y2="190" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="432" y="182" fill="#22d3ee" font-size="8">③ triage, claim</text>
+        <!-- manager -> bundle / outbox -->
+        <line x1="730" y1="160" x2="788" y2="112" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+        <text x="742" y="128" fill="#94a3b8" font-size="7">pin</text>
+        <line x1="730" y1="215" x2="788" y2="215" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+        <text x="740" y="208" fill="#94a3b8" font-size="7">enqueue</text>
+        <!-- 4 Coordinator -> Claude plan -->
+        <line x1="340" y1="232" x2="340" y2="358" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="348" y="290" fill="#22d3ee" font-size="8">④ dispatch (Orca Task)</text>
+        <!-- 5 plan -> DeepSeek -->
+        <line x1="420" y1="405" x2="448" y2="405" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="434" y="397" fill="#22d3ee" font-size="9" text-anchor="middle">⑤</text>
+        <!-- 6 DeepSeek -> Codex -->
+        <line x1="610" y1="405" x2="638" y2="405" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="624" y="397" fill="#22d3ee" font-size="9" text-anchor="middle">⑥</text>
+        <!-- rework loop -->
+        <path d="M 720 452 L 720 472 L 530 472 L 530 454" fill="none" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+        <text x="625" y="488" fill="#fb923c" font-size="8" text-anchor="middle">rework · max 2 attempts total</text>
+        <!-- DeepSeek -> GitHub (branch) -->
+        <path d="M 470 454 L 470 595 L 638 595" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>
+        <text x="478" y="560" fill="#94a3b8" font-size="8">branch / PR</text>
+        <text x="478" y="572" fill="#94a3b8" font-size="7">(PR opener: unknown)</text>
+        <!-- 7 Codex -> GitHub -->
+        <line x1="760" y1="452" x2="760" y2="558" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="768" y="530" fill="#22d3ee" font-size="8">⑦ approve + merge</text>
+        <!-- 8 GitHub -> Claude confirm -->
+        <path d="M 800 610 L 910 610 L 910 454" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="918" y="560" fill="#22d3ee" font-size="8">⑧ merge facts</text>
+        <!-- 9 Claude confirm -> Outbox -->
+        <line x1="910" y1="358" x2="910" y2="242" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="918" y="290" fill="#22d3ee" font-size="8">⑨ completion</text>
+        <!-- 10 Outbox -> Linear -->
+        <path d="M 960 215 L 990 215 L 990 22 L 20 22 L 20 190 L 38 190" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-main)"/>
+        <text x="600" y="17" fill="#22d3ee" font-size="9" text-anchor="middle">⑩ serialized Linear writes: comments, HANDOFF, state → Done</text>
+        <!-- external dependency links -->
+        <line x1="1030" y1="328" x2="1007" y2="328" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>
+        <line x1="1030" y1="408" x2="1007" y2="408" stroke="#64748b" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>
+
+        <!-- ================= USERS + LINEAR ================= -->
+        <rect x="40" y="40" width="140" height="58" rx="6" fill="#0f172a"/>
+        <rect x="40" y="40" width="140" height="58" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="110" y="62" fill="white" font-size="11" font-weight="600" text-anchor="middle">Humans</text>
+        <text x="110" y="77" fill="#94a3b8" font-size="8" text-anchor="middle">write issues · escalations</text>
+        <text x="110" y="89" fill="#94a3b8" font-size="8" text-anchor="middle">may veto a PR</text>
+
+        <rect x="40" y="150" width="140" height="82" rx="6" fill="#0f172a"/>
+        <rect x="40" y="150" width="140" height="82" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="110" y="172" fill="white" font-size="11" font-weight="600" text-anchor="middle">Linear</text>
+        <text x="110" y="188" fill="#94a3b8" font-size="8" text-anchor="middle">requirements, plans</text>
+        <text x="110" y="200" fill="#94a3b8" font-size="8" text-anchor="middle">progress, HANDOFF</text>
+        <text x="110" y="220" fill="#94a3b8" font-size="7" text-anchor="middle">external SaaS</text>
+
+        <!-- ================= COORDINATOR HOST ================= -->
+        <rect x="255" y="68" width="170" height="40" rx="6" fill="#0f172a"/>
+        <rect x="255" y="68" width="170" height="40" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="340" y="85" fill="white" font-size="10" font-weight="600" text-anchor="middle">Orca schedule</text>
+        <text x="340" y="99" fill="#94a3b8" font-size="8" text-anchor="middle">every 10 min · disabled</text>
+
+        <rect x="445" y="68" width="150" height="40" rx="6" fill="#0f172a"/>
+        <rect x="445" y="68" width="150" height="40" rx="6" fill="transparent" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="520" y="85" fill="#94a3b8" font-size="10" font-weight="600" text-anchor="middle">Linear webhook ?</text>
+        <text x="520" y="99" fill="#64748b" font-size="8" text-anchor="middle">unknown · not verified</text>
+
+        <rect x="255" y="150" width="170" height="82" rx="6" fill="#0f172a"/>
+        <rect x="255" y="150" width="170" height="82" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="340" y="172" fill="white" font-size="11" font-weight="600" text-anchor="middle">Orca coordinator</text>
+        <text x="340" y="188" fill="#94a3b8" font-size="8" text-anchor="middle">sole scheduler · Claude turn</text>
+        <text x="340" y="200" fill="#94a3b8" font-size="8" text-anchor="middle">triage, assign, monitor</text>
+        <text x="340" y="220" fill="#34d399" font-size="7" text-anchor="middle">only caller of manager API</text>
+
+        <rect x="530" y="130" width="200" height="112" rx="6" fill="#0f172a"/>
+        <rect x="530" y="130" width="200" height="112" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="630" y="152" fill="white" font-size="11" font-weight="600" text-anchor="middle">contract-master</text>
+        <text x="630" y="166" fill="white" font-size="11" font-weight="600" text-anchor="middle">manager</text>
+        <text x="630" y="184" fill="#94a3b8" font-size="8" text-anchor="middle">SQLite (WAL): durable queue</text>
+        <text x="630" y="197" fill="#94a3b8" font-size="8" text-anchor="middle">revisions, workspace owners</text>
+        <text x="630" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">attempts, Orca receipts</text>
+        <text x="630" y="230" fill="#a78bfa" font-size="7" text-anchor="middle">registry + check argv</text>
+
+        <rect x="790" y="80" width="170" height="54" rx="6" fill="#0f172a"/>
+        <rect x="790" y="80" width="170" height="54" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="875" y="100" fill="white" font-size="10" font-weight="600" text-anchor="middle">Context bundle</text>
+        <text x="875" y="114" fill="#94a3b8" font-size="8" text-anchor="middle">pinned master SHA, digest</text>
+        <text x="875" y="126" fill="#94a3b8" font-size="7" text-anchor="middle">read-only into workers</text>
+
+        <rect x="790" y="190" width="170" height="52" rx="6" fill="#0f172a"/>
+        <rect x="790" y="190" width="170" height="52" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="875" y="210" fill="white" font-size="10" font-weight="600" text-anchor="middle">Linear outbox</text>
+        <text x="875" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">ordered, one writer</text>
+        <text x="875" y="235" fill="#94a3b8" font-size="7" text-anchor="middle">survives outages</text>
+
+        <!-- ================= WORKERS ================= -->
+        <rect x="260" y="360" width="160" height="92" rx="6" fill="#0f172a"/>
+        <rect x="260" y="360" width="160" height="92" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="340" y="382" fill="white" font-size="11" font-weight="600" text-anchor="middle">Claude · plan</text>
+        <text x="340" y="398" fill="#94a3b8" font-size="8" text-anchor="middle">investigate code</text>
+        <text x="340" y="410" fill="#94a3b8" font-size="8" text-anchor="middle">design options</text>
+        <text x="340" y="422" fill="#94a3b8" font-size="8" text-anchor="middle">bounded plan</text>
+        <text x="340" y="442" fill="#22d3ee" font-size="7" text-anchor="middle">author: claude</text>
+
+        <rect x="450" y="360" width="160" height="92" rx="6" fill="#0f172a"/>
+        <rect x="450" y="360" width="160" height="92" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="530" y="382" fill="white" font-size="11" font-weight="600" text-anchor="middle">DeepSeek · build</text>
+        <text x="530" y="398" fill="#94a3b8" font-size="8" text-anchor="middle">via OpenCode client</text>
+        <text x="530" y="410" fill="#94a3b8" font-size="8" text-anchor="middle">editing worktree</text>
+        <text x="530" y="422" fill="#94a3b8" font-size="8" text-anchor="middle">code + tests</text>
+        <text x="530" y="442" fill="#fb7185" font-size="7" text-anchor="middle">runner disabled</text>
+
+        <rect x="640" y="360" width="160" height="92" rx="6" fill="#0f172a"/>
+        <rect x="640" y="360" width="160" height="92" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="720" y="382" fill="white" font-size="11" font-weight="600" text-anchor="middle">Codex · verify</text>
+        <text x="720" y="398" fill="#94a3b8" font-size="8" text-anchor="middle">clean checkout</text>
+        <text x="720" y="410" fill="#94a3b8" font-size="8" text-anchor="middle">exact output SHA</text>
+        <text x="720" y="422" fill="#94a3b8" font-size="8" text-anchor="middle">diff + registry checks</text>
+        <text x="720" y="442" fill="#22d3ee" font-size="7" text-anchor="middle">author: codex</text>
+
+        <rect x="830" y="360" width="160" height="92" rx="6" fill="#0f172a"/>
+        <rect x="830" y="360" width="160" height="92" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="910" y="382" fill="white" font-size="11" font-weight="600" text-anchor="middle">Claude · confirm</text>
+        <text x="910" y="398" fill="#94a3b8" font-size="8" text-anchor="middle">check merge + approver</text>
+        <text x="910" y="410" fill="#94a3b8" font-size="8" text-anchor="middle">rerun checks on</text>
+        <text x="910" y="422" fill="#94a3b8" font-size="8" text-anchor="middle">merged commit</text>
+        <text x="910" y="442" fill="#22d3ee" font-size="7" text-anchor="middle">decides completion</text>
+
+        <!-- ================= GITHUB ================= -->
+        <rect x="640" y="560" width="160" height="72" rx="6" fill="#0f172a"/>
+        <rect x="640" y="560" width="160" height="72" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="720" y="582" fill="white" font-size="11" font-weight="600" text-anchor="middle">GitHub</text>
+        <text x="720" y="598" fill="#94a3b8" font-size="8" text-anchor="middle">target repo, PR</text>
+        <text x="720" y="610" fill="#94a3b8" font-size="8" text-anchor="middle">branch protection</text>
+        <text x="720" y="624" fill="#fbbf24" font-size="7" text-anchor="middle">merger: d3hl-codex[bot]</text>
+
+        <!-- ================= EXTERNAL DEPENDENCIES ================= -->
+        <rect x="1030" y="302" width="150" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1030" y="302" width="150" height="52" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="1105" y="322" fill="white" font-size="10" font-weight="600" text-anchor="middle">1Password</text>
+        <text x="1105" y="336" fill="#94a3b8" font-size="8" text-anchor="middle">op:// refs only</text>
+        <text x="1105" y="347" fill="#94a3b8" font-size="7" text-anchor="middle">resolved in runner env</text>
+
+        <rect x="1030" y="382" width="150" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1030" y="382" width="150" height="52" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1105" y="402" fill="white" font-size="10" font-weight="600" text-anchor="middle">Context7</text>
+        <text x="1105" y="416" fill="#94a3b8" font-size="8" text-anchor="middle">versioned library docs</text>
+        <text x="1105" y="427" fill="#94a3b8" font-size="7" text-anchor="middle">no secrets in queries</text>
+
+        <rect x="1030" y="462" width="150" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1030" y="462" width="150" height="52" rx="6" fill="transparent" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="1105" y="482" fill="white" font-size="10" font-weight="600" text-anchor="middle">Mem0 (optional)</text>
+        <text x="1105" y="496" fill="#94a3b8" font-size="8" text-anchor="middle">preferences only</text>
+        <text x="1105" y="507" fill="#94a3b8" font-size="7" text-anchor="middle">never the queue</text>
+
+        <rect x="1030" y="542" width="150" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1030" y="542" width="150" height="52" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1105" y="562" fill="white" font-size="10" font-weight="600" text-anchor="middle">OpenRouter</text>
+        <text x="1105" y="576" fill="#94a3b8" font-size="8" text-anchor="middle">DeepSeek model API</text>
+        <text x="1105" y="587" fill="#94a3b8" font-size="7" text-anchor="middle">used by OpenCode</text>
+
+        <!-- ================= LEGEND ================= -->
+        <text x="40" y="668" fill="white" font-size="10" font-weight="600">Legend</text>
+        <line x1="100" y1="665" x2="124" y2="665" stroke="#22d3ee" stroke-width="2"/>
+        <text x="130" y="668" fill="#94a3b8" font-size="8">primary path ①–⑩</text>
+        <line x1="240" y1="665" x2="264" y2="665" stroke="#64748b" stroke-width="1.2"/>
+        <text x="270" y="668" fill="#94a3b8" font-size="8">supporting flow</text>
+        <line x1="360" y1="665" x2="384" y2="665" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="390" y="668" fill="#94a3b8" font-size="8">rework loop</text>
+        <rect x="470" y="660" width="16" height="10" rx="2" fill="transparent" stroke="#64748b" stroke-dasharray="3,2"/>
+        <text x="492" y="668" fill="#94a3b8" font-size="8">unknown / optional</text>
+        <rect x="600" y="660" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee"/>
+        <text x="622" y="668" fill="#94a3b8" font-size="8">AI worker</text>
+        <rect x="690" y="660" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa"/>
+        <text x="712" y="668" fill="#94a3b8" font-size="8">durable state</text>
+        <rect x="800" y="660" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8"/>
+        <text x="822" y="668" fill="#94a3b8" font-size="8">external</text>
+        <rect x="880" y="660" width="16" height="10" rx="2" fill="transparent" stroke="#fbbf24" stroke-dasharray="5,2"/>
+        <text x="902" y="668" fill="#94a3b8" font-size="8">trusted host</text>
+        <rect x="980" y="660" width="16" height="10" rx="2" fill="transparent" stroke="#fb7185" stroke-dasharray="3,2"/>
+        <text x="1002" y="668" fill="#94a3b8" font-size="8">untrusted workers</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>Primary path</h3></div>
+        <ul>
+          <li>① A human writes an issue with goal, scope, acceptance, checks and base SHA</li>
+          <li>②–③ The Orca coordinator reads the full issue; the manager triages, claims a workspace and queues it</li>
+          <li>④–⑥ Claude plans, DeepSeek implements, Codex verifies the exact output SHA</li>
+          <li>⑦–⑨ Codex approves and merges; Claude confirms the merged commit</li>
+          <li>⑩ The outbox writes Done to Linear, and only after ⑨</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot rose"></div><h3>Trust boundaries</h3></div>
+        <ul>
+          <li>• Only the coordinator calls the manager API and holds its tokens</li>
+          <li>• Workers return JSON only; issue text and results are untrusted data</li>
+          <li>• The context bundle is pinned per task and mounted read-only</li>
+          <li>• Secrets stay in 1Password; config holds op:// references only</li>
+          <li>• A human's change request blocks completion and escalates</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>Unknowns + current status</h3></div>
+        <ul>
+          <li>? Linear webhook intake: not verified; the 10-minute schedule is the only working path</li>
+          <li>? Who opens the PR (DeepSeek or Codex): not stated in the docs</li>
+          <li>? Coordinator host and worker isolation/mounts: not configured yet</li>
+          <li>• Not live: automation off, runner off, no reviewed master commit</li>
+          <li>• Merge gate: HANDOFF says the audit failed; registry now says audited</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">contract-master · from docs/policies/workflow.md, docs/operations/orca.md, config/registry.json · 2026-10-29</p>
+  </div>
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'diagram.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('diagram.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>
