@@ -2,7 +2,7 @@
   "version": "1.0",
   "automation_enabled": false,
   "linear_workspace": "8828a093-3bc4-4cc9-a943-f139ade20a88",
-  "reviewed_master_commits": [],
+  "reviewed_master_commits": ["26e14a8c21f1046abdecdc9bde1bd68b5a3e7259"],
   "repositories": {
     "d3hl/contract-master": {
       "url": "https://github.com/d3hl/contract-master",

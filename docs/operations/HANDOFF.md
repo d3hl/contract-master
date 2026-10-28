@@ -21,8 +21,8 @@
 - Access correction: direct Orca browser access worked despite the runtime's
   `browser_unavailable` diagnostic. Actual settings replaced the earlier access
   blocker. User-supplied rule values are no longer required for this inspection.
-- Configuration: production runner `enabled=false`, automation disabled,
-  no reviewed context registered. No external rule,
+- Configuration: production runner `enabled=false`, automation disabled.
+  Reviewed master `26e14a8` pinned (bundle digest `9ac1eae1…c5b7eb`). No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
   merged on GitHub by account `d3adc3ii`; that is not recorded human-review evidence.
 - Code changes merged via PR #11 (`e5d69e4`, outside D3S-101) by `d3adc3II` with
