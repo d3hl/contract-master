@@ -5,6 +5,24 @@ import subprocess
 from .contracts import ContractError, ProviderError
 
 
+def latest_reviews(reviews):
+    """Latest decision per reviewer; later dismissals/changes-requested replace earlier ones."""
+    latest = {}
+    for review in reviews:
+        if review["state"] != "COMMENTED":
+            latest[(review["user"]["login"], review["user"]["type"])] = review
+    return latest
+
+
+def approved_by(latest, identity, commit):
+    review = latest.get((identity["login"], identity["type"]))
+    return bool(review) and review["state"] == "APPROVED" and review["commit_id"] == commit
+
+
+def human_veto(latest):
+    return any(r["user"]["type"] == "User" and r["state"] == "CHANGES_REQUESTED" for r in latest.values())
+
+
 class GitHub:
     @staticmethod
     def api(path):
@@ -30,22 +48,17 @@ class GitHub:
         codex_merge = (merger.get("login"), merger.get("type")) == (merge_identity["login"], merge_identity["type"])
         if not value.get("merged") or value["head"]["sha"] != accepted_commit or not codex_merge:
             raise ContractError("Codex merge of current accepted head is not confirmed")
-        # Page every review; later dismissals/changes-requested replace earlier decisions per reviewer.
-        latest = {}
-        page = 1
+        reviews, page = [], 1
         while True:
-            reviews = self.api(endpoint + "/reviews?per_page=100&page=" + str(page))
-            for review in reviews:
-                if review["state"] != "COMMENTED":
-                    latest[(review["user"]["login"], review["user"]["type"])] = review
-            if len(reviews) < 100:
+            batch = self.api(endpoint + "/reviews?per_page=100&page=" + str(page))
+            reviews.extend(batch)
+            if len(batch) < 100:
                 break
             page += 1
-        codex = latest.get((merge_identity["login"], merge_identity["type"]))
-        if not codex or codex["state"] != "APPROVED" or codex["commit_id"] != accepted_commit:
+        latest = latest_reviews(reviews)
+        if not approved_by(latest, merge_identity, accepted_commit):
             raise ContractError("No current Codex approval on accepted head")
-        vetoes = [r for r in latest.values() if r["user"]["type"] == "User" and r["state"] == "CHANGES_REQUESTED"]
-        if vetoes:
+        if human_veto(latest):
             raise ContractError("A human requested changes; escalate instead of completing")
         return {"accepted_commit": accepted_commit, "merged_commit": value["merge_commit_sha"],
                 "reviewer": merge_identity["login"], "merger": merger["login"], "pr_url": pr_url,

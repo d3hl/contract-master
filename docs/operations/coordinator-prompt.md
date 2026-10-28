@@ -18,10 +18,13 @@ through Orca only. Require structured implementation/testing results. Independen
 verify with Codex against exact output commit, review actual diff and rerun checks.
 
 Feed actionable failures back for at most one rework. Escalate unresolved findings
-to a human. Move checked implementation to In Review. Codex approves and merges the
-PR from its registered identity. Observe current head before any acceptance use.
-Confirm the actual Codex merge with the read-only provider adapter; Claude reviews
-merged correspondence, checks and acceptance before the Done transition is enqueued.
+to a human. Move checked implementation to In Review. After an output commit exists,
+run `open-pr` (PR-opening App). After a passing Codex verdict, run `codex-merge`; it
+checks, approves and merges the exact verified commit as the Codex App, then runs the
+read-only merge gate. If it reports a moved head, verify the new head; if it reports
+a human change request or an unmergeable PR, escalate. Never retry it in a loop; a
+single rerun is safe after an interruption. Claude then reviews merged
+correspondence, checks and acceptance before the Done transition is enqueued.
 
 Serialize all Linear writes through the manager outbox. Record HANDOFF before the
 turn ends. Reconcile uncertain writes from receipts/readback, never blind-retry.

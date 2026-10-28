@@ -3,7 +3,7 @@ import unittest
 from contract_master import phases
 from contract_master.contracts import ContractError
 from contract_master.store import Store
-from support import WorkflowFixture, B, C
+from support import FakeApp, FakeReader, WorkflowFixture, B, C
 
 PHASES = ("planning", "ready", "implementing", "verifying", "rework", "awaiting_review", "done", "escalated", "superseded")
 
@@ -18,6 +18,8 @@ ALLOWED = {
     "verify": {"verifying"},
     # Not rework: a new head there must go through prepare_dispatch so the attempt cap holds.
     "observe_head": {"verifying", "awaiting_review"},
+    "open_pr": {"verifying", "awaiting_review"},
+    "codex_merge": {"awaiting_review"},
     "confirm_merge": {"awaiting_review"},
     "complete": {"awaiting_review"},
     "release": {"done", "escalated"},
@@ -47,6 +49,8 @@ class PhaseGateTests(WorkflowFixture):
             "implementation": lambda: m.implementation(tid, tok, copy.deepcopy(self.result)),
             "verify": lambda: m.verify(tid, tok, self.verification()),
             "observe_head": lambda: m.observe_head(tid, tok, C),
+            "open_pr": lambda: m.open_pr(tid, tok, FakeApp()),
+            "codex_merge": lambda: m.codex_merge(tid, tok, FakeApp(), FakeReader(FakeApp())),
             "confirm_merge": lambda: m.confirm_merge(tid, tok, MergedProvider(), url),
             "complete": lambda: m.complete(tid, tok, self.completion()),
             "release": lambda: m.release(tid, tok, "Orca settlement accepted"),

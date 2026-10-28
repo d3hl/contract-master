@@ -14,6 +14,9 @@ OPERATIONS = {
     "verify": ("verifying",),
     # Not rework: new work there must go through prepare_dispatch so the attempt cap holds.
     "observe_head": ("verifying", "awaiting_review"),
+    # The PR can open once there is an output commit; Codex verifies the commit, not the PR.
+    "open_pr": ("verifying", "awaiting_review"),
+    "codex_merge": ("awaiting_review",),
     "confirm_merge": ("awaiting_review",),
     "complete": ("awaiting_review",),
     "release": ("done", "escalated"),

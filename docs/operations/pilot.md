@@ -39,7 +39,19 @@ not store/provision credentials. It does not assert production eligibility.
    in branch protection, record it as `merge_identity` (`login`, `type`) in the
    registry, and confirm no other bot can merge. The adapter requires Codex approval
    on the exact head, including after new commits, and refuses if a human's latest
-   review requests changes.
+   review requests changes. Done: `d3hl-codex` (App 5511451, installation 176202750)
+   is recorded in `merge_identity` and `github_apps.merge`.
+   Remaining for automation:
+   - Create the PR-opening App `d3hl-orca`: Contents and Pull requests read & write,
+     Metadata read, no webhook, selected repositories only. Do **not** add it to
+     `main`'s push allowlist. Store its `.pem` key in 1Password and record
+     `github_apps.pr` (`app_id`, `installation_id`, `key_reference`).
+   - Create a 1Password service account that can read only the two App key items and
+     provide `OP_SERVICE_ACCOUNT_TOKEN` to the coordinator host only.
+   - Run `open-pr --live` and `codex-merge --live` once in a throwaway repository;
+     record the PR, check run, approval and `merged_by`.
+   - Then require `codex-verification` from App 5511451 on `main`, allow only
+     `d3hl-codex` to push and block bypass (phase B branch protection).
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
    automation with the documented `automations create` command. Use the coordinator
    prompt, existing manager workspace and Asia/Singapore timezone. Configure 1Password

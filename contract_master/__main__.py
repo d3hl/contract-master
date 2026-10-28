@@ -33,6 +33,8 @@ COMMANDS = {
     "prepare-dispatch": ("task", "token", "runner"),
     "observe-head": ("task", "token", "commit"),
     "confirm-merge": ("task", "token", "pr_url"),
+    "open-pr": ("task", "token"),
+    "codex-merge": ("task", "token"),
     "release": SETTLEMENT,
     "supersede": SETTLEMENT,
     "bundle": ("commit",),
@@ -63,7 +65,7 @@ def parser():
         command = sub.add_parser(name)
         for argument in positionals:
             command.add_argument(argument)
-        if name == "prepare-dispatch":
+        if name in ("prepare-dispatch", "open-pr", "codex-merge"):
             command.add_argument("--live", action="store_true")
         if name == "bundle":
             command.add_argument("--destination", default=str(ROOT / ".state/context"))
@@ -101,6 +103,8 @@ def run(args):
     if command == "confirm-merge":
         from .github import GitHub
         return manager.confirm_merge(args.task, args.token, GitHub(), args.pr_url)
+    if command in ("open-pr", "codex-merge"):
+        return github_writes(manager, registry, args)
     if command == "release":
         return manager.release(args.task, args.token, args.settlement_evidence)
     if command == "supersede":
@@ -112,6 +116,28 @@ def run(args):
     if command == "flush-one":
         return Outbox(manager.store).flush_one(LinearTransport(Orca(), registry["linear_workspace"]))
     raise ContractError("Unknown command: " + command)
+
+
+def github_writes(manager, registry, args):
+    """Dry run by default: report intended calls and blockers without touching GitHub or the task."""
+    from . import github_app
+    task = manager.task(args.task)
+    repo = registry["repositories"][task["issue"]["repo_id"]]
+    role = "pr" if args.command == "open-pr" else "merge"
+    if not args.live:
+        steps = (["find PR for " + str(task["branch"]), "push output commit if needed", "open PR if missing"]
+                 if role == "pr" else ["read PR and reviews", "post " + github_app.CHECK_NAME, "approve exact commit",
+                                       "merge with sha", "confirm-merge"])
+        return {"dry_run": True, "phase": task["phase"], "output_commit": task["output_commit"], "steps": steps,
+                "blockers": github_app.problems(repo)}
+    blockers = github_app.problems(repo)
+    if not registry["automation_enabled"] or not repo["merge_gate_audited"] or blockers:
+        raise ContractError("Live GitHub writes are not enabled: " + "; ".join(blockers or ["activation gates"]))
+    app = github_app.RepoApp(repo, role)
+    if role == "pr":
+        return manager.open_pr(args.task, args.token, app)
+    from .github import GitHub
+    return manager.codex_merge(args.task, args.token, app, GitHub())
 
 
 def main():

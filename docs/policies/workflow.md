@@ -55,14 +55,20 @@ and planning the new revision. One active revision per issue is enforced in SQLi
 3. **verifying:** collect DeepSeek's result, then Codex independently reads the
    actual diff and runs registry checks at the exact output commit. Implementation
    check completion moves Linear to In Review; failed checks remain in verification
-   until Codex records actionable rework. In Review does not mean accepted.
+   until Codex records actionable rework. In Review does not mean accepted. Once an
+   output commit exists, `open-pr` pushes it to the `task/…` branch and opens the PR
+   as the PR-opening App (`d3hl-orca`) with `Related to <issue>`; never as Codex,
+   because an App cannot approve its own PR.
 4. **rework:** send concrete file/behavior/test corrections to DeepSeek. Two total
    implementation attempts, including the initial attempt. A second unresolved
    verification escalates to a human. Never reset the counter by creating a new
    task for the same revision.
-5. **awaiting_review:** Codex verification passed. Codex approves the PR from its
-   registered GitHub identity (`merge_identity`) at the exact verified head, then
-   merges. No human approval is required, but a human's latest change request
+5. **awaiting_review:** Codex verification passed. `codex-merge` acts as the
+   registered Codex identity (`merge_identity`): it posts the `codex-verification`
+   check, approves the exact verified head and merges with that `sha`, then runs the
+   read-only merge gate. Each step is recorded and skipped on rerun if already done.
+   A moved head returns the task to verification; an unmergeable PR stops for
+   escalation. No human approval is required, but a human's latest change request
    blocks completion and escalates. Any new head invalidates the verdict and
    provider merge receipt. Observe actual head before using verification. Material
    scope changes return to planning.

@@ -46,6 +46,13 @@ The role change planned in PR #13 (`docs/plans/reassign-agent-roles.md`) adds
 `tests/test_readiness.py` and Codex merge-identity cases in `test_adapters.py` and
 `test_workflow.py`. Local run: **63 tests passed** on Python 3.9.25.
 
+Codex merge automation adds `tests/test_github_app.py` (JWT limits, real openssl
+signature check, narrowed token requests, exact-commit approve/merge, no secret in
+errors or git argv, configuration problems) and `tests/test_codex_merge.py`
+(status-neutral PR opening, rerun after each crash point without duplicate writes,
+moved head, own-PR/human-veto/wrong-App refusals, unmergeable PR, dry-run CLI).
+Local run: **82 tests passed** on Python 3.9.25.
+
 A live **read-only** reconciliation of the new project completed successfully:
 three ineligible/tracking issues, zero tasks, zero Linear writes, zero workers.
 It also exposed and fixed the installed Orca UUID-read limitation; a regression
