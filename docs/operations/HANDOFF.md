@@ -21,7 +21,11 @@
 - Access correction: direct Orca browser access worked despite the runtime's
   `browser_unavailable` diagnostic. Actual settings replaced the earlier access
   blocker. User-supplied rule values are no longer required for this inspection.
-- Configuration: production runner `enabled=false`, automation disabled.
+- Runner isolation (gate 3) done 2026-10-29: DeepSeek workers run as Linux user
+  `cm-worker` on a localhost-only Orca server (environment `cm-worker`,
+  [worker host](worker-host.md)); probe Dispatch `ctx_ac7cba883d03` confirmed model
+  `deepseek/deepseek-v4.1-flash-1017` and blocked access to coordinator credentials.
+- Configuration: production runner `enabled=true`, automation disabled.
   Reviewed master `26e14a8` pinned (bundle digest `9ac1eae1…c5b7eb`). No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
   merged on GitHub by account `d3adc3ii`; that is not recorded human-review evidence.
