@@ -47,6 +47,14 @@ class OpenPullRequestTests(WorkflowFixture):
         self.app.pulls[1]["state"] = "closed"
         with self.assertRaises(ContractError): self.manager.open_pr(self.task_id, self.token, self.app)
 
+    def test_rerun_after_merge_records_existing_pr(self):
+        self.ready()
+        self.manager.open_pr(self.task_id, self.token, self.app)
+        self.app.pulls[1].update(state="closed", merged_at="2026-10-29T00:00:00Z")
+        before = list(self.app.writes)
+        self.assertEqual(self.manager.open_pr(self.task_id, self.token, self.app)["number"], 1)
+        self.assertEqual(self.app.writes, before)
+
     def test_not_before_an_output_commit(self):
         self.start()
         with self.assertRaises(ContractError): self.manager.open_pr(self.task_id, self.token, FakeApp())

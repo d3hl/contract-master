@@ -41,16 +41,18 @@ not store/provision credentials. It does not assert production eligibility.
    on the exact head, including after new commits, and refuses if a human's latest
    review requests changes. Done: `d3hl-codex` (App 5511451, installation 176202750)
    is recorded in `merge_identity` and `github_apps.merge`.
-   Remaining for automation:
-   - Create the PR-opening App `d3hl-orca`: Contents and Pull requests read & write,
-     Metadata read, no webhook, selected repositories only. Do **not** add it to
-     `main`'s push allowlist. Store its `.pem` key in 1Password and record
-     `github_apps.pr` (`app_id`, `installation_id`, `key_reference`).
-   - Create a 1Password service account that can read only the two App key items and
-     provide `OP_SERVICE_ACCOUNT_TOKEN` to the coordinator host only.
-   - Run `open-pr --live` and `codex-merge --live` once in a throwaway repository;
-     record the PR, check run, approval and `merged_by`.
-   - Then require `codex-verification` from App 5511451 on `main`, allow only
+   `d3hl-orca` (App 5516831, installation 176325322) is recorded in `github_apps.pr`.
+   **Live test passed 2026-10-29** in the throwaway repo `d3hl/sandbox`
+   ([PR #1](https://github.com/d3hl/sandbox/pull/1)): opened by `d3hl-orca[bot]` with
+   `Related to SANDBOX-1`; `codex-verification` success from App 5511451 on
+   `60941a7`; `d3hl-codex[bot]` APPROVED `60941a7`; merged by `d3hl-codex[bot]` (Bot),
+   merge commit `eb980c3`; read-only gate confirmed. A second run of both commands
+   made no new PR, review or check. Manager state was a temporary database; no
+   Linear writes.
+   Remaining:
+   - Narrow the 1Password service account: during the test it could read the whole
+     `d3HL` vault, not only the two App keys. Use a dedicated vault for the two keys.
+   - Require `codex-verification` from App 5511451 on `main`, allow only
      `d3hl-codex` to push and block bypass (phase B branch protection).
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
    automation with the documented `automations create` command. Use the coordinator

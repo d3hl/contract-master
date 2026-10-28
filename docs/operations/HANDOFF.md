@@ -39,7 +39,9 @@
 - Codex merge automation (plan PR #20): `open-pr` and `codex-merge` manager commands,
   `contract_master/github_app.py` (App tokens from 1Password, narrowed per step) and
   the `github_apps` registry block. Dry run by default; `--live` stays gated. The
-  PR-opening App `d3hl-orca` is not created yet, so readiness reports it. 82 tests pass.
+  live test passed 2026-10-29 in `d3hl/sandbox` PR #1: opened by `d3hl-orca[bot]`,
+  checked, approved and merged by `d3hl-codex[bot]`; rerun made no duplicate writes.
+  Registry now records both Apps with their 1Password references. 83 tests pass.
 - Exact next action: limit other GitHub apps' access to `d3hl/contract-master`
   and confirm the 1Password item holds the `d3hl-codex` App private key (gate 6);
   then pin a reviewed master commit and prepare the DeepSeek runner. Do not

@@ -318,7 +318,10 @@ class Manager:
             # An issue ID in the branch name would let Linear auto-link and move the issue.
             raise ContractError("PR branch must be task/... without the issue identifier")
         pull = app.find_pull(branch)
-        if pull and pull["state"] != "open":
+        # The list endpoint reports merged_at, the single-PR endpoint merged.
+        merged = bool(pull) and bool(pull.get("merged") or pull.get("merged_at"))
+        already_merged = merged and pull["head"]["sha"] == commit
+        if pull and pull["state"] != "open" and not already_merged:
             raise ContractError("PR for task branch is closed; escalate instead of reopening")
         if not pull or pull["head"]["sha"] != commit:
             app.push(task["workspace"], commit, branch)
