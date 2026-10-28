@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Contract Master Agent Team",
+    "output": ".archify/architecture-agent-team-20261029-024151/agent-team.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/d3hl/contract-master",
+      "provider": "github",
+      "revision": "448c5fc9352034af3ad9347687839cb0d3a52d80"
+    }
+  },
+  "components": [
+    { "id": "linear", "type": "external", "label": "Linear", "sublabel": "issues · plans · HANDOFF", "pos": [370, 40], "size": [170, 64], "tag": "webhook intake unverified",
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 7, "end_line": 7 }, { "path": "docs/operations/orca.md", "line": 13, "end_line": 16 }] },
+    { "id": "human", "type": "external", "label": "Human requester", "sublabel": "writes the Linear issue", "icon": "person", "pos": [700, 40], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 30, "end_line": 33 }] },
+    { "id": "mem0", "type": "cloud", "label": "Mem0", "sublabel": "optional · no secrets", "pos": [1030, 40], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/context-and-security.md", "line": 53, "end_line": 57 }] },
+    { "id": "outbox", "type": "messagebus", "label": "Linear outbox", "sublabel": "serialized · only writer", "pos": [40, 210], "size": [170, 64],
+      "sources": [{ "path": "contract_master/outbox.py", "line": 14 }, { "path": "docs/operations/orca.md", "line": 109, "end_line": 113 }] },
+    { "id": "coordinator", "type": "backend", "label": "Orca coordinator", "sublabel": "Claude turn · full issue read", "pos": [370, 210], "size": [170, 64], "tag": "10-min schedule · disabled",
+      "sources": [{ "path": "config/orca-automation.json", "line": 3, "end_line": 6 }, { "path": "docs/policies/workflow.md", "line": 9 }] },
+    { "id": "manager", "type": "database", "label": "Manager", "sublabel": "SQLite queue · revisions", "pos": [700, 210], "size": [170, 64], "tag": "workspace owner · attempts",
+      "sources": [{ "path": "docs/operations/orca.md", "line": 39, "end_line": 46 }, { "path": "contract_master/manager.py", "line": 133 }] },
+    { "id": "claude_plan", "type": "backend", "label": "Claude · plan", "sublabel": "investigate · bounded plan", "pos": [1030, 210], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 47, "end_line": 50 }] },
+    { "id": "context7", "type": "cloud", "label": "Context7", "sublabel": "versioned library docs", "pos": [1360, 210], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/context-and-security.md", "line": 27, "end_line": 33 }] },
+    { "id": "claude_confirm", "type": "backend", "label": "Claude · confirm", "sublabel": "rechecks merged commit", "pos": [40, 380], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 69, "end_line": 74 }, { "path": "contract_master/manager.py", "line": 328 }] },
+    { "id": "github", "type": "external", "label": "GitHub", "sublabel": "PR · branch protection", "pos": [370, 380], "size": [170, 64], "tag": "PR opener unknown",
+      "sources": [{ "path": "contract_master/github.py", "line": 16 }, { "path": "docs/contracts/v1.md", "line": 50, "end_line": 54 }] },
+    { "id": "codex", "type": "security", "label": "Codex", "sublabel": "verify exact SHA · clean copy", "pos": [700, 380], "size": [170, 64], "tag": "d3hl-codex[bot]",
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 55, "end_line": 68 }, { "path": "config/registry.json", "line": 48 }] },
+    { "id": "deepseek", "type": "backend", "label": "DeepSeek", "sublabel": "OpenCode · editing worktree", "pos": [1030, 380], "size": [170, 64], "tag": "runner disabled",
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 51, "end_line": 54 }, { "path": "config/deepseek-runner.json", "line": 14, "end_line": 15 }] },
+    { "id": "openrouter", "type": "cloud", "label": "OpenRouter", "sublabel": "DeepSeek model API", "pos": [1360, 380], "size": [170, 64],
+      "sources": [{ "path": "docs/operations/HANDOFF.md", "line": 8, "end_line": 9 }] },
+    { "id": "escalation", "type": "external", "label": "Human escalation", "sublabel": "unresolved · PR veto", "icon": "person", "pos": [370, 550], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/workflow.md", "line": 13 }, { "path": "docs/policies/workflow.md", "line": 59, "end_line": 62 }] },
+    { "id": "bundle", "type": "database", "label": "Context bundle", "sublabel": "pinned master SHA · RO", "pos": [700, 550], "size": [170, 64], "tag": "no reviewed SHA yet",
+      "sources": [{ "path": "docs/policies/context-and-security.md", "line": 5, "end_line": 17 }, { "path": "contract_master/context.py", "line": 13 }] },
+    { "id": "onepassword", "type": "security", "label": "1Password", "sublabel": "op:// references only", "pos": [1030, 550], "size": [170, 64],
+      "sources": [{ "path": "docs/policies/context-and-security.md", "line": 41, "end_line": 44 }] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Trusted coordinator host · location unknown", "wraps": ["outbox", "coordinator", "manager"] },
+    { "kind": "security-group", "label": "Untrusted workers · JSON only · isolation not configured", "wraps": ["codex", "deepseek"] }
+  ],
+  "connections": [
+    { "id": "writes-issue", "from": "human", "to": "linear", "label": "writes issue", "variant": "emphasis" },
+    { "id": "reads-issue", "from": "linear", "to": "coordinator", "label": "full issue read", "variant": "emphasis" },
+    { "id": "triage-claim", "from": "coordinator", "to": "manager", "label": "triage · claim", "variant": "emphasis" },
+    { "id": "plan-phase", "from": "manager", "to": "claude_plan", "label": "planning", "variant": "emphasis" },
+    { "id": "plan-dispatch", "from": "claude_plan", "to": "deepseek", "label": "plan + attempt", "variant": "emphasis" },
+    { "id": "output-sha", "from": "deepseek", "to": "codex", "label": "result @ SHA", "variant": "emphasis" },
+    { "id": "rework", "from": "codex", "to": "deepseek", "label": "rework ≤2", "variant": "dashed" },
+    { "id": "approve-merge", "from": "codex", "to": "github", "label": "approve · merge", "variant": "emphasis" },
+    { "id": "merge-facts", "from": "github", "to": "claude_confirm", "label": "merge facts", "variant": "emphasis" },
+    { "id": "enqueue-done", "from": "claude_confirm", "to": "outbox", "label": "enqueue Done", "variant": "emphasis" },
+    { "id": "write-done", "from": "outbox", "to": "linear", "label": "Done", "variant": "emphasis" },
+    { "id": "escalate", "from": "codex", "to": "escalation", "label": "2nd fail", "variant": "security" },
+    { "id": "veto", "from": "escalation", "to": "github", "label": "PR veto", "variant": "security" },
+    { "id": "ro-mount", "from": "bundle", "to": "codex", "label": "RO mount" },
+    { "id": "op-refs", "from": "onepassword", "to": "deepseek", "label": "op:// in runner env", "variant": "security" },
+    { "id": "model-calls", "from": "deepseek", "to": "openrouter", "label": "model calls" },
+    { "id": "lib-docs", "from": "claude_plan", "to": "context7", "label": "docs query" },
+    { "id": "memory", "from": "claude_plan", "to": "mem0", "label": "optional", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Primary path", "items": ["Human issue in Linear → Orca coordinator reads it in full → manager triages and claims", "Claude plans → DeepSeek implements → Codex verifies the exact output SHA", "Codex approves and merges as d3hl-codex[bot] → Claude confirms the merged commit → outbox writes Done"] },
+    { "dot": "rose", "title": "Trust boundary", "items": ["Only the coordinator calls the manager API", "Workers return JSON: no manager tokens, database access or Linear credentials", "Two implementation attempts, then a human; a human change request blocks completion"] },
+    { "dot": "amber", "title": "Unknown or not configured", "items": ["Linear webhook intake is unverified; scheduled reconciliation is the working path", "Who opens the PR and where the coordinator host runs are not documented", "Worker isolation and mounts are not configured; automation and runner stay disabled", "Merge-gate audit: HANDOFF body, pilot.md and registry agree it passes; the HANDOFF title still says 'with findings'"] }
+  ]
+}

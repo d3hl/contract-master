@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6cf121b1-b981-426f-94ea-e79f25a25300",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/candidate.json",
+  "output": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+  "specification": {
+    "sha256": "2b0bb70b7f29d6366575cf6516d711ed7a33ca4b4ad5fee97fa4d57f04f1fc12",
+    "bytes": 8415
+  },
+  "artifact": {
+    "sha256": "7c66fb8e5cc9bdd4b6bc8d1289593e4a12c3725bcd11457f8383542f38b8902e",
+    "bytes": 873274
+  }
+}

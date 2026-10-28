@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-28T18:42:31.913Z",
+  "specification": {
+    "path": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/candidate.json",
+    "sha256": "2b0bb70b7f29d6366575cf6516d711ed7a33ca4b4ad5fee97fa4d57f04f1fc12",
+    "bytes": 8415
+  },
+  "artifact": {
+    "path": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+    "sha256": "7c66fb8e5cc9bdd4b6bc8d1289593e4a12c3725bcd11457f8383542f38b8902e",
+    "bytes": 873274
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/usr/bin/node",
+        "/home/d3/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/candidate.json",
+        "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/d3/orca/workspaces/contract-master",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "2b0bb70b7f29d6366575cf6516d711ed7a33ca4b4ad5fee97fa4d57f04f1fc12",
+          "bytes": 8415
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 797,
+      "command": [
+        "/usr/bin/node",
+        "/home/d3/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/candidate.json",
+        "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/d3/orca/workspaces/contract-master",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "6cf121b1-b981-426f-94ea-e79f25a25300",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/candidate.json",
+        "output": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+        "specification": {
+          "sha256": "2b0bb70b7f29d6366575cf6516d711ed7a33ca4b4ad5fee97fa4d57f04f1fc12",
+          "bytes": 8415
+        },
+        "artifact": {
+          "sha256": "7c66fb8e5cc9bdd4b6bc8d1289593e4a12c3725bcd11457f8383542f38b8902e",
+          "bytes": 873274
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/d3hl/contract-master",
+          "revision": "448c5fc9352034af3ad9347687839cb0d3a52d80",
+          "references": 26
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 249,
+      "command": [
+        "/usr/bin/node",
+        "/home/d3/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+        "artifact": {
+          "sha256": "7c66fb8e5cc9bdd4b6bc8d1289593e4a12c3725bcd11457f8383542f38b8902e",
+          "bytes": 873274
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 21.1,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.85859872611465,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 80,
+            "minInteriorSegmentPx": 163,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 40,
+            "emptyTopRatio": 0.059,
+            "occupiedTop": 40,
+            "viewBoxTop": 0,
+            "canvasHeight": 682,
+            "typicalNodeHeight": 64,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1346,
+            "actualBudgetPx": 1346,
+            "actualReaderWidth": 1376,
+            "desiredReaderWidth": 1501.875,
+            "viewportCap": 1376,
+            "limit": "viewport-cap",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": false,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "writes-issue",
+              "from": "human",
+              "to": "linear"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 6.85859872611465,
+            "semanticTextCount": 52
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "6cf121b1-b981-426f-94ea-e79f25a25300"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 41,
+      "command": [
+        "/usr/bin/node",
+        "/home/d3/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "6cf121b1-b981-426f-94ea-e79f25a25300",
+        "artifact": {
+          "path": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html",
+          "sha256": "7c66fb8e5cc9bdd4b6bc8d1289593e4a12c3725bcd11457f8383542f38b8902e",
+          "bytes": 873274
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "agent-team.browser-check.json",
+          "files": []
+        },
+        "error": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.finalize.json",
+    "summaryReceipt": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.finalize-summary.json",
+    "browserCheckReceipt": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261029-024151/agent-team.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-28T18:42:33.447Z",
+  "durationMs": 1534,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-28T18:42:32.188Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}
