@@ -4,7 +4,7 @@ import json
 import os
 import uuid
 from pathlib import Path
-from . import context, phases
+from . import context, github, github_app, phases
 from .contracts import ContractError, digest, safe_path, validate, within
 from .store import Store
 
@@ -306,6 +306,93 @@ class Manager:
                 task.update(output_commit=commit, verification=None, merge_receipt=None)
                 phases.advance(task, "verifying")
                 Store.save(db, task)
+
+    def open_pr(self, task_id, token, app):
+        """Push the output commit to the task branch and open (or reuse) its PR as the PR-opening App."""
+        with self.store.transaction() as db:
+            task = self._owned(db, task_id, token, "open_pr")
+        commit, branch, issue = task["output_commit"], task["branch"] or "", task["issue"]
+        if not commit:
+            raise ContractError("No output commit to open a PR for")
+        if not branch.startswith("task/") or issue["identifier"].lower() in branch.lower():
+            # An issue ID in the branch name would let Linear auto-link and move the issue.
+            raise ContractError("PR branch must be task/... without the issue identifier")
+        pull = app.find_pull(branch)
+        # The list endpoint reports merged_at, the single-PR endpoint merged.
+        merged = bool(pull) and bool(pull.get("merged") or pull.get("merged_at"))
+        already_merged = merged and pull["head"]["sha"] == commit
+        if pull and pull["state"] != "open" and not already_merged:
+            raise ContractError("PR for task branch is closed; escalate instead of reopening")
+        if not pull or pull["head"]["sha"] != commit:
+            app.push(task["workspace"], commit, branch)
+        if not pull:
+            body = ("Related to " + issue["identifier"] + "\n\nGoal: " + issue["goal"] + "\n\nAcceptance:\n"
+                    + "".join("- " + c + "\n" for c in issue["acceptance_criteria"]) + "\nTask: " + task_id)
+            pull = app.open_pull(branch, github_app.base_branch(task["policy"]), issue["goal"], body)
+        pull = app.pull(pull["number"])
+        if pull["head"]["sha"] != commit:
+            raise ContractError("PR head differs from output commit")
+        record = {"number": pull["number"], "url": pull["html_url"], "opened_by": pull["user"]["login"]}
+        with self.store.transaction() as db:
+            current = self._owned(db, task_id, token, "open_pr")
+            if current["output_commit"] != commit:
+                raise ContractError("Output commit changed while opening the PR")
+            current["pull_request"] = record
+            Store.save(db, current)
+        return record
+
+    def _merge_step(self, task_id, token, step, value):
+        with self.store.transaction() as db:
+            task = self._owned(db, task_id, token, "codex_merge", allow_blocked=True)
+            steps = task.setdefault("merge_steps", {})
+            steps[step] = value
+            if step == "merged":
+                steps.pop("stopped", None)  # an earlier stop was resolved before this merge
+            Store.save(db, task)
+
+    def codex_merge(self, task_id, token, app, reader):
+        """Codex checks, approves and merges the exact verified commit, then the read-only gate confirms it."""
+        with self.store.transaction() as db:
+            task = self._owned(db, task_id, token, "codex_merge")
+        verification, pull_request = task["verification"], task.get("pull_request")
+        identity, commit = task["policy"].get("merge_identity"), task["output_commit"]
+        if not verification or verification["verdict"] != "pass" or verification["reviewed_commit"] != commit:
+            raise ContractError("Passing Codex verification of the output commit required")
+        if not pull_request:
+            raise ContractError("Open the PR before merging")
+        if not identity or app.login != identity["login"]:
+            raise ContractError("Merge App does not match the registered Codex merge identity")
+        number = pull_request["number"]
+        pull = app.pull(number)
+        if pull["head"]["sha"] != commit:
+            if not pull.get("merged"):
+                self.observe_head(task_id, token, pull["head"]["sha"])
+            raise ContractError("PR head moved after verification; verify the new head")
+        if (pull["user"]["login"], pull["user"]["type"]) == (identity["login"], identity["type"]):
+            raise ContractError("The merge App cannot approve a PR it opened")
+        latest = github.latest_reviews(app.reviews(number))
+        if github.human_veto(latest):
+            self._merge_step(task_id, token, "stopped", "A human requested changes; escalate")
+            raise ContractError("A human requested changes; escalate instead of merging")
+        if not pull.get("merged"):
+            runs = app.check_runs(commit)
+            if not any(r["app"]["id"] == app.app_id and r["head_sha"] == commit and r["conclusion"] == "success"
+                       for r in runs):
+                summary = "Codex verified " + commit + " for " + task_id + ". " + verification["diff_evidence"]
+                app.create_check(commit, summary)
+            self._merge_step(task_id, token, "check", commit)
+            if not github.approved_by(latest, identity, commit):
+                app.approve(number, commit, "Codex verification passed for " + commit)
+            self._merge_step(task_id, token, "approved", commit)
+            try:
+                app.merge(number, commit)
+            except github_app.GitHubWriteError as exc:
+                if exc.status not in (405, 409, 422):
+                    raise
+                self._merge_step(task_id, token, "stopped", str(exc))
+                raise ContractError("PR is not mergeable; escalate: " + str(exc)) from None
+        self._merge_step(task_id, token, "merged", commit)
+        return self.confirm_merge(task_id, token, reader, pull_request["url"])
 
     def confirm_merge(self, task_id, token, provider, pr_url):
         # Provider is selected by trusted coordinator configuration, never by issue/worker output.

@@ -39,7 +39,30 @@ not store/provision credentials. It does not assert production eligibility.
    in branch protection, record it as `merge_identity` (`login`, `type`) in the
    registry, and confirm no other bot can merge. The adapter requires Codex approval
    on the exact head, including after new commits, and refuses if a human's latest
-   review requests changes.
+   review requests changes. Done: `d3hl-codex` (App 5511451, installation 176202750)
+   is recorded in `merge_identity` and `github_apps.merge`.
+   `d3hl-orca` (App 5516831, installation 176325322) is recorded in `github_apps.pr`.
+   **Live test passed 2026-10-29** in the throwaway repo `d3hl/sandbox`
+   ([PR #1](https://github.com/d3hl/sandbox/pull/1)): opened by `d3hl-orca[bot]` with
+   `Related to SANDBOX-1`; `codex-verification` success from App 5511451 on
+   `60941a7`; `d3hl-codex[bot]` APPROVED `60941a7`; merged by `d3hl-codex[bot]` (Bot),
+   merge commit `eb980c3`; read-only gate confirmed. A second run of both commands
+   made no new PR, review or check. Manager state was a temporary database; no
+   Linear writes.
+   Both App keys now live in the dedicated 1Password vault `contract-master`; the
+   service account can read only that vault (verified 2026-10-29: one vault, two
+   items). A second live run with those references passed the same day
+   ([PR #2](https://github.com/d3hl/sandbox/pull/2): opened by `d3hl-orca[bot]`,
+   `codex-verification` success and APPROVED on `4352260`, merged by
+   `d3hl-codex[bot]` as `2cc428e`); its rerun made no new writes.
+   Branch protection: `contract-master` **stays on phase A** (PR required, `unit`
+   checks from GitHub Actions, push limited to `d3hl-codex` and the owner, admin
+   bypass allowed). Its own PRs are opened by people or Claude, not by the manager,
+   so `codex-merge` never runs on them and a required `codex-verification` would
+   block every merge. Phase B (require `codex-verification` from App 5511451, push
+   only `d3hl-codex`, no bypass) applies to target repositories when they are
+   onboarded, after their first `codex-merge`. Revisit if contract-master gets a
+   command for Codex to review and merge non-task PRs.
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
    automation with the documented `automations create` command. Use the coordinator
    prompt, existing manager workspace and Asia/Singapore timezone. Configure 1Password

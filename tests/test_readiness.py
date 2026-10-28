@@ -17,7 +17,7 @@ class ReadinessTests(unittest.TestCase):
 
     def test_missing_codex_merge_identity_blocks(self):
         self.assertTrue(any("merge_identity" in b for b in self.blockers(merge_identity=None)))
-        identity = {"login": "codex-bot[bot]", "type": "Bot"}
+        identity = {"login": "d3hl-codex[bot]", "type": "Bot"}
         self.assertFalse(any("merge_identity" in b for b in self.blockers(merge_identity=identity)))
 
     def test_role_assignment_is_enforced(self):

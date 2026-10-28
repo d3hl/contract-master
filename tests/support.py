@@ -97,14 +97,14 @@ class WorkflowFixture(unittest.TestCase):
                 "checks": self.checks(commit, passed), "corrections": [] if passed else ["Add missing empty-token rejection in src/parser.py"],
                 "diff_evidence": "git diff base..output reviewed independently"}
 
-    def completion(self):
+    def completion(self, confirm=True):
         manager = self.manager
         task_id, token = self.task_id, self.token
         class Provider:
             def confirm(self, repo, url, commit, identity):
                 return {"accepted_commit": commit, "merged_commit": C, "reviewer": "codex-bot[bot]", "merger": "codex-bot[bot]",
                         "pr_url": url, "evidence": "Fake provider: Codex approval and merge on exact head"}
-        if manager.task(task_id)["phase"] == "awaiting_review":
+        if confirm and manager.task(task_id)["phase"] == "awaiting_review":
             manager.confirm_merge(task_id, token, Provider(), "https://example.invalid/pull/1")
         return {"version": "1.0", "task_id": self.task_id, "author": "claude", "accepted_commit": B, "merged_commit": C,
                 "pr_url": "https://example.invalid/pull/1", "reviewer": "codex-bot[bot]", "merger": "codex-bot[bot]",
@@ -117,3 +117,78 @@ class WorkflowFixture(unittest.TestCase):
                 "completed_work": ["Implementation returned"], "verification_evidence": [], "blockers": ["Linear outage"],
                 "next_action": "Recover recorded Dispatch; independently verify output commit"}
 
+
+
+CODEX_LOGIN = "codex-bot[bot]"
+
+
+class FakeApp:
+    """In-memory GitHub for open_pr/codex_merge. Records every write; never touches the network."""
+    def __init__(self, login=CODEX_LOGIN, app_id=7, opener=("coordinator", "User")):
+        self.login, self.app_id, self.opener = login, app_id, opener
+        self.pulls, self.review_list, self.runs, self.writes = {}, [], [], []
+        self.fail = {}
+
+    def _maybe_fail(self, name):
+        if name in self.fail:
+            raise self.fail.pop(name)
+
+    def find_pull(self, branch):
+        return next((p for p in self.pulls.values() if p["head"]["ref"] == branch), None)
+
+    def push(self, workspace, commit, branch):
+        self.writes.append(("push", commit, branch))
+        for pull in self.pulls.values():
+            if pull["head"]["ref"] == branch:
+                pull["head"]["sha"] = commit
+        self.pushed = commit
+
+    def open_pull(self, branch, base, title, body):
+        self.writes.append(("open", branch, base, body))
+        number = len(self.pulls) + 1
+        self.pulls[number] = {"number": number, "state": "open", "merged": False, "html_url":
+                              "https://github.com/example/repo/pull/" + str(number), "head": {"ref": branch,
+                              "sha": getattr(self, "pushed", None)}, "user": {"login": self.opener[0],
+                              "type": self.opener[1]}}
+        return self.pulls[number]
+
+    def pull(self, number):
+        return dict(self.pulls[number])
+
+    def reviews(self, number):
+        return list(self.review_list)
+
+    def check_runs(self, commit):
+        return [r for r in self.runs if r["head_sha"] == commit]
+
+    def create_check(self, commit, summary):
+        self._maybe_fail("create_check")
+        self.writes.append(("check", commit))
+        self.runs.append({"app": {"id": self.app_id}, "head_sha": commit, "conclusion": "success"})
+
+    def approve(self, number, commit, body):
+        self._maybe_fail("approve")
+        self.writes.append(("approve", number, commit))
+        self.review_list.append({"user": {"login": self.login, "type": "Bot"}, "state": "APPROVED", "commit_id": commit})
+
+    def merge(self, number, commit, method="squash"):
+        self._maybe_fail("merge")
+        self.writes.append(("merge", number, commit))
+        pull = self.pulls[number]
+        if pull["head"]["sha"] != commit:
+            raise AssertionError("merge without matching sha")
+        pull.update(merged=True, state="closed", merged_by={"login": self.login, "type": "Bot"})
+
+
+class FakeReader:
+    """Read-only merge gate double: confirms what FakeApp recorded."""
+    def __init__(self, app):
+        self.app = app
+
+    def confirm(self, repo, url, commit, identity):
+        pull = self.app.pulls[int(url.rsplit("/", 1)[1])]
+        if not pull["merged"] or pull["head"]["sha"] != commit:
+            from contract_master.contracts import ContractError
+            raise ContractError("not merged")
+        return {"accepted_commit": commit, "merged_commit": C, "reviewer": identity["login"],
+                "merger": identity["login"], "pr_url": url, "evidence": "Fake read-only gate"}

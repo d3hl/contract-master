@@ -36,6 +36,15 @@
   `reviewer`/`merger` replace `human_reviewer`/`human_merger`) because nothing is
   live. The merge gate now needs a registered Codex `merge_identity`, which is
   `null` until the pilot creates that GitHub identity. 63 tests pass.
+- Codex merge automation (plan PR #20): `open-pr` and `codex-merge` manager commands,
+  `contract_master/github_app.py` (App tokens from 1Password, narrowed per step) and
+  the `github_apps` registry block. Dry run by default; `--live` stays gated. The
+  live test passed 2026-10-29 in `d3hl/sandbox` PR #1: opened by `d3hl-orca[bot]`,
+  checked, approved and merged by `d3hl-codex[bot]`; rerun made no duplicate writes.
+  Registry now records both Apps; their keys are in the dedicated 1Password vault
+  `contract-master`, the only vault the service account can read; a second live
+  run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
+  phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
 - Exact next action: limit other GitHub apps' access to `d3hl/contract-master`
   and confirm the 1Password item holds the `d3hl-codex` App private key (gate 6);
   then pin a reviewed master commit and prepare the DeepSeek runner. Do not
