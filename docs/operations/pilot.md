@@ -19,6 +19,12 @@ not store/provision credentials. It does not assert production eligibility.
 
 1. Human reviews/merges the bootstrap. Record the reviewed master SHA, create a
    context bundle with `bundle SHA`, verify its digest and required documents.
+   **Done 2026-10-29:** pinned `26e14a8c21f1046abdecdc9bde1bd68b5a3e7259` (PR #21,
+   reviewed and merged by the owner). Bundle digest
+   `9ac1eae1c4e0b8fa89ac5788ecf554812ab9db11aada0524f2cb295b49c5b7eb`: recomputed
+   digest, source commit and the five required documents match `git show` at that
+   commit; file mode 0444. The bundle lives under the ignored `.state/context/`;
+   rebuild it on another host with `bundle <SHA>` and compare the digest.
 2. Verify the configured target base and approved context. The bootstrap now exists
    at commit `32e4e4630b237cb1a9c442355940bba1eb6a2dae` on `main`/`origin/main`;
    its presence does not establish human review approval. No executable issue may
@@ -80,8 +86,7 @@ Installed Orca exposes scheduled automations and Linear issue APIs. The availabl
 Linear connector does not expose a verified setter for GitHub issue-status workflow
 automations. A live DeepSeek capability probe is now verified; production
 configuration and the external status settings remain separate gates. Automatic execution remains
-blocked by default (`automation_enabled=false`, runner disabled, empty reviewed
-commit allowlist). These are activation
+blocked by default (`automation_enabled=false`, runner disabled). These are activation
 prerequisites, not extra plan approval for otherwise eligible work.
 
 ## Abort and recovery
