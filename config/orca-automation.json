@@ -3,7 +3,7 @@
   "enabled": false,
   "trigger": "*/10 * * * *",
   "timezone": "Asia/Singapore",
-  "provider": "codex",
+  "provider": "claude",
   "workspace_mode": "existing",
   "prompt_file": "docs/operations/coordinator-prompt.md",
   "notes": "Proposal only; not installed. Orca owns scheduling. Manager commands are one-shot. Run creation is namespacing, not a second scheduler. Reuse and recover a recorded run before creating another."

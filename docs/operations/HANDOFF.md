@@ -31,6 +31,12 @@
   read failures no longer post triage comments or fence tasks; phase rules live in
   `contract_master/phases.py`; schema validation rejects unsupported keywords and
   is cross-checked with `jsonschema` in CI. 57 tests pass.
+- Role change (planned in PR #13, `45b78f3`): Claude plans and decides completion,
+  Codex verifies, reviews and merges, humans handle escalations. The v1 `plan`,
+  `task` and `completion` schemas were edited in place (`author: claude`;
+  `reviewer`/`merger` replace `human_reviewer`/`human_merger`) because nothing is
+  live. The merge gate now needs a registered Codex `merge_identity`, which is
+  `null` until the pilot creates that GitHub identity. 63 tests pass.
 - Exact next action: review the team-wide impact and select a scoped remediation
   for merge → Done, automatic parent closure and stale cancellation. An admin
   should save the agreed rules, then Codex reads them back before accepting the

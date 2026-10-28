@@ -40,9 +40,11 @@
           "timeout_seconds": 120
         }
       },
-      "planning_runner": "codex",
+      "planning_runner": "claude",
       "implementation_runner": "deepseek-portable",
       "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_identity": null,
       "merge_gate_audited": false,
       "credential_references": [],
       "dependency_versions": {},

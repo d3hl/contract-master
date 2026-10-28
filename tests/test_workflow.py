@@ -81,14 +81,15 @@ class WorkflowTests(WorkflowFixture):
         with self.assertRaises(ContractError): self.manager.complete(self.task_id, self.token, self.completion())
         with self.assertRaises(ContractError): self.manager.verify(self.task_id, self.token, self.verification())
 
-    def test_09_done_requires_merge_and_final_codex_confirmation(self):
+    def test_09_done_requires_merge_and_final_claude_confirmation(self):
         self.start(); self.implement()
         with self.assertRaises(ContractError): self.manager.complete(self.task_id, self.token, self.completion())
         self.manager.verify(self.task_id, self.token, self.verification())
-        bad = self.completion(); bad["human_merger"] = ""
+        bad = self.completion(); bad["merger"] = ""
         with self.assertRaises(ContractError): self.manager.complete(self.task_id, self.token, bad)
-        bad = self.completion(); bad["author"] = "deepseek"
-        with self.assertRaises(ContractError): self.manager.complete(self.task_id, self.token, bad)
+        for author in ("deepseek", "codex"):
+            bad = self.completion(); bad["author"] = author
+            with self.assertRaises(ContractError): self.manager.complete(self.task_id, self.token, bad)
         bad = self.completion(); bad["accepted_commit"] = A
         with self.assertRaises(ContractError): self.manager.complete(self.task_id, self.token, bad)
         bad = self.completion(); bad["checks"] = self.checks(C, False)
@@ -182,7 +183,7 @@ class WorkflowTests(WorkflowFixture):
         self.task_id = self.manager.intake(self.issue)["task_id"]
         self.token = self.manager.claim(self.task_id, "coordinator", self.root / "workspace", "task/one")
         self.manager.pin_context(self.task_id, self.token, self.reference)
-        bad = {"version": "1.0", "task_id": self.task_id, "author": "codex", "revision": 1, "steps": ["Work"],
+        bad = {"version": "1.0", "task_id": self.task_id, "author": "claude", "revision": 1, "steps": ["Work"],
                "context_digest": self.reference["digest"], "read_documents": ["README.md"], "investigation_evidence": ["Inspected"], "latest_handoff_read": True, "documentation_sources": []}
         with self.assertRaises(ContractError): self.manager.record_plan(self.task_id, self.token, bad)
 
@@ -309,3 +310,33 @@ class WorkflowTests(WorkflowFixture):
         self.assertTrue(refs)
         self.assertEqual(set(refs), {"TEST-1"})
         self.assertEqual(self.manager.task(self.task_id)["issue"]["issue_id"], "issue-1")
+
+    def test_live_dispatch_requires_codex_merge_identity(self):
+        repo = self.registry["repositories"]["example/repo"]
+        self.registry["automation_enabled"] = True
+        repo["merge_gate_audited"] = True
+        live = dict(self.runner, mode="live", enabled=True)
+        identity = repo.pop("merge_identity")
+        self.start()
+        with self.assertRaises(ContractError): self.manager.prepare_dispatch(self.task_id, self.token, live, live=True)
+        repo["merge_identity"] = identity
+        task_id = self.manager.intake(dict(self.issue, issue_id="issue-2", identifier="TEST-2"))["task_id"]
+        token = self.manager.claim(task_id, "second", self.root / "workspace-2", "task/two")
+        self.manager.pin_context(task_id, token, self.reference)
+        self.manager.record_plan(task_id, token, dict(self.plan, task_id=task_id))
+        self.assertEqual(self.manager.prepare_dispatch(task_id, token, live, live=True)["phase"], "implementing")
+
+    def test_merge_confirmation_requires_codex_merge_identity(self):
+        del self.registry["repositories"]["example/repo"]["merge_identity"]
+        self.start(); self.implement()
+        self.manager.verify(self.task_id, self.token, self.verification())
+        with self.assertRaises(ContractError): self.completion()
+
+    def test_plan_must_be_authored_by_claude(self):
+        self.task_id = self.manager.intake(self.issue)["task_id"]
+        self.token = self.manager.claim(self.task_id, "coordinator", self.root / "workspace", "task/one")
+        self.manager.pin_context(self.task_id, self.token, self.reference)
+        plan = {"version": "1.0", "task_id": self.task_id, "author": "codex", "revision": 1, "steps": ["Work"],
+                "context_digest": self.reference["digest"], "read_documents": ["AGENTS.md", "README.md"],
+                "investigation_evidence": ["Inspected"], "latest_handoff_read": True, "documentation_sources": []}
+        with self.assertRaises(ContractError): self.manager.record_plan(self.task_id, self.token, plan)

@@ -18,7 +18,7 @@ def revision_of(issue):
 
 
 REQUIRED_CAPABILITIES = {"read_files", "edit_files", "execute_commands", "git", "structured_results"}
-MERGE_FIELDS = ("accepted_commit", "merged_commit", "human_reviewer", "human_merger", "pr_url")
+MERGE_FIELDS = ("accepted_commit", "merged_commit", "reviewer", "merger", "pr_url")
 
 
 def queue_comment(db, key, identifier, body):
@@ -99,7 +99,7 @@ class Manager:
                     "workspace": None, "branch": None}
             db.execute("INSERT INTO tasks VALUES(?,?,?,?,?)",
                        (task_id, issue["issue_id"], revision, 1, json.dumps(task)))
-            queue_comment(db, task_id + ":triage", issue["identifier"], "TRIAGE: eligible; Codex planning. " + task_id)
+            queue_comment(db, task_id + ":triage", issue["identifier"], "TRIAGE: eligible; Claude planning. " + task_id)
             return {"queued": True, "task_id": task_id}
 
     @staticmethod
@@ -217,7 +217,7 @@ class Manager:
             if runner["id"] != repo["implementation_runner"]:
                 raise ContractError("Runner is not registered for this repository")
             gates_open = (self.registry["automation_enabled"] and runner["enabled"] and runner["mode"] == "live"
-                          and repo["merge_gate_audited"])
+                          and repo["merge_gate_audited"] and bool(repo.get("merge_identity")))
             if live and not gates_open:
                 raise ContractError("Live activation gates are not satisfied")
             context.load(task["context"], repo["required_context"])
@@ -311,8 +311,10 @@ class Manager:
         # Provider is selected by trusted coordinator configuration, never by issue/worker output.
         task = self.task(task_id)
         repo = task["policy"]
-        receipt = provider.confirm(repo["url"], pr_url, task["output_commit"])
-        required = {"accepted_commit", "merged_commit", "human_reviewer", "human_merger", "pr_url", "evidence"}
+        if not repo.get("merge_identity"):
+            raise ContractError("Codex merge identity is not configured for this repository")
+        receipt = provider.confirm(repo["url"], pr_url, task["output_commit"], repo["merge_identity"])
+        required = set(MERGE_FIELDS) | {"evidence"}
         if set(receipt) != required or not all(isinstance(v, str) and v for v in receipt.values()):
             raise ContractError("Provider merge receipt is incomplete")
         with self.store.transaction() as db:
@@ -333,7 +335,7 @@ class Manager:
                 raise ContractError("Current verification and accepted commit required")
             receipt = task.get("merge_receipt")
             if not receipt or any(evidence[k] != receipt[k] for k in MERGE_FIELDS):
-                raise ContractError("Independent provider confirmation of human review and merge required")
+                raise ContractError("Independent provider confirmation of Codex review and merge required")
             self._checks(task, evidence["checks"], evidence["merged_commit"])
             task.update(completion=evidence)
             phases.advance(task, "done")

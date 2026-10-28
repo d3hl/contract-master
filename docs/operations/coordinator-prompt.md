@@ -12,15 +12,16 @@ Reconcile only configured Linear projects using the manager's one-shot intake.
 Triage complete executable child issues; leave parents, incomplete work and unmet
 dependencies unqueued with specific reasons. Clarify missing requirements in Linear.
 
-For eligible tasks, have Codex inspect target code, load pinned shared context and
-local required docs, then record a bounded plan. Dispatch verified DeepSeek runners
+For eligible tasks, have Claude inspect target code, load pinned shared context and
+local required docs, explore the design, then record a bounded plan. Dispatch verified DeepSeek runners
 through Orca only. Require structured implementation/testing results. Independently
 verify with Codex against exact output commit, review actual diff and rerun checks.
 
-Feed actionable failures back for at most one rework. Escalate unresolved findings.
-Move checked implementation to In Review. Human reviews and merges. Observe current
-head before any acceptance use. Confirm actual human merge with the read-only provider
-adapter; review merged correspondence, checks and acceptance before Codex enqueues Done.
+Feed actionable failures back for at most one rework. Escalate unresolved findings
+to a human. Move checked implementation to In Review. Codex approves and merges the
+PR from its registered identity. Observe current head before any acceptance use.
+Confirm the actual Codex merge with the read-only provider adapter; Claude reviews
+merged correspondence, checks and acceptance before the Done transition is enqueued.
 
 Serialize all Linear writes through the manager outbox. Record HANDOFF before the
 turn ends. Reconcile uncertain writes from receipts/readback, never blind-retry.

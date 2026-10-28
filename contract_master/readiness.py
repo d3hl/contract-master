@@ -13,6 +13,11 @@ def report(registry):
     for repo_id, policy in registry["repositories"].items():
         if not policy["merge_gate_audited"]:
             blockers.append(repo_id + ": audit Linear merge/status automations")
+        if not policy.get("merge_identity"):
+            blockers.append(repo_id + ": create the Codex GitHub merge identity and record merge_identity")
+        roles = (policy.get("planning_runner"), policy.get("verification_runner"), policy.get("merge_runner"))
+        if roles != ("claude", "codex", "codex"):
+            blockers.append(repo_id + ": planning must be Claude; verification and merge must be Codex")
         config = policy.get("runner_config")
         if not config:
             blockers.append(repo_id + ": runner configuration is missing")

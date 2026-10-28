@@ -12,6 +12,7 @@
     "role": {
       "type": "string",
       "enum": [
+        "claude",
         "codex",
         "deepseek"
       ]

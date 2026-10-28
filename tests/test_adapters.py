@@ -5,6 +5,29 @@ from contract_master.github import GitHub
 from support import WorkflowFixture, A, B, C
 
 
+REPO = "https://github.com/example/repo"
+CODEX = {"login": "codex-bot[bot]", "type": "Bot"}
+
+
+def codex_review(state, commit=B):
+    return {"user": dict(CODEX), "state": state, "commit_id": commit}
+
+
+def human_review(state, commit=B):
+    return {"user": {"login": "person", "type": "User"}, "state": state, "commit_id": commit}
+
+
+class CodexProvider(GitHub):
+    """Fake GitHub reads; defaults describe a Codex approval and merge of head B."""
+    def __init__(self):
+        self.head, self.merged, self.merger, self.reviews = B, True, dict(CODEX), [codex_review("APPROVED")]
+
+    def api(self, path):
+        if "/reviews?" in path:
+            return self.reviews
+        return {"merged": self.merged, "head": {"sha": self.head}, "merged_by": self.merger, "merge_commit_sha": C}
+
+
 class AdapterTests(WorkflowFixture):
     def full(self, **updates):
         block = {k: self.issue[k] for k in ("repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")}
@@ -100,33 +123,36 @@ class AdapterTests(WorkflowFixture):
             def call(self, *args, **kwargs): return {"meta": {"sections": {"comments": {"hasMore": True}}}}
         with self.assertRaises(ProviderError): Truncated().issue("i", "w")
 
-    def test_provider_approval_exact_commit_human_merge_and_repository(self):
-        class Provider(GitHub):
-            def __init__(self): self.head, self.human, self.merged, self.approved = B, True, True, True
-            def api(self, path):
-                if "/reviews?" in path:
-                    return [{"user": {"login": "reviewer", "type": "User"}, "state": "APPROVED" if self.approved else "CHANGES_REQUESTED", "commit_id": self.head}]
-                return {"merged": self.merged, "head": {"sha": self.head}, "merged_by": {"login": "merger", "type": "User" if self.human else "Bot"}, "merge_commit_sha": C}
-        provider = Provider()
+    def test_provider_requires_codex_approval_and_merge_on_exact_head(self):
         url = "https://github.com/example/repo/pull/1"
-        self.assertEqual(provider.confirm("https://github.com/example/repo", url, B)["merged_commit"], C)
-        for field, value in (("head", A), ("human", False), ("merged", False), ("approved", False)):
-            provider = Provider(); setattr(provider, field, value)
-            with self.assertRaises(ContractError): provider.confirm("https://github.com/example/repo", url, B)
-        with self.assertRaises(ContractError): Provider().confirm("https://github.com/example/repo", "https://github.com/other/repo/pull/1", B)
+        provider = CodexProvider()
+        receipt = provider.confirm(REPO, url, B, CODEX)
+        self.assertEqual((receipt["merged_commit"], receipt["reviewer"], receipt["merger"]), (C, CODEX["login"], CODEX["login"]))
+        cases = (("head", A), ("merged", False), ("merger", {"login": "person", "type": "User"}),
+                 ("merger", {"login": "other-bot[bot]", "type": "Bot"}), ("reviews", []),
+                 ("reviews", [codex_review("CHANGES_REQUESTED")]), ("reviews", [codex_review("APPROVED", A)]))
+        for field, value in cases:
+            provider = CodexProvider(); setattr(provider, field, value)
+            with self.assertRaises(ContractError): provider.confirm(REPO, url, B, CODEX)
+        with self.assertRaises(ContractError): CodexProvider().confirm(REPO, "https://github.com/other/repo/pull/1", B, CODEX)
+        for identity in (None, {}, {"login": "codex-bot[bot]"}):
+            with self.assertRaises(ContractError): CodexProvider().confirm(REPO, url, B, identity)
+
+    def test_human_approval_is_optional_but_change_request_vetoes(self):
+        url = "https://github.com/example/repo/pull/1"
+        provider = CodexProvider()
+        provider.reviews = [codex_review("APPROVED"), human_review("APPROVED")]
+        self.assertEqual(provider.confirm(REPO, url, B, CODEX)["merger"], CODEX["login"])
+        provider.reviews = [codex_review("APPROVED"), human_review("CHANGES_REQUESTED")]
+        with self.assertRaises(ContractError): provider.confirm(REPO, url, B, CODEX)
+        provider.reviews = [codex_review("APPROVED"), human_review("CHANGES_REQUESTED"), human_review("APPROVED")]
+        self.assertEqual(provider.confirm(REPO, url, B, CODEX)["merger"], CODEX["login"])
 
     def test_null_merged_by_is_a_clean_refusal(self):
-        class Provider(GitHub):
-            def api(self, path):
-                return {"merged": True, "head": {"sha": B}, "merged_by": None, "merge_commit_sha": C}
-        with self.assertRaises(ContractError):
-            Provider().confirm("https://github.com/example/repo", "https://github.com/example/repo/pull/1", B)
+        provider = CodexProvider(); provider.merger = None
+        with self.assertRaises(ContractError): provider.confirm(REPO, "https://github.com/example/repo/pull/1", B, CODEX)
 
     def test_newer_dismissed_review_invalidates_old_approval(self):
-        class Provider(GitHub):
-            def api(self, path):
-                if "/reviews?" in path:
-                    return [{"user": {"login": "human", "type": "User"}, "state": state, "commit_id": B} for state in ("APPROVED", "DISMISSED")]
-                return {"merged": True, "head": {"sha": B}, "merged_by": {"login": "merger", "type": "User"}, "merge_commit_sha": C}
-        with self.assertRaises(ContractError): Provider().confirm("https://github.com/example/repo", "https://github.com/example/repo/pull/1", B)
+        provider = CodexProvider(); provider.reviews = [codex_review("APPROVED"), codex_review("DISMISSED")]
+        with self.assertRaises(ContractError): provider.confirm(REPO, "https://github.com/example/repo/pull/1", B, CODEX)
 

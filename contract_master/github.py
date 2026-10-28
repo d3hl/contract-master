@@ -13,7 +13,10 @@ class GitHub:
             raise ProviderError("GitHub read failed; preserve review state")
         return json.loads(run.stdout)
 
-    def confirm(self, repository_url, pr_url, accepted_commit):
+    def confirm(self, repository_url, pr_url, accepted_commit, merge_identity):
+        """Confirm Codex reviewed and merged the exact accepted head; a human may still veto."""
+        if not merge_identity or not merge_identity.get("login") or not merge_identity.get("type"):
+            raise ContractError("Codex merge identity is not configured for this repository")
         repo = re.fullmatch(r"https://github.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?", repository_url)
         if not repo:
             raise ContractError("Only registered GitHub repositories supported by this adapter")
@@ -23,24 +26,28 @@ class GitHub:
         endpoint = "repos/" + repo[1] + "/pulls/" + pr[1]
         value = self.api(endpoint)
         # merged_by can be null; `or {}` keeps that a clean refusal rather than a crash.
-        human_merge = (value.get("merged_by") or {}).get("type") == "User"
-        if not value.get("merged") or value["head"]["sha"] != accepted_commit or not human_merge:
-            raise ContractError("Human merge of current accepted head is not confirmed")
-        # Page every review; later dismissals/changes-requested replace earlier decisions per user.
+        merger = value.get("merged_by") or {}
+        codex_merge = (merger.get("login"), merger.get("type")) == (merge_identity["login"], merge_identity["type"])
+        if not value.get("merged") or value["head"]["sha"] != accepted_commit or not codex_merge:
+            raise ContractError("Codex merge of current accepted head is not confirmed")
+        # Page every review; later dismissals/changes-requested replace earlier decisions per reviewer.
         latest = {}
         page = 1
         while True:
             reviews = self.api(endpoint + "/reviews?per_page=100&page=" + str(page))
             for review in reviews:
-                if review["user"]["type"] == "User" and review["state"] != "COMMENTED":
-                    latest[review["user"]["login"]] = review
+                if review["state"] != "COMMENTED":
+                    latest[(review["user"]["login"], review["user"]["type"])] = review
             if len(reviews) < 100:
                 break
             page += 1
-        approved = [r for r in latest.values() if r["state"] == "APPROVED" and r["commit_id"] == accepted_commit]
-        if not approved:
-            raise ContractError("No current human approval on accepted head")
+        codex = latest.get((merge_identity["login"], merge_identity["type"]))
+        if not codex or codex["state"] != "APPROVED" or codex["commit_id"] != accepted_commit:
+            raise ContractError("No current Codex approval on accepted head")
+        vetoes = [r for r in latest.values() if r["user"]["type"] == "User" and r["state"] == "CHANGES_REQUESTED"]
+        if vetoes:
+            raise ContractError("A human requested changes; escalate instead of completing")
         return {"accepted_commit": accepted_commit, "merged_commit": value["merge_commit_sha"],
-                "human_reviewer": approved[0]["user"]["login"], "human_merger": value["merged_by"]["login"],
-                "pr_url": pr_url,
-                "evidence": "GitHub REST " + endpoint + ": merged; User merger; latest User approval on exact head"}
+                "reviewer": merge_identity["login"], "merger": merger["login"], "pr_url": pr_url,
+                "evidence": "GitHub REST " + endpoint + ": merged; Codex merger; latest Codex approval on exact head;"
+                            " no human change request"}

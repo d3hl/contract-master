@@ -5,12 +5,13 @@ Shared contracts and durable state for repository work coordinated by Orca.
 ```mermaid
 flowchart LR
   L[Linear issue] --> O[Orca triage]
-  O --> C[Codex plan]
+  O --> C[Claude investigation and plan]
   C --> D[DeepSeek implementation and tests]
   D --> V[Codex independent verification]
   V -->|actionable findings, one rework| D
-  V --> H[Human review and merge]
-  H --> F[Codex confirms merged acceptance]
+  V -->|second failure| E[Human escalation]
+  V --> M[Codex review and merge]
+  M --> F[Claude confirms merged acceptance]
   F --> Done[Linear Done]
 ```
 
