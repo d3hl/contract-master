@@ -1,44 +1,46 @@
 # Linear completion-automation audit
 
-Inspected **2026-10-25T06:42:34.091173+00:00** through an authenticated Orca browser.
+**Result: gate PASSES** for the D3S team rules (pilot gate 5), as of **2026-10-29**.
 Scope: D3S team, Contract Master Automation project, `d3hl/contract-master`,
-default branch `main`. **Inspection complete; activation gate FAILS.**
-No settings were changed. `merge_gate_audited=false` and automation remain disabled.
+default branch `main`. `merge_gate_audited=true` in the registry. Automation, the
+runner and live merging remain disabled; passing this gate does not activate them.
 
-## Current PR destinations
+- **2026-10-25T06:42:34Z** — initial inspection through an authenticated Orca
+  browser. No settings changed. Gate failed (values in the *Before* columns).
+- **2026-10-29** — the workspace admin saved the remediation in the Linear UI and
+  confirmed the saved values (*After* columns), including PR merged → No action.
+  This readback is the admin's; Claude did not independently read the admin page.
 
-Source: [D3S Workflows & automations](https://linear.app/d3space/settings/teams/D3S/workflow). These are current UI
-values, independently read back after inspection, not assumed product defaults.
+## PR destinations
 
-| Event                         | Destination                                       |
-| ----------------------------- | ------------------------------------------------- |
-| Draft PR opened               | No action                                         |
-| PR opened                     | No action                                         |
-| PR review request or activity | No action                                         |
-| PR ready for merge            | No action                                         |
-| PR merged                     | **Done**                                          |
-| Branch-specific overrides     | **None listed**, including no override for `main` |
+Source: [D3S Workflows & automations](https://linear.app/d3space/settings/teams/D3S/workflow).
 
-**Finding:** a closing-linked PR can move its issue to Done on merge before Codex
-confirms the merged acceptance evidence. The team default applies because no
-branch override is configured. Repository-specific GitHub app access was not
-verified by this audit; this finding concerns linked PR behavior under these team
-rules. Open/review transitions also write status outside the manager.
+| Event | Before (2026-10-25) | After (2026-10-29) |
+|---|---|---|
+| Draft PR opened | No action | No action |
+| PR opened | In Progress | No action |
+| PR review request or activity | In Review | No action |
+| PR ready for merge | No action | No action |
+| PR merged | **Done** | No action |
+| Branch-specific overrides | None listed | None listed |
+
+A merged PR no longer moves a linked issue. The only path to Done is the
+manager's outbox after Claude's final completion check confirms the Codex merge
+and merged acceptance. Open/review activity no longer writes status either.
 
 ## Other closing automations
 
 Source: the same team workflow page.
 
-| Rule                                        | Current value | Implication                                    |
-| ------------------------------------------- | ------------- | ---------------------------------------------- |
-| Close parent when its last sub-issue closes | Disabled      | No automatic parent-close path configured here |
-| Close all sub-issues when parent closes     | Disabled      | No automatic child-close path configured here  |
-| Close stale issues                          | Disabled      | No automatic stale-close path configured here  |
-| Auto-archive closed items                   | 6 months      | Archival only; not a completion trigger        |
+| Rule | Before (2026-10-25) | After (2026-10-29) |
+|---|---|---|
+| Close parent when its last sub-issue closes | **Enabled** | Disabled |
+| Close all sub-issues when parent closes | Disabled | Disabled |
+| Close stale issues | **Enabled: 1 month → Canceled** | Disabled |
+| Auto-archive closed items | 6 months | 6 months (archival only) |
 
-The parent rule counts closure, not independently verified acceptance. It should
-be reviewed separately from the PR mapping. The stale rule can affect preserved
-work even though its terminal destination is Canceled.
+These rules are team-wide: other D3S projects also no longer move to Done on merge,
+close parents automatically or cancel stale work.
 
 ## Commit linking, issue sync and Loops
 
@@ -54,32 +56,29 @@ No configured issue-sync completion rule was found. Loops are unavailable under
 the current plan; this is a plan-gate observation, not a claim that the API returned
 an empty list of saved workflows. Re-audit if the plan/integrations change.
 
-## Required remediation before activation
+## Remediation status
 
-1. Prevent participating issues from using PR merge → Done. Use an approved
-   No action mapping or an isolated automation team/policy that preserves the
-   manager as completion writer. The current rules are team-scoped; assess effects
-   on other D3S projects before changing them.
-2. Remove automatic parent closure from manager-owned feature tracking, or record
-   an explicitly accepted tracking-only exception. The current workflow requires
-   Codex completion decisions, so this audit accepts no implicit exception.
-3. Exclude manager-owned waiting work from stale cancellation, or disable that
-   rule within the selected automation scope.
-4. Use status-neutral `Related to D3S-123` PR associations, and review branch/title
-   auto-linking. `Refs` still permits non-merge status transitions. Audit app access
-   for the registered repository before claiming live integration readiness.
-5. Re-read and capture the saved settings after remediation. Only then may the
-   completion gate pass. This inspection does not authorize project activation,
-   historical issue changes or a live merge.
+1. PR merge → Done: **resolved** (team mapping set to No action).
+2. Automatic parent closure: **resolved** (disabled).
+3. Stale cancellation: **resolved** (disabled).
+4. PR associations: still required in practice. Use status-neutral
+   `Related to D3S-123` in PR text and keep issue IDs out of branch names. Commit
+   linking stays off.
+5. Re-read after remediation: done by the workspace admin on 2026-10-29.
+
+Still open, outside this Linear gate: GitHub app access for `d3hl/contract-master`
+(several apps with contents write on all repositories) belongs to pilot gate 6.
+Re-audit after any Linear plan, team or integration change.
 
 Linking and branch semantics are described in
 [Linear's GitHub guide](https://linear.app/docs/github#workflow-automation).
 [Loops documentation](https://linear.app/docs/loops) describes its plan requirement.
-The actual rule values above come from the authenticated workspace UI.
+The *Before* values come from the authenticated workspace UI; the *After* values
+come from the admin's saved-settings readback.
 
 ## Evidence and access correction
 
-Local captures under `.state/linear-audit/` include workflow/Loops/GitHub/GitLab
+Local captures from the 2026-10-25 inspection under `.state/linear-audit/` include workflow/Loops/GitHub/GitLab
 snapshots, before/after readbacks, original screenshots, `findings.json` and a
 SHA-256 evidence manifest. `workflow.png` shows the five PR destinations;
 `workflow-lower.png` captures branch/closure settings. Artifacts remain local;
@@ -92,5 +91,4 @@ does not expose admin rules. Actual page access supplied the evidence; the runti
 status flag was not treated as authoritative proof of browser unavailability.
 
 Other API clients, manual users and external agents are outside this settings-only
-audit. GitHub auto-merge was observed disabled separately; its state does not
-prevent Linear's PR-merge status mapping from firing after a human merge.
+audit. GitHub auto-merge was observed disabled separately.

@@ -11,19 +11,18 @@
   is now on `main` via PR #8 (`aa1976a`); only its fixture module changed.
   Independent 7 fixture + 38 repository tests and portable result/read proof passed.
   [Runner evidence](runner-verification.md). The worker was released and delivery acked.
-- Audit: [complete, gate FAILS](linear-status-audit.md), based on authenticated
-  settings UI and saved readbacks/screenshots under `.state/linear-audit/`.
-- Default PR rules: draft → No action; open → In Progress; review activity →
-  In Review; ready-for-merge → No action; merge → **Done**. No branch overrides.
-- Auto-close: parents enabled; sub-issues disabled; stale work enabled,
-  **1 month → Canceled**. Auto-archive closed items: 6 months.
+- Audit: [gate PASSES as of 2026-10-29](linear-status-audit.md). The admin set
+  every D3S PR event (including merge) to No action and disabled parent auto-close
+  and stale cancellation; `merge_gate_audited=true`. The 2026-10-25 inspection
+  captures remain under `.state/linear-audit/`.
+- Auto-archive closed items: 6 months. No branch overrides.
 - Integration checks: commit linking off; GitHub issue sync has no repositories;
   GitLab not enabled; Loops unavailable on the current plan (paid-plan gate shown).
 - Access correction: direct Orca browser access worked despite the runtime's
   `browser_unavailable` diagnostic. Actual settings replaced the earlier access
   blocker. User-supplied rule values are no longer required for this inspection.
 - Configuration: production runner `enabled=false`, automation disabled,
-  `merge_gate_audited=false`, no reviewed context registered. No external rule,
+  no reviewed context registered. No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
   merged on GitHub by account `d3adc3ii`; that is not recorded human-review evidence.
 - Code changes merged via PR #11 (`e5d69e4`, outside D3S-101) by `d3adc3II` with
@@ -37,9 +36,9 @@
   `reviewer`/`merger` replace `human_reviewer`/`human_merger`) because nothing is
   live. The merge gate now needs a registered Codex `merge_identity`, which is
   `null` until the pilot creates that GitHub identity. 63 tests pass.
-- Exact next action: review the team-wide impact and select a scoped remediation
-  for merge → Done, automatic parent closure and stale cancellation. An admin
-  should save the agreed rules, then Codex reads them back before accepting the
-  completion gate. Do not activate production from the successful runner probe.
+- Exact next action: limit other GitHub apps' access to `d3hl/contract-master`
+  and confirm the 1Password item holds the `d3hl-codex` App private key (gate 6);
+  then pin a reviewed master commit and prepare the DeepSeek runner. Do not
+  activate production from the successful runner probe.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

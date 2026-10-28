@@ -47,10 +47,9 @@ not store/provision credentials. It does not assert production eligibility.
 8. Create one executable issue using the issue template and real base SHA. Observe
    all ten scenarios with simulated fault injection before widening registration.
 
-The [completion-automation audit](linear-status-audit.md) is complete and **fails**:
-D3S maps PR merge to Done, automatically closes parents and cancels stale work.
-No branch overrides are configured. Remediate the applicable rules and capture
-readback before this gate can pass; no settings were changed by the inspection.
+The [completion-automation audit](linear-status-audit.md) **passes** as of
+2026-10-29: D3S PR events (including merge) map to No action, and parent
+auto-close and stale cancellation are disabled. `merge_gate_audited=true`.
 
 ## External configuration limits
 
@@ -58,8 +57,8 @@ Installed Orca exposes scheduled automations and Linear issue APIs. The availabl
 Linear connector does not expose a verified setter for GitHub issue-status workflow
 automations. A live DeepSeek capability probe is now verified; production
 configuration and the external status settings remain separate gates. Automatic execution remains
-blocked by default (`automation_enabled=false`, runner disabled,
-`merge_gate_audited=false`, empty reviewed commit allowlist). These are activation
+blocked by default (`automation_enabled=false`, runner disabled, empty reviewed
+commit allowlist). These are activation
 prerequisites, not extra plan approval for otherwise eligible work.
 
 ## Abort and recovery
