@@ -6,10 +6,11 @@
 |---|---|
 | Linear | Requirements, priority, dependencies, acceptance criteria, bounded plans, progress, HANDOFF |
 | contract-master | Shared instructions/contracts, registry, pinned context, durable queue, exclusive workspace ownership, recovery, serialized Linear writes |
-| Orca | Sole scheduler and coordinator: triage, agent assignment, sequencing, monitoring, escalation |
-| Codex | Code investigation, planning, independent verification, completion decision |
+| Orca | Sole scheduler and coordinator: triage, agent assignment, sequencing, monitoring, escalation; the coordinator turn runs on Claude |
+| Claude | Code investigation, brainstorming, design, planning, completion decision |
 | DeepSeek | Scoped implementation, tests, requested corrections |
-| Human | Review and merge |
+| Codex | Independent verification, PR review and merge |
+| Human | Escalations only: unresolved verification, provider errors, scope disputes; may veto a PR by requesting changes |
 | Target repository | Product implementation, tests, architecture, product docs and API contracts |
 
 The manager records eligibility and state; it has no timer, background poller,
@@ -30,7 +31,7 @@ project dependencies may be read for readiness, but cannot launch tasks.
 Triage requires explicit goal, scope, acceptance, registered check IDs, repository
 and full base commit. [Issue template](../templates/issue.md) contains a machine
 block. Unstructured/incomplete issues receive a missing-information comment and
-remain unqueued; Orca/Codex should propose clarifications, never invent them.
+remain unqueued; Orca/Claude should propose clarifications, never invent them.
 Existing project labels/states are preserved; eligibility does not require adding
 an approval label. Tracking parents, closed issues and unmet dependencies stay
 unqueued. Unknown dependency shapes and partial provider reads fail closed.
@@ -43,9 +44,10 @@ and planning the new revision. One active revision per issue is enforced in SQLi
 
 ## Phase gates
 
-1. **planning:** Codex reads the issue, latest HANDOFF (or records verified absence),
-   local AGENTS.md and entry points, pinned guidance and relevant code. Record a
-   bounded plan and investigation evidence in Linear. No extra plan approval.
+1. **planning:** Claude reads the issue, latest HANDOFF (or records verified absence),
+   local AGENTS.md and entry points, pinned guidance and relevant code, explores
+   design options, then records a bounded plan (`author: claude`) and investigation
+   evidence in Linear. No extra plan approval.
 2. **ready → implementing:** validate runner identity and capabilities, immutable
    context, scope, dependencies and workspace ownership. Persist request identity
    before an Orca mutation. DeepSeek receives the complete plan, attempt number,
@@ -56,15 +58,19 @@ and planning the new revision. One active revision per issue is enforced in SQLi
    until Codex records actionable rework. In Review does not mean accepted.
 4. **rework:** send concrete file/behavior/test corrections to DeepSeek. Two total
    implementation attempts, including the initial attempt. A second unresolved
-   verification escalates to the human. Never reset the counter by creating a new
+   verification escalates to a human. Never reset the counter by creating a new
    task for the same revision.
-5. **awaiting_review:** Codex acceptance passed; human reviews and merges. Any new
-   head invalidates the verdict and provider merge receipt. Observe actual head
-   before using verification. Material scope changes return to planning.
-6. **done:** read provider merge facts, confirm human approval at the accepted head
-   and human merge, inspect correspondence (including squash/rebase), rerun required
-   checks against the merged commit, and record final Codex acceptance. Only then
-   enqueue Done. A GitHub merge notification alone is insufficient.
+5. **awaiting_review:** Codex verification passed. Codex approves the PR from its
+   registered GitHub identity (`merge_identity`) at the exact verified head, then
+   merges. No human approval is required, but a human's latest change request
+   blocks completion and escalates. Any new head invalidates the verdict and
+   provider merge receipt. Observe actual head before using verification. Material
+   scope changes return to planning.
+6. **done:** Claude reads provider merge facts, confirms Codex approval at the
+   accepted head and the Codex merger, inspects correspondence (including
+   squash/rebase), reruns required checks against the merged commit, and records
+   final acceptance (`author: claude`). Only then enqueue Done. A GitHub merge
+   notification alone is insufficient.
 
 Orca task settlement and product acceptance are separate. `worker_done` settles an
 Orca attempt; it does not mark Linear Done. The coordinator checks both identities,
@@ -74,7 +80,7 @@ then reuses/releases the settled worker according to Orca's documented lifecycle
 
 The manager API is **coordinator-only**. Workers return JSON and artifacts; they do
 not receive manager ownership tokens, database write access, Linear credentials or
-permission to call trusted completion APIs. `author: codex` is a data assertion,
-not authentication. The trusted coordinator supplies role provenance. File scope
+permission to call trusted completion APIs. `author: claude` and `author: codex`
+are data assertions, not authentication. The trusted coordinator supplies role provenance. File scope
 validation is a gate, not an OS sandbox; live runners must constrain writable
 workspace and mount the shared bundle read-only. Registry changes require review.

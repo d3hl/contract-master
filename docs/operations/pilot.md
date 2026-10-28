@@ -8,7 +8,7 @@
 - Check: registered `unit` suite. No deployment, credential changes or product code.
 - Linear parent D3S-98; implementation D3S-99; pilot D3S-100 is blocked by D3S-99.
 - Work budget: one issue, one active writer, initial implementation plus one rework.
-- Human reviews and merges; Codex checks merged result before Done.
+- Codex reviews and merges; Claude checks merged result before Done; humans handle escalations.
 
 The pilot is **not running**. No scheduled automation is installed. A separate
 user-authorized [DeepSeek/OpenCode capability probe](runner-verification.md) passed
@@ -31,11 +31,15 @@ not store/provision credentials. It does not assert production eligibility.
    Blocking relation direction was verified live on the newly created D3S-99/100 pair
    and is covered by an adapter test.
 5. Audit Linear's GitHub/GitLab workflow automations. Disable any merge/PR rule that
-   can mark participating issues Done before final Codex confirmation. Use status-neutral `Related to D3S-123`
+   can mark participating issues Done before final Claude confirmation. Use status-neutral `Related to D3S-123`
    associations, and audit branch/title auto-linking as well as closing keywords. Record a settings screenshot
    or admin receipt and date; set `merge_gate_audited` only after verification.
-6. Audit required human review and human merge in the target host. Bots must not merge.
-   The adapter requires an approval on the exact head, including after new commits.
+6. Create a dedicated Codex GitHub identity (GitHub App or machine user) with merge
+   rights on the target only; keep its credential in 1Password. Require its approval
+   in branch protection, record it as `merge_identity` (`login`, `type`) in the
+   registry, and confirm no other bot can merge. The adapter requires Codex approval
+   on the exact head, including after new commits, and refuses if a human's latest
+   review requests changes.
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
    automation with the documented `automations create` command. Use the coordinator
    prompt, existing manager workspace and Asia/Singapore timezone. Configure 1Password

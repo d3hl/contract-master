@@ -29,9 +29,9 @@ DENIAL = {"claim": "Task is settled"}
 
 
 class MergedProvider:
-    def confirm(self, repo, url, commit):
-        return {"accepted_commit": commit, "merged_commit": C, "human_reviewer": "reviewer", "human_merger": "merger",
-                "pr_url": url, "evidence": "Fake provider: merged + human approval on exact head"}
+    def confirm(self, repo, url, commit, identity):
+        return {"accepted_commit": commit, "merged_commit": C, "reviewer": "codex-bot[bot]", "merger": "codex-bot[bot]",
+                "pr_url": url, "evidence": "Fake provider: Codex approval and merge on exact head"}
 
 
 class PhaseGateTests(WorkflowFixture):

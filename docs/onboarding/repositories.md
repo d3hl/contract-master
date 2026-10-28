@@ -16,7 +16,7 @@
    disposable fixture. Capture client version, model identity, execution host,
    isolation/mount settings, test evidence and account reference. A simulated
    capability declaration is insufficient for `mode: live`.
-6. Audit integration automation settings and required human review. Record evidence
+6. Audit integration automation settings and the Codex merge identity. Record evidence
    before setting `merge_gate_audited`. Do not change team-wide settings casually;
    choose a dedicated team if existing projects require conflicting automations.
 7. Run the scenario suite and [bounded pilot](../operations/pilot.md). Enable only

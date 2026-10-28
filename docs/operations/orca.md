@@ -63,7 +63,7 @@ worktrees. Use exact IDs/flags from that execution host's receipts.
    is a namespace/inbox, not a scheduler.
 2. Claim a separate target workspace in the manager. Use Orca's worktree placement
    capability, target repo/base and validated setup policy. Never share an editing
-   workspace between concurrent tasks. Codex investigation/plan must finish before
+   workspace between concurrent tasks. Claude investigation/plan must finish before
    an implementation Dispatch is eligible.
 3. Create an Orca Task with a self-contained spec via `orchestration task-create
    --spec ... --run ... --retry-request ...`. Record its receipt. The spec contains
@@ -89,7 +89,8 @@ worktrees. Use exact IDs/flags from that execution host's receipts.
    use documented `--task` and `--retry-of`; a successful implementation Dispatch
    followed by semantic verification failure needs a separate dependent rework Task
    under the same manager task/attempt counter. Never misuse `--retry-of` on a
-   succeeded Dispatch. Record both Task IDs. Human merge/final confirmation follow.
+   succeeded Dispatch. Record both Task IDs. Codex review/merge and final Claude
+   confirmation follow.
 
 Use the installed `coordinator-loop.md` and `placement-and-remote.md` references for
 phase transitions/placement. No generic subagent substitution provides Orca provenance.

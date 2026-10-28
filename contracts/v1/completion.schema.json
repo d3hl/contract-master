@@ -10,7 +10,7 @@
       "minLength": 1
     },
     "author": {
-      "const": "codex",
+      "const": "claude",
       "type": "string"
     },
     "accepted_commit": {
@@ -25,11 +25,11 @@
       "type": "string",
       "pattern": "^https://.+$"
     },
-    "human_reviewer": {
+    "reviewer": {
       "type": "string",
       "minLength": 1
     },
-    "human_merger": {
+    "merger": {
       "type": "string",
       "minLength": 1
     },
@@ -90,8 +90,8 @@
     "accepted_commit",
     "merged_commit",
     "pr_url",
-    "human_reviewer",
-    "human_merger",
+    "reviewer",
+    "merger",
     "provider_evidence",
     "correspondence_evidence",
     "acceptance_evidence",

@@ -14,9 +14,10 @@ Read these documents explicitly before work; links alone do not load context:
 - [Current HANDOFF](docs/operations/HANDOFF.md)
 
 Use Linear for requirements, plans, progress and HANDOFF. The manager is the only
-Linear workflow writer. Orca is the only scheduler and coordinator. Codex plans and
-independently verifies; DeepSeek implements and tests; humans review and merge.
-Never mark Done before human merge and final Codex confirmation. Maximum two
+Linear workflow writer. Orca is the only scheduler and coordinator. Claude
+investigates, designs, plans and decides completion; DeepSeek implements and tests;
+Codex independently verifies, reviews and merges; humans handle escalations.
+Never mark Done before Codex merge and final Claude confirmation. Maximum two
 implementation attempts. Preserve unknown worker ownership across interruption.
 
 Run `python3 -m unittest discover -s tests -v`. Keep secrets in 1Password; never commit

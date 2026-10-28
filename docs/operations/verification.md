@@ -14,7 +14,7 @@ Orca workers, change integration settings, deploy, push or merge.
 | Missing/corrupt context and unsupported runner | `test_06_*`, unreviewed/corrupt bundle and disabled live-runner tests |
 | Rework and attempt escalation | `test_07_*`, rework envelope corrections test |
 | New commits invalidate verification | `test_08_*`, stale verdict rejection |
-| Human merge and final Codex gate | `test_09_*`, independent provider confirmation, exact-head approval, bot/repository/stale approval tests |
+| Codex merge and final Claude gate | `test_09_*`, independent provider confirmation, exact-head Codex approval, wrong merger/repository/stale approval and human change-request tests |
 | Linear outage and duplicate-free recovery | `test_10_*`, concurrent outbox single-send, ambiguous absent write blocks queue |
 
 Additional checks cover malformed scope edits, project remapping, unchanged
@@ -41,6 +41,10 @@ rework cannot skip dispatch), `tests/test_schemas.py` (schema subset, phase enum
 tests for provider read failures. Local run: **57 tests passed** on Python 3.9.25
 (about 71 seconds), with `jsonschema` 3.2.0 installed. CI passed on Python 3.9
 and 3.13 with `jsonschema` 4.23.0.
+
+The role change planned in PR #13 (`docs/plans/reassign-agent-roles.md`) adds
+`tests/test_readiness.py` and Codex merge-identity cases in `test_adapters.py` and
+`test_workflow.py`. Local run: **63 tests passed** on Python 3.9.25.
 
 A live **read-only** reconciliation of the new project completed successfully:
 three ineligible/tracking issues, zero tasks, zero Linear writes, zero workers.

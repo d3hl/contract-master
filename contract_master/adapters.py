@@ -189,7 +189,7 @@ class LinearTransport:
         if payload["kind"] == "status":
             current = self.orca.issue(entry["issue"], self.workspace)["issue"]["state"]
             if current["type"] in ("completed", "canceled", "duplicate"):
-                raise ContractError("Closed issue state must be reconciled by Codex before update")
+                raise ContractError("Closed issue state must be reconciled by Claude before update")
             return self.orca.call("linear", "status", "set", entry["issue"], "--workspace", self.workspace,
                                   "--to", payload["state"])
         raise ContractError("Unsupported outbox operation")

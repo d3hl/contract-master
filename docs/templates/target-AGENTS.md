@@ -9,5 +9,6 @@ Before planning or editing, explicitly read:
 
 Product code, tests and API contracts live here. Shared automation policies live
 in contract-master. Follow the task's allowed scope, acceptance and required checks.
-Codex plans and independently verifies; DeepSeek implements and tests. Send results
-to the coordinator. Only the manager writes Linear. Humans review and merge.
+Claude investigates and plans; DeepSeek implements and tests; Codex independently
+verifies, reviews and merges. Send results to the coordinator. Only the manager
+writes Linear. Humans handle escalations.

@@ -101,7 +101,7 @@
           "minLength": 1
         },
         "author": {
-          "const": "codex",
+          "const": "claude",
           "type": "string"
         },
         "revision": {

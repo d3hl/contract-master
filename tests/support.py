@@ -53,7 +53,8 @@ class WorkflowFixture(unittest.TestCase):
             "example/repo": {"linear_projects": ["project-1"], "required_context": ["AGENTS.md"],
                 "documentation_entrypoints": ["README.md"], "allowed_scope": ["src", "tests"],
                 "checks": {"unit": {"argv": ["python3", "-c", "print('ok')"]}}, "merge_gate_audited": False,
-                "url": "https://github.com/example/repo", "implementation_runner": "deepseek-portable"}}}
+                "url": "https://github.com/example/repo", "implementation_runner": "deepseek-portable",
+                "merge_identity": {"login": "codex-bot[bot]", "type": "Bot"}}}}
         self.database = self.root / "state" / "manager.sqlite3"
         self.manager = Manager(self.database, self.registry)
         self.issue = {"issue_id": "issue-1", "identifier": "TEST-1", "project_id": "project-1", "repo_id": "example/repo",
@@ -71,7 +72,7 @@ class WorkflowFixture(unittest.TestCase):
         self.task_id = self.manager.intake(self.issue)["task_id"]
         self.token = self.manager.claim(self.task_id, "coordinator", self.root / "workspace", "task/one")
         self.manager.pin_context(self.task_id, self.token, self.reference)
-        self.plan = {"version": "1.0", "task_id": self.task_id, "author": "codex", "revision": 1,
+        self.plan = {"version": "1.0", "task_id": self.task_id, "author": "claude", "revision": 1,
                      "steps": ["Investigate parser; implement and check malformed input"], "context_digest": self.reference["digest"],
                      "read_documents": ["AGENTS.md", "README.md"], "investigation_evidence": ["src/parser.py inspected"], "latest_handoff_read": True, "documentation_sources": []}
         self.manager.record_plan(self.task_id, self.token, self.plan)
@@ -100,13 +101,13 @@ class WorkflowFixture(unittest.TestCase):
         manager = self.manager
         task_id, token = self.task_id, self.token
         class Provider:
-            def confirm(self, repo, url, commit):
-                return {"accepted_commit": commit, "merged_commit": C, "human_reviewer": "reviewer", "human_merger": "merger",
-                        "pr_url": url, "evidence": "Fake provider: merged + human approval on exact head"}
+            def confirm(self, repo, url, commit, identity):
+                return {"accepted_commit": commit, "merged_commit": C, "reviewer": "codex-bot[bot]", "merger": "codex-bot[bot]",
+                        "pr_url": url, "evidence": "Fake provider: Codex approval and merge on exact head"}
         if manager.task(task_id)["phase"] == "awaiting_review":
             manager.confirm_merge(task_id, token, Provider(), "https://example.invalid/pull/1")
-        return {"version": "1.0", "task_id": self.task_id, "author": "codex", "accepted_commit": B, "merged_commit": C,
-                "pr_url": "https://example.invalid/pull/1", "human_reviewer": "reviewer", "human_merger": "merger",
+        return {"version": "1.0", "task_id": self.task_id, "author": "claude", "accepted_commit": B, "merged_commit": C,
+                "pr_url": "https://example.invalid/pull/1", "reviewer": "codex-bot[bot]", "merger": "codex-bot[bot]",
                 "provider_evidence": "Provider merge receipt fixture", "correspondence_evidence": "Merged diff matches accepted change",
                 "acceptance_evidence": ["Acceptance reconfirmed on merged commit"], "checks": self.checks(C)}
 
