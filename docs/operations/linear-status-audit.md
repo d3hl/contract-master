@@ -10,14 +10,14 @@ No settings were changed. `merge_gate_audited=false` and automation remain disab
 Source: [D3S Workflows & automations](https://linear.app/d3space/settings/teams/D3S/workflow). These are current UI
 values, independently read back after inspection, not assumed product defaults.
 
-| Event | Destination |
-|---|---|
-| Draft PR opened | No action |
-| PR opened | In Progress |
-| PR review request or activity | In Review |
-| PR ready for merge | No action |
-| PR merged | **Done** |
-| Branch-specific overrides | **None listed**, including no override for `main` |
+| Event                         | Destination                                       |
+| ----------------------------- | ------------------------------------------------- |
+| Draft PR opened               | No action                                         |
+| PR opened                     | No action                                         |
+| PR review request or activity | No action                                         |
+| PR ready for merge            | No action                                         |
+| PR merged                     | **Done**                                          |
+| Branch-specific overrides     | **None listed**, including no override for `main` |
 
 **Finding:** a closing-linked PR can move its issue to Done on merge before Codex
 confirms the merged acceptance evidence. The team default applies because no
@@ -29,12 +29,12 @@ rules. Open/review transitions also write status outside the manager.
 
 Source: the same team workflow page.
 
-| Rule | Current value | Implication |
-|---|---|---|
-| Close parent when its last sub-issue closes | **Enabled** | A tracking parent can close outside an explicit Codex completion decision |
-| Close all sub-issues when parent closes | Disabled | No automatic child-close path configured here |
-| Close stale issues | **Enabled: 1 month → Canceled** | Waiting/unresolved work can be terminated outside the manager; this is cancellation, not a Done transition |
-| Auto-archive closed items | 6 months | Archival only; not a completion trigger |
+| Rule                                        | Current value | Implication                                    |
+| ------------------------------------------- | ------------- | ---------------------------------------------- |
+| Close parent when its last sub-issue closes | Disabled      | No automatic parent-close path configured here |
+| Close all sub-issues when parent closes     | Disabled      | No automatic child-close path configured here  |
+| Close stale issues                          | Disabled      | No automatic stale-close path configured here  |
+| Auto-archive closed items                   | 6 months      | Archival only; not a completion trigger        |
 
 The parent rule counts closure, not independently verified acceptance. It should
 be reviewed separately from the PR mapping. The stale rule can affect preserved

@@ -44,7 +44,7 @@
       "implementation_runner": "deepseek-portable",
       "verification_runner": "codex",
       "merge_runner": "codex",
-      "merge_gate_audited": false,
+      "merge_gate_audited": true,
       "merge_identity": {"login": "d3hl-codex[bot]", "type": "Bot"},   
       "credential_references": ["op://d3HL/SSH Key-d3hl-codex/private key"], 
       "dependency_versions": {},
