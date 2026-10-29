@@ -60,15 +60,25 @@
   `contract-master`, the only vault the service account can read; a second live
   run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
   phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
-- Gate 8 in progress: [D3S-114](https://linear.app/d3space/issue/D3S-114), task
-  `task-2762aacb7e0f6db1be163f35`. Run 105 planned it, DeepSeek produced `cd7486f`
-  (Dispatch `ctx_56bf0be2af03`, released), Codex verified it; In Review,
-  `awaiting_review`. `open-pr` stopped: the scheduled run had no 1Password token.
-  The manager now reads it from the owner-only token file.
+- Gate 8 in progress. [D3S-114](https://linear.app/d3space/issue/D3S-114) is Done
+  (2026-10-29): planned, implemented by DeepSeek (`cd7486f`, Dispatch
+  `ctx_56bf0be2af03`), PR #29 opened by `d3hl-orca[bot]`, verified, approved and
+  merged by `d3hl-codex[bot]` as `a6bccb7`, confirmed by Claude. Scenarios 01 and 05
+  observed live. [D3S-115](https://linear.app/d3space/issue/D3S-115) (record all ten
+  scenarios) is open in Backlog and has not been queued.
 - Overlapping runs: Orca started run 106 while 105 was still active, and both used
   the same owner. 106 was told to stand down (it changed nothing). The automation
   precheck now also skips while any run of it is still `dispatched`.
-- Exact next action: after this fix merges, re-enable automation `dc0657b8-…`; the
-  next run resumes D3S-114 with `open-pr`, `codex-merge` and Claude's final check.
+- Coordinator outage (2026-10-29 22:10 to 2026-10-30 01:50 SGT, runs 109–131): the
+  automation's agent had been switched from `claude` to Codex. Inside Codex's
+  sandbox the Orca runtime was unreachable (`runtime_open_failed`), so every turn
+  stopped before intake. No provider writes; outbox all delivered. Per-turn notes
+  are in the local `.state/coordinator-turn-HANDOFF.md`. The automation is now
+  disabled, with agent `opencode2`.
+- Those turns noted that the ownership row for D3S-114 still exists although run 107
+  reported it released. It is preserved; reconcile before any cleanup.
+- Exact next action: set the automation agent back to `claude` (the coordinator
+  prompt assumes Claude) and re-enable it; the next run should queue D3S-115.
+  After D3S-115 is Done, record gate 8 in `pilot.md`.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
