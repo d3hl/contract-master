@@ -43,6 +43,35 @@ class WorkflowTests(WorkflowFixture):
         # Reopened, the same issue is queued normally.
         self.assertTrue(self.manager.intake(dict(self.issue, updated_at="2026-10-27T00:00:00.000Z"))["queued"])
 
+    def test_repository_label_must_agree_with_block(self):
+        self.registry["repositories"]["example/repo"]["linear_label"] = "repo:example"
+        other = copy.deepcopy(self.registry["repositories"]["example/repo"])
+        other.update(linear_label="repo:other", linear_projects=["project-1"])
+        self.registry["repositories"]["example/other"] = other
+        manager = Manager(self.database, self.registry)
+        rejected = {
+            (): "Missing repository label repo:example",
+            ("repo:example", "repo:other"): "Conflicting repository labels",
+            ("repo:unknown",): "is not registered",
+            ("repo:other",): "routes to example/other, but the automation block names example/repo",
+        }
+        for labels, message in rejected.items():
+            with self.assertRaises(ContractError) as caught:
+                manager.intake(dict(self.issue, repo_labels=list(labels)))
+            self.assertIn(message, str(caught.exception))
+        self.assertTrue(manager.intake(dict(self.issue, repo_labels=["repo:example"]))["queued"])
+        routed = dict(self.issue, issue_id="issue-2", identifier="TEST-2", repo_id="example/other",
+                      repo_labels=["repo:other"])
+        self.assertTrue(manager.intake(routed)["queued"])
+
+    def test_unlabeled_repository_rejects_foreign_label(self):
+        self.assertTrue(self.manager.intake(dict(self.issue, repo_labels=[]))["queued"])
+        self.registry["repositories"]["example/other"] = dict(self.registry["repositories"]["example/repo"],
+                                                            linear_label="repo:other")
+        manager = Manager(self.database, self.registry)
+        with self.assertRaises(ContractError):
+            manager.intake(dict(self.issue, issue_id="issue-3", repo_labels=["repo:other"]))
+
     def test_03_concurrent_duplicate_intake(self):
         other = Manager(self.database, self.registry)
         with ThreadPoolExecutor(max_workers=8) as pool:

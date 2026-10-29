@@ -13,6 +13,31 @@ MATERIAL_FIELDS = ("issue_id", "repo_id", "base_commit", "goal", "allowed_scope"
                    "required_checks")
 
 
+LABEL_PREFIX = "repo:"
+
+
+def route(registry, issue):
+    """Check the issue's repository label against the block's repo_id.
+
+    Labels never choose a repository on their own: a missing, unknown or conflicting
+    label, or one that names another repository, needs clarification before dispatch.
+    """
+    labels = issue.get("repo_labels", [])
+    owners = {p["linear_label"]: r for r, p in registry["repositories"].items() if p.get("linear_label")}
+    expected = registry["repositories"][issue["repo_id"]].get("linear_label")
+    if len(labels) > 1:
+        raise ContractError("Conflicting repository labels: " + ", ".join(labels))
+    if labels:
+        label = labels[0]
+        if label not in owners:
+            raise ContractError("Repository label " + label + " is not registered")
+        if owners[label] != issue["repo_id"]:
+            raise ContractError("Repository label " + label + " routes to " + owners[label]
+                                + ", but the automation block names " + issue["repo_id"])
+    elif expected:
+        raise ContractError("Missing repository label " + expected + " for " + issue["repo_id"])
+
+
 def revision_of(issue):
     return digest({k: issue[k] for k in MATERIAL_FIELDS})
 
@@ -45,6 +70,7 @@ class Manager:
         if not repo or issue["project_id"] not in repo["linear_projects"]:
             self.invalidate_issue(issue["issue_id"], "Project/repository no longer registered")
             return {"queued": False, "reason": "Unregistered project/repository"}
+        route(self.registry, issue)
         if issue["base_commit"] == "0" * 40:
             raise ContractError("Placeholder base commit is not executable")
         for path in issue["allowed_scope"]:

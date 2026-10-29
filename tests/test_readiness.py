@@ -26,5 +26,13 @@ class ReadinessTests(unittest.TestCase):
             self.assertTrue(any("planning must be Claude" in b for b in self.blockers(**{field: value})), field)
 
 
+    def test_repository_labels_are_unique_and_prefixed(self):
+        self.assertFalse(any("Repository label" in b for b in self.blockers(linear_label="repo:contract-master")))
+        self.assertTrue(any("must start with repo:" in b for b in self.blockers(linear_label="contract-master")))
+        registry = copy.deepcopy(self.registry)
+        registry["repositories"][self.repo_id]["linear_label"] = "repo:x"
+        registry["repositories"]["other/repo"] = dict(registry["repositories"][self.repo_id])
+        self.assertTrue(any("more than one repository" in b for b in report(registry)["blockers"]))
+
 if __name__ == "__main__":
     unittest.main()

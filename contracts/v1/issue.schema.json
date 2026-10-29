@@ -76,6 +76,15 @@
         "canceled"
       ]
     },
+    "repo_labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^repo:.+$"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
     "updated_at": {
       "type": "string",
       "minLength": 1

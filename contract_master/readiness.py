@@ -2,7 +2,7 @@
 import json
 from . import github_app
 from .contracts import ROOT, validate
-from .manager import REQUIRED_CAPABILITIES
+from .manager import LABEL_PREFIX, REQUIRED_CAPABILITIES
 
 
 def report(registry):
@@ -11,6 +11,12 @@ def report(registry):
         blockers.append("Orca automation activation is disabled in registry")
     if not registry["reviewed_master_commits"]:
         blockers.append("Review and pin a master commit")
+    labels = [p["linear_label"] for p in registry["repositories"].values() if p.get("linear_label")]
+    for label in sorted(set(labels)):
+        if labels.count(label) > 1:
+            blockers.append("Repository label " + label + " is registered to more than one repository")
+        if not label.startswith(LABEL_PREFIX) or label == LABEL_PREFIX:
+            blockers.append("Repository label " + label + " must start with " + LABEL_PREFIX)
     for repo_id, policy in registry["repositories"].items():
         if not policy["merge_gate_audited"]:
             blockers.append(repo_id + ": audit Linear merge/status automations")

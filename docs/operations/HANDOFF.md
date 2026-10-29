@@ -87,9 +87,13 @@
   back to `claude` and re-enabled it (2026-10-30).
 - Ownership rows for D3S-114 and D3S-115 still exist in the manager database
   (both tasks done). They are preserved; reconcile before any cleanup.
-- Exact next action: after the lease change merges, append
-  `&& python3 -m contract_master turn-check` to the live automation precheck (the
-  value in `config/orca-automation.json`). Gate 8 has passed; adding repositories is
-  a reviewed registry change.
+- Turn lease is live: the automation precheck ends with `turn-check` (2026-10-30).
+- D3S-113 closed as Done by hand (delivered by PR #21). D3S-109 (onboard
+  `d3-corp/cf-mcp-gw` and `d3-corp/action1-dashboard`) is done in reviewed PRs,
+  not by the coordinator: step 1, repository-label routing (`linear_label`,
+  `repo_labels`), is in this change.
+- Exact next action (D3S-109 step 2): install both GitHub Apps on `d3-corp`, then
+  add each repository's registry entry, label and target `AGENTS.md`, and run one
+  bounded pilot issue per repository.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

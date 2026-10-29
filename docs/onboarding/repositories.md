@@ -27,6 +27,30 @@
    after its activation gates are met. Adding future repositories is a reviewed
    registry change, not an issue instruction.
 
+## Repository labels
+
+A registry entry may set `linear_label` (a Linear label starting with `repo:`) to
+route issues by label. The label confirms, never chooses, the repository: the
+issue's `contract-master` block still names `repo_id`. Intake refuses, with a
+TRIAGE clarification and no dispatch, when an issue:
+
+- carries more than one `repo:` label;
+- carries a `repo:` label that no repository registers;
+- carries a label registered to a different repository than its block names;
+- lacks the label its block's repository registers.
+
+Apply exactly one repository label to each executable issue for a labeled
+repository. Other labels are ignored. Each label belongs to one repository
+(`doctor` reports duplicates). Repositories without `linear_label`, such as
+`d3hl/contract-master`, accept issues without a `repo:` label.
+
+Planned labels (D3S-109; registered when each repository is onboarded):
+
+| Label | Repository | Use for |
+|---|---|---|
+| `repo:cf-mcp-gw` | `d3-corp/cf-mcp-gw` | Cloudflare setup and workflow tasks |
+| `repo:action1-dashboard` | `d3-corp/action1-dashboard` | Action1 tasks, including the dashboard |
+
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
 Ordinary product tasks should target other registered repositories. The current
 bootstrap implementation issue has wider scope than the pilot and is managed
