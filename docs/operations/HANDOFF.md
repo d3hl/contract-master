@@ -1,4 +1,4 @@
-# HANDOFF — runner verified; Linear audit complete with findings
+# HANDOFF — coordinator automation enabled (gate 7)
 
 - Issue: [D3S-101](https://linear.app/d3space/issue/D3S-101), parent D3S-98.
 - Phase: inspection and verification complete; In Review. No Done transition.
@@ -25,7 +25,11 @@
   `cm-worker` on a localhost-only Orca server (environment `cm-worker`,
   [worker host](worker-host.md)); probe Dispatch `ctx_ac7cba883d03` confirmed model
   `deepseek/deepseek-v4.1-flash-1017` and blocked access to coordinator credentials.
-- Configuration: production runner `enabled=true`, automation disabled.
+- Gate 7 (2026-10-29): reviewed master `b590eb4` pinned (bundle `84ca586b…80fad8`),
+  `automation_enabled=true`; the former delivery-only automation `dc0657b8-…` is now
+  the single coordinator schedule (agent `claude`, every 10 minutes, precheck: clean
+  `main` and no `doctor` blockers). Intake no longer comments on settled issues.
+- Configuration: production runner `enabled=true`, automation enabled.
   Reviewed master `26e14a8` pinned (bundle digest `9ac1eae1…c5b7eb`). No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
   merged on GitHub by account `d3adc3ii`; that is not recorded human-review evidence.
@@ -49,8 +53,8 @@
   `contract-master`, the only vault the service account can read; a second live
   run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
   phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
-- Exact next action: pilot gate 7. Pin a reviewed master commit that includes the
-  runner `environment`, set `automation_enabled`, and create the single Orca
-  scheduled automation from the coordinator prompt. Then gate 8 (one real issue).
+- Exact next action: watch the first scheduled coordinator runs (expect TRIAGE
+  comments only on open D3S issues without an automation block), then gate 8:
+  create one executable issue from the template with a real base SHA.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

@@ -1,10 +1,11 @@
 {
   "name": "Contract Master intake and coordination",
-  "enabled": false,
+  "enabled": true,
+  "automation_id": "dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9",
   "trigger": "*/10 * * * *",
   "timezone": "Asia/Singapore",
   "provider": "claude",
   "workspace_mode": "existing",
   "prompt_file": "docs/operations/coordinator-prompt.md",
-  "notes": "Proposal only; not installed. Orca owns scheduling. Manager commands are one-shot. Run creation is namespacing, not a second scheduler. Reuse and recover a recorded run before creating another."
+  "notes": "Installed by reusing the former delivery-only automation, so exactly one schedule exists. Orca owns scheduling. Manager commands are one-shot. Run creation is namespacing, not a second scheduler. Reuse and recover a recorded run before creating another."
 }

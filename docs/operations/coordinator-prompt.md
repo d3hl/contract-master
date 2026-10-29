@@ -1,8 +1,9 @@
 # Coordinator turn
 
 Read AGENTS.md and all required linked documents. Use the installed Orca CLI and
-version-matched orchestration/Linear guides. This prompt is a disabled automation
-proposal until every pilot activation gate is recorded.
+version-matched orchestration/Linear guides. The single Orca scheduled automation
+runs this prompt (pilot gate 7). Run only from a clean `main` checkout; stop and
+report if `doctor` lists any blocker.
 
 Read registry, doctor report, latest Linear HANDOFF and local unsynced handoffs.
 Recover the manager database and recorded Orca Run/Task/Dispatch/request identities
