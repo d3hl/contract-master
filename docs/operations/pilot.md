@@ -11,7 +11,7 @@
 - Codex reviews and merges; Claude checks merged result before Done; humans handle escalations.
 
 Coordination is **enabled** (gate 7): one Orca scheduled automation runs the
-coordinator turn. No executable pilot issue exists yet (gate 8). A separate
+coordinator turn. Gate 8 is in progress (D3S-114 Done, D3S-115 open). A separate
 user-authorized [DeepSeek/OpenCode capability probe](runner-verification.md) passed
 with its worker released. That probe used existing client authentication and did
 not store/provision credentials. It does not assert production eligibility.
@@ -106,10 +106,17 @@ not store/provision credentials. It does not assert production eligibility.
    automation block are skipped without a comment.
 8. Create one executable issue using the issue template and real base SHA. Observe
    all ten scenarios with simulated fault injection before widening registration.
-   **In progress:** [D3S-114](https://linear.app/d3space/issue/D3S-114) (base
-   `35c7ff5`). Planned, implemented (`cd7486f`) and Codex-verified in run 105;
-   stopped at `open-pr` because scheduled runs had no 1Password token (fixed: token
-   file). Overlapping runs were found and blocked by the precheck run lock.
+   **In progress.** [D3S-114](https://linear.app/d3space/issue/D3S-114) (base
+   `35c7ff5`) is **Done** (2026-10-29): planned and Codex-verified in run 105
+   (DeepSeek output `cd7486f`); after the 1Password token-file fix, run 107 opened
+   PR #29 as `d3hl-orca[bot]`, `d3hl-codex[bot]` approved and merged it as `a6bccb7`,
+   and Claude confirmed completion. This observed scenarios 01 (full lifecycle) and
+   05 (restart recovery, run 107 resuming run 105's task) live. Overlapping runs
+   were found and blocked by the precheck run lock.
+   [D3S-115](https://linear.app/d3space/issue/D3S-115) records all ten scenarios at
+   one commit. It is open and not yet queued: coordinator runs 109–131 ran on Codex
+   instead of Claude and could not reach the Orca runtime. **Gate 8 is not passed**
+   until D3S-115 is Done and its result is recorded here.
 
 The [completion-automation audit](linear-status-audit.md) **passes** as of
 2026-10-29: D3S PR events (including merge) map to No action, and parent
