@@ -10,8 +10,9 @@
 - Work budget: one issue, one active writer, initial implementation plus one rework.
 - Codex reviews and merges; Claude checks merged result before Done; humans handle escalations.
 
-Coordination is **enabled** (gate 7): one Orca scheduled automation runs the
-coordinator turn. Gate 8 is in progress (D3S-114 Done, D3S-115 open). A separate
+Coordination was **enabled** at gate 7: one Orca scheduled automation runs the
+coordinator turn (currently disabled; see [HANDOFF](HANDOFF.md)). Gate 8 **passed**
+on 2026-10-30 (D3S-114 and D3S-115 Done). A separate
 user-authorized [DeepSeek/OpenCode capability probe](runner-verification.md) passed
 with its worker released. That probe used existing client authentication and did
 not store/provision credentials. It does not assert production eligibility.
@@ -106,7 +107,7 @@ not store/provision credentials. It does not assert production eligibility.
    automation block are skipped without a comment.
 8. Create one executable issue using the issue template and real base SHA. Observe
    all ten scenarios with simulated fault injection before widening registration.
-   **In progress.** [D3S-114](https://linear.app/d3space/issue/D3S-114) (base
+   **Passed 2026-10-30.** [D3S-114](https://linear.app/d3space/issue/D3S-114) (base
    `35c7ff5`) is **Done** (2026-10-29): planned and Codex-verified in run 105
    (DeepSeek output `cd7486f`); after the 1Password token-file fix, run 107 opened
    PR #29 as `d3hl-orca[bot]`, `d3hl-codex[bot]` approved and merged it as `a6bccb7`,
@@ -114,9 +115,20 @@ not store/provision credentials. It does not assert production eligibility.
    05 (restart recovery, run 107 resuming run 105's task) live. Overlapping runs
    were found and blocked by the precheck run lock.
    [D3S-115](https://linear.app/d3space/issue/D3S-115) records all ten scenarios at
-   one commit. It is open and not yet queued: coordinator runs 109–131 ran on Codex
-   instead of Claude and could not reach the Orca runtime. **Gate 8 is not passed**
-   until D3S-115 is Done and its result is recorded here.
+   one commit and is **Done** (2026-10-30). Its first scheduled runs (109–131) ran on
+   Codex instead of Claude and could not reach the Orca runtime. A human closed it by
+   hand and then reopened it. Manual run 132 then queued it (base `a6bccb7`), planned
+   it, and ran DeepSeek on `cm-worker` (Dispatch `ctx_1e04d27edf3a`, output
+   `f5540e6`). Codex verified it (5/5 criteria). `d3hl-orca[bot]` opened PR #32 and
+   `d3hl-codex[bot]` approved and merged it as `9b3e141`. Claude reran the checks on
+   the merged commit (all ten scenarios and 86 unit tests pass) and confirmed Done.
+   The result is [failure-scenarios.md](../knowledge/failure-scenarios.md): all ten
+   scenarios fail safe under simulated fault injection; 01 and 05 were also observed
+   live in D3S-114, the other eight are simulation only.
+   Found during this gate (not yet fixed): intake queues a `TRIAGE: Issue is closed`
+   comment for a closed issue that has a complete block; `worker-start` pasted the
+   OpenCode prompt without submitting it (one Enter was needed); `codex exec` must
+   run with stdin closed or it waits forever.
 
 The [completion-automation audit](linear-status-audit.md) **passes** as of
 2026-10-29: D3S PR events (including merge) map to No action, and parent
