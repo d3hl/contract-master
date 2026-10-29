@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261030-061602/candidate.json",
+    "sha256": "887819bdffd720d4c2a578011763c671c7d2778ee2e05cd5bbb7b8463d927c2c",
+    "bytes": 8877
+  },
+  "artifact": {
+    "path": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+    "sha256": "05a6c1a4c4784c12005a75255ec66ba96525b3ca3f6d140c043851fb63e67c7b",
+    "bytes": 875920
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261030-061602/agent-team-archify.finalize.json",
+    "summaryReceipt": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261030-061602/agent-team-archify.finalize-summary.json",
+    "browserCheckReceipt": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261030-061602/agent-team-archify.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-29T22:16:44.804Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1815,
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  }
+}
