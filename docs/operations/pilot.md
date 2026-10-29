@@ -42,6 +42,17 @@ not store/provision credentials. It does not assert production eligibility.
 4. Recheck Linear context completeness and project pagination after any Orca upgrade.
    Blocking relation direction was verified live on the newly created D3S-99/100 pair
    and is covered by an adapter test.
+   **Rechecked 2026-10-29 on Orca 1.4.243** (read-only, through the adapter's own
+   code): the project listing returned the same 6 issues with the default limit,
+   unbounded, and paged one at a time (6 pages, issued cursor advanced each time,
+   `partial: false`). Full reads of all 6 passed the completeness checks (comments,
+   children and relations uncapped). Completed issues that Linear auto-archives
+   (for example D3S-100) appear only with `--include-archived`; this is safe because
+   intake only queues open issues and reads dependencies by ID (full read of D3S-100
+   passes). The D3S-99/100 relation no longer exists (Linear confirms), and none of
+   the 60 most recent D3S issues has a blocking relation, so relation direction was
+   not re-observed live. Unknown relation shapes fail closed; re-observe direction on
+   the gate 8 issue if it has a dependency.
 5. Audit Linear's GitHub/GitLab workflow automations. Disable any merge/PR rule that
    can mark participating issues Done before final Claude confirmation. Use status-neutral `Related to D3S-123`
    associations, and audit branch/title auto-linking as well as closing keywords. Record a settings screenshot

@@ -25,6 +25,12 @@
   `cm-worker` on a localhost-only Orca server (environment `cm-worker`,
   [worker host](worker-host.md)); probe Dispatch `ctx_ac7cba883d03` confirmed model
   `deepseek/deepseek-v4.1-flash-1017` and blocked access to coordinator credentials.
+- Gate 4 rechecked 2026-10-29 on Orca 1.4.243: listing, cursor paging and full-read
+  completeness pass (6 issues, read-only). Relation direction not re-observed: no
+  live blocking relation exists in D3S; unknown shapes fail closed.
+- Coordinator flow: runner `environment: cm-worker`; `worker_command` adds
+  `--environment cm-worker --from <mailbox>`; coordinator prompt and Orca doc use
+  that flow instead of `--on`. 84 tests pass.
 - Configuration: production runner `enabled=true`, automation disabled.
   Reviewed master `26e14a8` pinned (bundle digest `9ac1eae1…c5b7eb`). No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were
@@ -49,9 +55,8 @@
   `contract-master`, the only vault the service account can read; a second live
   run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
   phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
-- Exact next action: limit other GitHub apps' access to `d3hl/contract-master`
-  and confirm the 1Password item holds the `d3hl-codex` App private key (gate 6);
-  then pin a reviewed master commit and prepare the DeepSeek runner. Do not
-  activate production from the successful runner probe.
+- Exact next action: pilot gate 7. Pin a reviewed master commit that includes the
+  runner `environment`, set `automation_enabled`, and create the single Orca
+  scheduled automation from the coordinator prompt. Then gate 8 (one real issue).
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
