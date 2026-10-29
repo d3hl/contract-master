@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 from .contracts import ContractError, ProviderError, digest, validate
+from .manager import LABEL_PREFIX
 from .outbox import BeforeSendError, Outbox
 
 
@@ -98,6 +99,9 @@ def normalize(full):
     if set(data) != allowed:
         raise ContractError("Automation block contains missing or unauthorized fields")
     state = issue["state"]["type"]
+    if not isinstance(issue.get("labels"), list):
+        raise ContractError("Issue labels missing from provider context")
+    repo_labels = sorted({label["name"] for label in issue["labels"] if label["name"].startswith(LABEL_PREFIX)})
     dependencies = []
     for relation in full.get("relations", []):
         # Installed Orca relation shape is normalized by its provider; unknown shapes fail closed.
@@ -112,7 +116,7 @@ def normalize(full):
             raise ContractError("Unknown dependency relation shape")
     data.update(issue_id=issue["id"], identifier=issue["identifier"], project_id=issue["project"]["id"],
                 kind="tracking" if full.get("children") else "executable", dependencies=dependencies,
-                status=provider_status(state),
+                status=provider_status(state), repo_labels=repo_labels,
                 updated_at=issue["updatedAt"])
     return validate("issue", data)
 

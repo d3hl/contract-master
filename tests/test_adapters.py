@@ -32,7 +32,8 @@ class AdapterTests(WorkflowFixture):
     def full(self, **updates):
         block = {k: self.issue[k] for k in ("repo_id", "base_commit", "goal", "allowed_scope", "acceptance_criteria", "required_checks")}
         issue = {"id": "issue-1", "identifier": "TEST-1", "project": {"id": "project-1"}, "state": {"name": "Todo", "type": "unstarted"},
-                 "description": "```contract-master\n" + json.dumps(block) + "\n```", "updatedAt": self.issue["updated_at"]}
+                 "description": "```contract-master\n" + json.dumps(block) + "\n```", "updatedAt": self.issue["updated_at"],
+                 "labels": [{"id": "l1", "name": "type:feature"}]}
         value = {"issue": issue, "children": [], "relations": [], "comments": []}
         value.update(updates)
         return value
@@ -47,6 +48,13 @@ class AdapterTests(WorkflowFixture):
         outbound = {"type": "blocks", "direction": "outbound", "relationship": "blocks", "relatedIssue": {"id": "child"}}
         self.assertEqual(normalize(self.full(relations=[inbound, outbound]))["dependencies"], ["dependency"])
         with self.assertRaises(ContractError): normalize(self.full(relations=[{"type": "blocks"}]))
+
+    def test_normalize_keeps_only_repository_labels_and_requires_label_context(self):
+        full = self.full()
+        full["issue"]["labels"] += [{"id": "l2", "name": "repo:b"}, {"id": "l3", "name": "repo:a"}]
+        self.assertEqual(normalize(full)["repo_labels"], ["repo:a", "repo:b"])
+        del full["issue"]["labels"]
+        with self.assertRaises(ContractError): normalize(full)
 
     def test_malformed_scope_edit_cannot_leave_stale_ready_task(self):
         self.start()
