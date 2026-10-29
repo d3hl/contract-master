@@ -22,6 +22,10 @@ PERMISSIONS = {
     "pr": {"contents": "write", "pull_requests": "write", "metadata": "read"},
     "merge": {"contents": "write", "pull_requests": "write", "checks": "write", "metadata": "read"},
 }
+# Scheduled coordinator turns start without the 1Password service account token in
+# their environment. The manager then reads it from this owner-only file and passes it
+# to `op` alone. Override the path with CONTRACT_MASTER_OP_TOKEN_FILE.
+OP_TOKEN_FILE = "~/.config/op/contract-master-sa-token"
 # Git reads the password from the environment, so the token is never in argv or a URL.
 CREDENTIAL_HELPER = "!f() { echo username=x-access-token; echo password=$CONTRACT_MASTER_GIT_TOKEN; }; f"
 
@@ -74,9 +78,29 @@ def problems(policy):
     return found
 
 
-def read_key(reference):
+def op_environment():
+    """Environment for `op`: the caller's, plus the service account token from its file."""
+    env = dict(os.environ)
+    if env.get("OP_SERVICE_ACCOUNT_TOKEN"):
+        return env
+    path = os.path.expanduser(env.get("CONTRACT_MASTER_OP_TOKEN_FILE") or OP_TOKEN_FILE)
     try:
-        run = subprocess.run(["op", "read", reference], capture_output=True, timeout=30, check=False)
+        info = os.stat(path)
+    except OSError:
+        return env  # `op` may still have another sign-in; its failure is reported below.
+    if info.st_mode & 0o077 or info.st_uid != os.getuid():
+        raise ProviderError("1Password token file must be owner-only (0600) and owned by this user")
+    with open(path) as handle:
+        token = handle.read().strip()
+    if token:
+        env["OP_SERVICE_ACCOUNT_TOKEN"] = token
+    return env
+
+
+def read_key(reference):
+    env = op_environment()
+    try:
+        run = subprocess.run(["op", "read", reference], capture_output=True, timeout=30, check=False, env=env)
     except (OSError, subprocess.SubprocessError):
         raise ProviderError("1Password read of the GitHub App key failed") from None
     if run.returncode or not run.stdout.strip():

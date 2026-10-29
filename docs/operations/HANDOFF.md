@@ -25,6 +25,13 @@
   `cm-worker` on a localhost-only Orca server (environment `cm-worker`,
   [worker host](worker-host.md)); probe Dispatch `ctx_ac7cba883d03` confirmed model
   `deepseek/deepseek-v4.1-flash-1017` and blocked access to coordinator credentials.
+- Gate 4 rechecked 2026-10-29 on Orca 1.4.243: listing, cursor paging and full-read
+  completeness pass (6 issues, read-only). Relation direction not re-observed: no
+  live blocking relation exists in D3S; unknown shapes fail closed.
+- Coordinator flow: runner `environment: cm-worker`; `worker_command` adds
+  `--environment cm-worker --from <mailbox>`; coordinator prompt and Orca doc use
+  that flow instead of `--on`. (The `environment` line was lost when #25 was merged
+  after #24 and is restored here.)
 - Gate 7 (2026-10-29): reviewed master `b590eb4` pinned (bundle `84ca586b…80fad8`),
   `automation_enabled=true`; the former delivery-only automation `dc0657b8-…` is now
   the single coordinator schedule (agent `claude`, every 10 minutes, precheck: clean
@@ -53,8 +60,15 @@
   `contract-master`, the only vault the service account can read; a second live
   run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
   phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
-- Exact next action: watch the first scheduled coordinator runs (expect TRIAGE
-  comments only on open D3S issues without an automation block), then gate 8:
-  create one executable issue from the template with a real base SHA.
+- Gate 8 in progress: [D3S-114](https://linear.app/d3space/issue/D3S-114), task
+  `task-2762aacb7e0f6db1be163f35`. Run 105 planned it, DeepSeek produced `cd7486f`
+  (Dispatch `ctx_56bf0be2af03`, released), Codex verified it; In Review,
+  `awaiting_review`. `open-pr` stopped: the scheduled run had no 1Password token.
+  The manager now reads it from the owner-only token file.
+- Overlapping runs: Orca started run 106 while 105 was still active, and both used
+  the same owner. 106 was told to stand down (it changed nothing). The automation
+  precheck now also skips while any run of it is still `dispatched`.
+- Exact next action: after this fix merges, re-enable automation `dc0657b8-…`; the
+  next run resumes D3S-114 with `open-pr`, `codex-merge` and Claude's final check.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
