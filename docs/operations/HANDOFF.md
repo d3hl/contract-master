@@ -90,10 +90,14 @@
 - Turn lease is live: the automation precheck ends with `turn-check` (2026-10-30).
 - D3S-113 closed as Done by hand (delivered by PR #21). D3S-109 (onboard
   `d3-corp/cf-mcp-gw` and `d3-corp/action1-dashboard`) is done in reviewed PRs,
-  not by the coordinator: step 1, repository-label routing (`linear_label`,
-  `repo_labels`), is in this change.
-- Exact next action (D3S-109 step 2): install both GitHub Apps on `d3-corp`, then
-  add each repository's registry entry, label and target `AGENTS.md`, and run one
-  bounded pilot issue per repository.
+  not by the coordinator. Step 1, label routing, merged (#35). Step 2: Apps
+  installed on `d3-corp` (installations 176676496 orca, 176676979 codex; both reach
+  both repos), Linear projects Cloudflare MCP Gateway and Action1 Dashboard, repos
+  made public and on phase A protection, worker clones and Orca repos registered,
+  checks verified on `main`, target `AGENTS.md` PRs (cf-mcp-gw #6,
+  action1-dashboard #1), registry entries in this change.
+- Exact next action: merge the target `AGENTS.md` PRs before this registry change
+  (required local docs must exist at the task base), then probe the DeepSeek
+  runner on each repository and run one bounded docs pilot issue per repository.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

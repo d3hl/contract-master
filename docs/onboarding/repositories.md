@@ -44,12 +44,22 @@ repository. Other labels are ignored. Each label belongs to one repository
 (`doctor` reports duplicates). Repositories without `linear_label`, such as
 `d3hl/contract-master`, accept issues without a `repo:` label.
 
-Planned labels (D3S-109; registered when each repository is onboarded):
+Registered repositories (D3S-109, 2026-10-30):
 
-| Label | Repository | Use for |
-|---|---|---|
-| `repo:cf-mcp-gw` | `d3-corp/cf-mcp-gw` | Cloudflare setup and workflow tasks |
-| `repo:action1-dashboard` | `d3-corp/action1-dashboard` | Action1 tasks, including the dashboard |
+| Repository | Linear project | Label | Allowed scope (docs only) | Checks |
+|---|---|---|---|---|
+| `d3hl/contract-master` | Contract Master Automation | none | `docs/knowledge` | `unit` |
+| `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs` | `typecheck`, `docs`, `secrets`, `tests` |
+| `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs` | `test` |
+
+Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks and
+`repo:action1-dashboard` for Action1 tasks, including the dashboard. Target
+`AGENTS.md` stays out of scope so a worker cannot edit its own instructions.
+Both `d3-corp` repositories are public (GitHub Free allows branch protection only
+on public repositories) and on phase A protection; apply phase B after each one's
+first `codex-merge`. Their checks run `npm ci --ignore-scripts` first and need
+Node.js 24 and registry.npmjs.org, no credentials. Widening scope beyond docs is a
+reviewed registry change.
 
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
 Ordinary product tasks should target other registered repositories. The current
