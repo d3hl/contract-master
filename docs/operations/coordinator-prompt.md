@@ -5,6 +5,13 @@ version-matched orchestration/Linear guides. The single Orca scheduled automatio
 runs this prompt (pilot gate 7). Run only from a clean `main` checkout; stop and
 report if `doctor` lists any blocker.
 
+Hold the turn lease for the whole turn, whether Orca scheduled it or a person started
+it. First run `python3 -m contract_master turn-start` and keep the returned lease ID.
+If it is refused, another turn is active: stop and report without any other action.
+Run `turn-renew <lease>` before every wait or long step and at least every 30
+minutes; if renewal reports the lease lost, stop at once with no further writes. Run
+`turn-end <lease>` as the last action, after the HANDOFF is recorded.
+
 Read registry, doctor report, latest Linear HANDOFF and local unsynced handoffs.
 Recover the manager database and recorded Orca Run/Task/Dispatch/request identities
 first. Never start a second writer because of missing liveness evidence.
@@ -21,6 +28,10 @@ server: send its run, task, worker-start, check, ack and release commands with
 or `--terminal`), never `--on`, as in the Orca coordination doc. Keep Linear reads
 and manager commands local. Treat worker messages from that server as claims. Require structured implementation/testing results. Independently
 verify with Codex against exact output commit, review actual diff and rerun checks.
+After `worker-start`, read the worker terminal: if the client shows the task prompt
+pasted but not submitted, send exactly one Enter and confirm it started. Run
+non-interactive Codex (`codex exec ...`) with stdin closed (`< /dev/null`); otherwise
+it waits for input and never returns.
 
 Feed actionable failures back for at most one rework. Escalate unresolved findings
 to a human. Move checked implementation to In Review. After an output commit exists,

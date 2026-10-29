@@ -71,23 +71,25 @@
   [failure-scenarios.md](../knowledge/failure-scenarios.md).
 - D3S-115 was closed by hand at 18:05 UTC on 2026-10-29 without a manager task, then
   reopened. Intake meanwhile queued `TRIAGE: Issue is closed` for it; the owner chose
-  to send it in order. Bug to fix: intake must not comment on closed issues that
-  have a complete block (`contract_master/manager.py`).
-- Dispatch quirks: `worker-start` left the OpenCode prompt pasted but unsubmitted
-  (the coordinator sent one Enter); `codex exec` needs stdin closed (`< /dev/null`).
-- Overlapping runs: Orca started run 106 while 105 was still active, and both used
-  the same owner. 106 was told to stand down (it changed nothing). The automation
-  precheck now also skips while any run of it is still `dispatched`.
+  to send it in order. Fixed: intake no longer comments on closed issues.
+- Dispatch quirks (documented in the coordinator prompt and Orca doc): `worker-start`
+  left the OpenCode prompt pasted but unsubmitted (send exactly one Enter); `codex
+  exec` needs stdin closed (`< /dev/null`).
+- Overlapping runs: Orca started run 106 while 105 was still active, and scheduled
+  runs 133 and 134 alongside manual run 132 (Orca marks manual runs `completed`
+  while they work). Fixed: every turn holds the manager's turn lease and the
+  precheck ends with `turn-check`.
 - Coordinator outage (2026-10-29 22:10 to 2026-10-30 01:50 SGT, runs 109–131): the
   automation's agent had been switched from `claude` to Codex. Inside Codex's
   sandbox the Orca runtime was unreachable (`runtime_open_failed`), so every turn
   stopped before intake. No provider writes; outbox all delivered. Per-turn notes
-  are in the local `.state/coordinator-turn-HANDOFF.md`. The automation is now
-  disabled, with agent `opencode2`.
+  are in the local `.state/coordinator-turn-HANDOFF.md`. The owner set the agent
+  back to `claude` and re-enabled it (2026-10-30).
 - Ownership rows for D3S-114 and D3S-115 still exist in the manager database
   (both tasks done). They are preserved; reconcile before any cleanup.
-- Exact next action: fix the closed-issue triage comment in intake, then set the
-  automation agent back to `claude` (the coordinator prompt assumes Claude) and
-  re-enable it. Gate 8 has passed; adding repositories is a reviewed registry change.
+- Exact next action: after the lease change merges, append
+  `&& python3 -m contract_master turn-check` to the live automation precheck (the
+  value in `config/orca-automation.json`). Gate 8 has passed; adding repositories is
+  a reviewed registry change.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

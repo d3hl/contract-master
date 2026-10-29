@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from . import context
+from . import context, turns
 from .adapters import Intake, LinearTransport, Orca
 from .contracts import ContractError, ROOT
 from .manager import Manager
@@ -38,6 +38,10 @@ COMMANDS = {
     "release": SETTLEMENT,
     "supersede": SETTLEMENT,
     "bundle": ("commit",),
+    "turn-start": (),
+    "turn-renew": ("lease",),
+    "turn-end": ("lease",),
+    "turn-check": (),
 }
 
 # Commands that take (task, token, JSON report file).
@@ -67,6 +71,8 @@ def parser():
             command.add_argument(argument)
         if name in ("prepare-dispatch", "open-pr", "codex-merge"):
             command.add_argument("--live", action="store_true")
+        if name in ("turn-start", "turn-renew"):
+            command.add_argument("--minutes", type=int, default=turns.DEFAULT_MINUTES)
         if name == "bundle":
             command.add_argument("--destination", default=str(ROOT / ".state/context"))
     return root
@@ -78,6 +84,13 @@ def run(args):
     command = args.command
     if command in REPORT_METHODS:
         return getattr(manager, REPORT_METHODS[command])(args.task, args.token, read(args.file))
+    if command.startswith("turn-"):
+        lease = turns.TurnLease(manager.store)
+        if command == "turn-start":
+            return lease.start(args.minutes)
+        if command == "turn-renew":
+            return lease.renew(args.lease, args.minutes)
+        return lease.end(args.lease) if command == "turn-end" else lease.check()
     if command == "doctor":
         from .readiness import report
         return report(registry)
