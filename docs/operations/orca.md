@@ -36,6 +36,21 @@ Live reads of new issues D3S-99 and D3S-100 verified the provider relation shape
 The adapter normalizes these fields and tests them; ambiguous shapes fail closed. Scheduled intake
 is eventual (up to its cadence); it does not claim instant push notification.
 
+### Scheduled coordinator runs
+
+The automation's precheck (recorded in `config/orca-automation.json`) skips a tick
+unless the checkout is a clean `main`, `doctor` has no blockers, and **no other run
+of the automation is still `dispatched`**. Orca does not serialize runs: on
+2026-10-29 it started run 106 while run 105 was mid-task, and both coordinators
+held the same owner token. A run is marked `dispatched` only after its precheck, so
+the check does not see itself; an unreadable run list also skips the tick.
+
+Scheduled runs inherit no 1Password session. `open-pr` and `codex-merge` read the
+service account token from the owner-only file `~/.config/op/contract-master-sa-token`
+(override with `CONTRACT_MASTER_OP_TOKEN_FILE`) and pass it only to `op`; a file
+readable by group or others is refused. It never goes into the prompt or argv.
+Each finished run leaves its Claude terminal open; close old ones when convenient.
+
 ## Durable authority
 
 The manager SQLite database is local to one coordinator host, with WAL, full

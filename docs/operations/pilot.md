@@ -106,6 +106,10 @@ not store/provision credentials. It does not assert production eligibility.
    automation block are skipped without a comment.
 8. Create one executable issue using the issue template and real base SHA. Observe
    all ten scenarios with simulated fault injection before widening registration.
+   **In progress:** [D3S-114](https://linear.app/d3space/issue/D3S-114) (base
+   `35c7ff5`). Planned, implemented (`cd7486f`) and Codex-verified in run 105;
+   stopped at `open-pr` because scheduled runs had no 1Password token (fixed: token
+   file). Overlapping runs were found and blocked by the precheck run lock.
 
 The [completion-automation audit](linear-status-audit.md) **passes** as of
 2026-10-29: D3S PR events (including merge) map to No action, and parent

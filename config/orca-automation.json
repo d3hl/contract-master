@@ -6,6 +6,7 @@
   "timezone": "Asia/Singapore",
   "provider": "claude",
   "workspace_mode": "existing",
+  "precheck": "test \"$(git rev-parse --abbrev-ref HEAD)\" = main && git diff --quiet HEAD && python3 -m contract_master doctor | python3 -c 'import json,sys; sys.exit(1 if json.load(sys.stdin)[\"result\"][\"blockers\"] else 0)' && /home/d3/.orca/cli/bin/orca automations runs --id dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9 --limit 20 --json | python3 -c 'import json,sys; runs=json.load(sys.stdin)[\"result\"][\"runs\"]; sys.exit(1 if any(r[\"status\"]==\"dispatched\" for r in runs) else 0)'",
   "prompt_file": "docs/operations/coordinator-prompt.md",
-  "notes": "Installed by reusing the former delivery-only automation, so exactly one schedule exists. Orca owns scheduling. Manager commands are one-shot. Run creation is namespacing, not a second scheduler. Reuse and recover a recorded run before creating another."
+  "notes": "Installed by reusing the former delivery-only automation, so exactly one schedule exists. Orca owns scheduling. Manager commands are one-shot. Run creation is namespacing, not a second scheduler. Reuse and recover a recorded run before creating another. The precheck also skips while another run is still dispatched (Orca does not serialize runs)."
 }

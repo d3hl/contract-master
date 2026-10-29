@@ -100,6 +100,29 @@ class GitHubAppTests(unittest.TestCase):
                 github_app.read_key("op://v/item/key")
         self.assertNotIn("op://v/item/key", str(missing.exception))
 
+    def test_op_token_file_reaches_only_op_environment(self):
+        ok = subprocess.CompletedProcess([], 0, KEY, b"")
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "token"
+            path.write_text("ops_secret\n")
+            path.chmod(0o600)
+            env = {"CONTRACT_MASTER_OP_TOKEN_FILE": str(path)}
+            with mock.patch.dict("os.environ", env, clear=True), \
+                    mock.patch("subprocess.run", return_value=ok) as run:
+                self.assertEqual(github_app.read_key("op://v/item/key"), KEY)
+            self.assertEqual(run.call_args[0][0], ["op", "read", "op://v/item/key"])
+            self.assertEqual(run.call_args[1]["env"]["OP_SERVICE_ACCOUNT_TOKEN"], "ops_secret")
+            self.assertNotIn("ops_secret", " ".join(run.call_args[0][0]))
+            with mock.patch.dict("os.environ", dict(env, OP_SERVICE_ACCOUNT_TOKEN="from_env"), clear=True):
+                self.assertEqual(github_app.op_environment()["OP_SERVICE_ACCOUNT_TOKEN"], "from_env")
+            path.chmod(0o640)
+            with mock.patch.dict("os.environ", env, clear=True), mock.patch("subprocess.run", return_value=ok):
+                with self.assertRaises(ProviderError) as loose:
+                    github_app.read_key("op://v/item/key")
+            self.assertNotIn("ops_secret", str(loose.exception))
+        with mock.patch.dict("os.environ", {"CONTRACT_MASTER_OP_TOKEN_FILE": "/nonexistent/token"}, clear=True):
+            self.assertNotIn("OP_SERVICE_ACCOUNT_TOKEN", github_app.op_environment())
+
     def test_push_keeps_token_out_of_argv_and_only_task_branches(self):
         repo_app = app("pr")
         with self.assertRaises(ContractError): repo_app.push("/tmp", "b" * 40, "main")
