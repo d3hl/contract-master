@@ -10,8 +10,9 @@ follows this resolution and never switches builds on failure.
 
 ## Intake and scheduling
 
-No Orca automation existed at bootstrap. `config/orca-automation.json` is a disabled
-proposal for one Orca-owned ten-minute schedule. The CLI exposed scheduled triggers,
+No Orca automation existed at bootstrap. `config/orca-automation.json` records the
+one Orca-owned ten-minute schedule, installed at pilot gate 7 as automation
+`dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9`. The CLI exposed scheduled triggers,
 not a verified Linear webhook registration capability. Full reconciliation is the
 working intake path. A future existing webhook can wake the **same** coordinator;
 it must fetch current issues and call the same manager, not create another scheduler.

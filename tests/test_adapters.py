@@ -68,6 +68,21 @@ class AdapterTests(WorkflowFixture):
         self.assertFalse(any(r["queued"] for r in result))
         self.assertIn("Tracking parent", result[0]["reason"])
 
+    def test_only_open_incomplete_issues_get_triage_comments(self):
+        for state, comments in (("completed", 0), ("canceled", 0), ("started", 1), ("backlog", 1)):
+            with self.subTest(state=state):
+                self.setUp()
+                full = self.full()
+                full["issue"]["description"] = "Human-written issue without an automation block"
+                full["issue"]["state"]["type"] = state
+                class Source:
+                    def project_issues(self, *args): return [{"id": "issue-1", "identifier": "TEST-1"}]
+                    def issue(self, *args): return full
+                before = self.outbox_count()
+                result = Intake(self.manager, Source(), "workspace").reconcile()
+                self.assertFalse(result[0]["queued"])
+                self.assertEqual(self.outbox_count() - before, comments)
+
     def test_project_pagination_and_partial_reads(self):
         class Paged(Orca):
             def __init__(self): self.calls = 0

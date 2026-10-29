@@ -158,6 +158,9 @@ class Intake:
         except (ValueError, KeyError, TypeError) as exc:
             # Human-authored issues remain visible but cannot dispatch without complete scope.
             self.manager.invalidate_issue(summary["id"], str(exc))
+            if provider_status(state) != "open":
+                # Settled human issues need no clarification; never comment on closed history.
+                return {"queued": False, "reason": "Settled in Linear: " + str(exc)}
             Outbox(self.manager.store).enqueue("incomplete:" + digest([summary["id"], str(exc)]), summary["identifier"],
                 {"kind": "comment", "body": "TRIAGE: " + str(exc)})
             return {"queued": False, "reason": str(exc)}

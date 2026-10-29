@@ -10,7 +10,8 @@
 - Work budget: one issue, one active writer, initial implementation plus one rework.
 - Codex reviews and merges; Claude checks merged result before Done; humans handle escalations.
 
-The pilot is **not running**. No scheduled automation is installed. A separate
+Coordination is **enabled** (gate 7): one Orca scheduled automation runs the
+coordinator turn. No executable pilot issue exists yet (gate 8). A separate
 user-authorized [DeepSeek/OpenCode capability probe](runner-verification.md) passed
 with its worker released. That probe used existing client authentication and did
 not store/provision credentials. It does not assert production eligibility.
@@ -90,6 +91,19 @@ not store/provision credentials. It does not assert production eligibility.
    automation with the documented `automations create` command. Use the coordinator
    prompt, existing manager workspace and Asia/Singapore timezone. Configure 1Password
    externally; never put secret values into the automation prompt/arguments.
+   **Done 2026-10-29:** pinned reviewed master `b590eb4` (bundle digest
+   `84ca586bee80287de4953ea320ba084c9f3b276002ad457ea39661248380fad8`; the five
+   required documents match `git show`; mode 0444) and set `automation_enabled`.
+   Exactly one scheduler exists for this workspace: the earlier delivery-only
+   automation `dc0657b8-…` was converted rather than adding a second. It had been
+   failing every run since its agent was changed to `openclaude` (not installed);
+   it now uses `claude`, `*/10 * * * *`, Asia/Singapore, the existing manager
+   workspace, fresh sessions, and a prompt that only points to
+   `docs/operations/coordinator-prompt.md`. Its precheck skips a run unless the
+   checkout is a clean `main` and `doctor` reports no blockers. The separate
+   "Daily change review" automation (Codex, read-only report) is not a manager
+   scheduler. Intake now comments only on open issues; settled issues without an
+   automation block are skipped without a comment.
 8. Create one executable issue using the issue template and real base SHA. Observe
    all ten scenarios with simulated fault injection before widening registration.
 
@@ -102,13 +116,15 @@ auto-close and stale cancellation are disabled. `merge_gate_audited=true`.
 Installed Orca exposes scheduled automations and Linear issue APIs. The available
 Linear connector does not expose a verified setter for GitHub issue-status workflow
 automations. A live DeepSeek capability probe is now verified; production
-configuration and the external status settings remain separate gates. Automatic execution remains
-blocked by default (`automation_enabled=false`). These are activation
-prerequisites, not extra plan approval for otherwise eligible work.
+configuration and the external status settings are recorded in the gates above.
+`automation_enabled=true` since gate 7; live dispatch still needs every per-task
+gate. These are activation prerequisites, not extra plan approval for otherwise
+eligible work.
 
 ## Abort and recovery
 
-Disable the single Orca automation to pause new intake. Do not delete the manager
+Disable the single Orca automation to pause new intake
+(`automations edit dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9 --disabled`). Do not delete the manager
 state, task workspace or context bundle. Preserve unknown worker authority and
 inspect through Orca; never launch a replacement on timeout alone. Keep Linear
 handoffs queued locally through outages. Resume with existing identity after the

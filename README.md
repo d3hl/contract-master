@@ -39,8 +39,8 @@ Linear: [Contract Master Automation](https://linear.app/d3space/project/contract
 tracking [D3S-98](https://linear.app/d3space/issue/D3S-98),
 implementation [D3S-99](https://linear.app/d3space/issue/D3S-99).
 
-The automation configuration is a disabled proposal. A
-[real DeepSeek/OpenCode capability probe](docs/operations/runner-verification.md)
-passed; the production runner remains disabled. Context pinning remains blocked
-until a human-reviewed master commit is registered. [Activation gates](docs/operations/pilot.md) describe the remaining
-integration setup, including settings that exposed APIs cannot configure.
+Automation is enabled: one Orca scheduled automation runs the
+[coordinator turn](docs/operations/coordinator-prompt.md) every ten minutes. The
+DeepSeek runner is enabled on an [isolated worker host](docs/operations/worker-host.md),
+and reviewed master commits are pinned in the registry. [Activation gates](docs/operations/pilot.md)
+record the setup; the pilot's first executable issue (gate 8) is still to come.
