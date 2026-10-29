@@ -17,7 +17,8 @@ all refused (checked from a shell and again from inside a live OpenCode worker):
 - 1Password and GitHub: no `op` account and no `gh` login exist for `cm-worker`.
 
 The worker has its own OpenRouter login for OpenCode only, stored in its private
-home. It clones the public `d3hl/contract-master` over HTTPS and never pushes;
+home. It clones the public `d3hl/contract-master`, `d3-corp/cf-mcp-gw` and
+`d3-corp/action1-dashboard` over HTTPS and never pushes;
 `open-pr` (d3hl-orca) pushes output commits from the coordinator side.
 
 ## Layout
@@ -30,6 +31,7 @@ home. It clones the public `d3hl/contract-master` over HTTPS and never pushes;
 | Orca app 1.4.243 (AppImage, SHA-512 checked against `latest-linux.yml`) | `/opt/contract-master-worker/orca-app/` (root-owned, read-only) |
 | Orca server data | `~cm-worker/.orca-serve/` |
 | Worker repo clone | `~cm-worker/repos/contract-master` (Orca repo `ddd5af7e-…`) |
+| Target repo clones | `~cm-worker/repos/cf-mcp-gw` (`a848e871-…`), `~cm-worker/repos/action1-dashboard` (`e6dcfb9d-…`); public HTTPS fetch |
 | Git identity | `contract-master DeepSeek worker <cm-worker@d3hl.invalid>` |
 | Service | `cm-worker-orca.service` (systemd, enabled) |
 

@@ -2,8 +2,10 @@
   "version": "1.0",
   "automation_enabled": true,
   "linear_workspace": "8828a093-3bc4-4cc9-a943-f139ade20a88",
-  "reviewed_master_commits": ["26e14a8c21f1046abdecdc9bde1bd68b5a3e7259",
-                              "b590eb4daeea76b782d53c7d6eb2c0dee09087df"],
+  "reviewed_master_commits": [
+    "26e14a8c21f1046abdecdc9bde1bd68b5a3e7259",
+    "b590eb4daeea76b782d53c7d6eb2c0dee09087df"
+  ],
   "repositories": {
     "d3hl/contract-master": {
       "url": "https://github.com/d3hl/contract-master",
@@ -46,17 +48,194 @@
       "verification_runner": "codex",
       "merge_runner": "codex",
       "merge_gate_audited": true,
-      "merge_identity": {"login": "d3hl-codex[bot]", "type": "Bot"},
-      "github_apps": {
-        "pr": {"slug": "d3hl-orca", "app_id": 5516831, "installation_id": 176325322,
-               "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"},
-        "merge": {"slug": "d3hl-codex", "app_id": 5511451, "installation_id": 176202750,
-                  "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"}
+      "merge_identity": {
+        "login": "d3hl-codex[bot]",
+        "type": "Bot"
       },
-      "credential_references": ["op://contract-master/SSH Key-d3hl-orca-github/private key",
-                                "op://contract-master/SSH Key-d3hl-codex/private key"],
+      "github_apps": {
+        "pr": {
+          "slug": "d3hl-orca",
+          "app_id": 5516831,
+          "installation_id": 176325322,
+          "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"
+        },
+        "merge": {
+          "slug": "d3hl-codex",
+          "app_id": 5511451,
+          "installation_id": 176202750,
+          "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"
+        }
+      },
+      "credential_references": [
+        "op://contract-master/SSH Key-d3hl-orca-github/private key",
+        "op://contract-master/SSH Key-d3hl-codex/private key"
+      ],
       "dependency_versions": {},
       "runner_config": "config/deepseek-runner.json"
+    },
+    "d3-corp/cf-mcp-gw": {
+      "url": "https://github.com/d3-corp/cf-mcp-gw",
+      "orca_repo_id": "cfced91f-3912-4cb9-9319-37fbc3bad157",
+      "base_ref": "origin/main",
+      "linear_projects": [
+        "7e63a1e3-026a-4859-9707-df59e1f11ef7"
+      ],
+      "documentation_entrypoints": [
+        "AGENTS.md",
+        "README.md",
+        "HARNESS-ONBOARDING.md"
+      ],
+      "required_context": [
+        "AGENTS.md",
+        "docs/policies/workflow.md",
+        "docs/policies/context-and-security.md",
+        "docs/contracts/v1.md",
+        "docs/operations/orca.md"
+      ],
+      "allowed_scope": [
+        "HANDOFF.md",
+        "HARNESS-ONBOARDING.md",
+        "LINEAR-MIGRATION.md",
+        "PLAN.md",
+        "README.md",
+        "docs"
+      ],
+      "checks": {
+        "typecheck": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && npm run check"
+          ],
+          "timeout_seconds": 300
+        },
+        "docs": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && npm run check:docs"
+          ],
+          "timeout_seconds": 300
+        },
+        "secrets": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && npm run check:secrets"
+          ],
+          "timeout_seconds": 300
+        },
+        "tests": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && npm test"
+          ],
+          "timeout_seconds": 300
+        }
+      },
+      "planning_runner": "claude",
+      "implementation_runner": "deepseek-portable",
+      "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_gate_audited": true,
+      "merge_identity": {
+        "login": "d3hl-codex[bot]",
+        "type": "Bot"
+      },
+      "github_apps": {
+        "pr": {
+          "slug": "d3hl-orca",
+          "app_id": 5516831,
+          "installation_id": 176676496,
+          "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"
+        },
+        "merge": {
+          "slug": "d3hl-codex",
+          "app_id": 5511451,
+          "installation_id": 176676979,
+          "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"
+        }
+      },
+      "credential_references": [
+        "op://contract-master/SSH Key-d3hl-orca-github/private key",
+        "op://contract-master/SSH Key-d3hl-codex/private key"
+      ],
+      "dependency_versions": {
+        "node": "24.22.2"
+      },
+      "runner_config": "config/deepseek-runner.json",
+      "linear_label": "repo:cf-mcp-gw"
+    },
+    "d3-corp/action1-dashboard": {
+      "url": "https://github.com/d3-corp/action1-dashboard",
+      "orca_repo_id": "3d7868c0-a7de-4be6-af2d-c472af936781",
+      "base_ref": "origin/main",
+      "linear_projects": [
+        "0e1f9aa9-2e0f-4a12-b591-122d63267333"
+      ],
+      "documentation_entrypoints": [
+        "AGENTS.md",
+        "README.md",
+        "VALIDATION.md"
+      ],
+      "required_context": [
+        "AGENTS.md",
+        "docs/policies/workflow.md",
+        "docs/policies/context-and-security.md",
+        "docs/contracts/v1.md",
+        "docs/operations/orca.md"
+      ],
+      "allowed_scope": [
+        "CLOUDFLARE.md",
+        "README.md",
+        "VALIDATION.md",
+        "dashboard/README.md",
+        "docs",
+        "features.md"
+      ],
+      "checks": {
+        "test": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && node --test"
+          ],
+          "timeout_seconds": 300
+        }
+      },
+      "planning_runner": "claude",
+      "implementation_runner": "deepseek-portable",
+      "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_gate_audited": true,
+      "merge_identity": {
+        "login": "d3hl-codex[bot]",
+        "type": "Bot"
+      },
+      "github_apps": {
+        "pr": {
+          "slug": "d3hl-orca",
+          "app_id": 5516831,
+          "installation_id": 176676496,
+          "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"
+        },
+        "merge": {
+          "slug": "d3hl-codex",
+          "app_id": 5511451,
+          "installation_id": 176676979,
+          "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"
+        }
+      },
+      "credential_references": [
+        "op://contract-master/SSH Key-d3hl-orca-github/private key",
+        "op://contract-master/SSH Key-d3hl-codex/private key"
+      ],
+      "dependency_versions": {
+        "node": "24.22.2"
+      },
+      "runner_config": "config/deepseek-runner.json",
+      "linear_label": "repo:action1-dashboard"
     }
   }
 }
