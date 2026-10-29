@@ -94,6 +94,35 @@ Orca server bound to `127.0.0.1:6791`, paired to the coordinator as environment
 `config/deepseek-runner.json` is now `enabled: true`. Live dispatch still needs
 `automation_enabled` (pilot gate 7).
 
+## Target repository probes (2026-10-30, D3S-109)
+
+Before onboarding `d3-corp/cf-mcp-gw` and `d3-corp/action1-dashboard`, one
+supervised worker per repository ran on the `cm-worker` server (Run
+`run_57b008585715`, mailbox `term_e8d0bbc9-…`). Each added only
+`docs/contract-master-probe.md` (inside the registered docs scope), ran the
+registered checks and committed locally. Nothing was pushed.
+
+| | cf-mcp-gw | action1-dashboard |
+|---|---|---|
+| Task / Dispatch | `task_913302ee3faf` / `ctx_41f40120c5fe` | `task_128240b0ca0e` / `ctx_8ae8ff616756` |
+| Base → output commit | `153dd91` → `e9f940bd09b52bc4a782f2f6bcd19a79fe3c246c` | `f2c1ffc` → `4da74b3ddea197b8214b19c1d07f105b331517b9` |
+| Checks rerun by the coordinator (`inspect_checkout`, registry argv) | `typecheck`, `docs`, `secrets`, `tests` pass | `test` passes (17/17) |
+| Model (exported session info + all 9 messages) | OpenRouter `deepseek/deepseek-v4.1-flash-1017`, `default` | same |
+| Session / cost | `ses_e76649e12ffeh6npXQZZ4ynnEP` / ~US$0.006 | `ses_e76648f90ffe3c4cz0td9xLZzS` / ~US$0.007 |
+
+The coordinator fetched each exact commit by `git bundle` into its own checkout,
+confirmed the diff touches only the allowed file and the tree stays clean, and
+reran the checks itself; `worker_done` was treated as a claim. The notes record
+`whoami` = `cm-worker`, Node v24.22.2 and the base commit. Both workers were
+released and their deliveries acknowledged; no reclaimable terminals remain.
+
+Setup for these probes: the target repositories carry no `.opencode/opencode.json`,
+so the model is pinned in `cm-worker`'s own `~/.config/opencode/opencode.json`
+(same content as [the project template](../../config/deepseek-opencode-project.json));
+it applies only to that dedicated worker account. Worker clones fetch the now-public
+repositories over HTTPS; the worker still holds no GitHub credential. The probe
+worktrees `cm-probe-cf` and `cm-probe-a1` are preserved on the worker.
+
 ## Scope and remaining gates
 
 This is a user-authorized **capability probe**, not the registered production

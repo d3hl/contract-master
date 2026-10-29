@@ -96,8 +96,11 @@
   made public and on phase A protection, worker clones and Orca repos registered,
   checks verified on `main`, target `AGENTS.md` PRs (cf-mcp-gw #6,
   action1-dashboard #1), registry entries in this change.
-- Exact next action: merge the target `AGENTS.md` PRs before this registry change
-  (required local docs must exist at the task base), then probe the DeepSeek
-  runner on each repository and run one bounded docs pilot issue per repository.
+- D3S-109 step 2 complete: target `AGENTS.md` PRs (cf-mcp-gw #6, action1-dashboard
+  #1) and registry change #36 merged. DeepSeek runner probes passed on both
+  repositories (2026-10-30, [runner verification](runner-verification.md)).
+- Exact next action (D3S-109 step 3): one bounded docs pilot issue per repository
+  in its Linear project with its `repo:` label; after each one's first
+  `codex-merge`, apply phase B protection there.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
