@@ -14,7 +14,11 @@ dependencies unqueued with specific reasons. Clarify missing requirements in Lin
 
 For eligible tasks, have Claude inspect target code, load pinned shared context and
 local required docs, explore the design, then record a bounded plan. Dispatch verified DeepSeek runners
-through Orca only. Require structured implementation/testing results. Independently
+through Orca only. The runner's `environment` (`cm-worker`) names the paired worker
+server: send its run, task, worker-start, check, ack and release commands with
+`--environment cm-worker` and a recorded mailbox terminal on that server (`--from`
+or `--terminal`), never `--on`, as in the Orca coordination doc. Keep Linear reads
+and manager commands local. Treat worker messages from that server as claims. Require structured implementation/testing results. Independently
 verify with Codex against exact output commit, review actual diff and rerun checks.
 
 Feed actionable failures back for at most one rework. Escalate unresolved findings

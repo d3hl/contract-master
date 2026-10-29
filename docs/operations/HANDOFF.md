@@ -49,9 +49,8 @@
   `contract-master`, the only vault the service account can read; a second live
   run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
   phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
-- Exact next action: limit other GitHub apps' access to `d3hl/contract-master`
-  and confirm the 1Password item holds the `d3hl-codex` App private key (gate 6);
-  then pin a reviewed master commit and prepare the DeepSeek runner. Do not
-  activate production from the successful runner probe.
+- Exact next action: pilot gate 7. Pin a reviewed master commit that includes the
+  runner `environment`, set `automation_enabled`, and create the single Orca
+  scheduled automation from the coordinator prompt. Then gate 8 (one real issue).
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

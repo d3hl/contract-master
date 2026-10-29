@@ -170,6 +170,22 @@ class WorkflowTests(WorkflowFixture):
         envelope = self.manager.envelope(self.manager.task(self.task_id))
         with self.assertRaises(ContractError): Orca("fixture-orca").worker_command(envelope, "orca-task", "run", self.runner, "request", "workspace")
 
+    def test_paired_environment_runner_targets_its_server(self):
+        self.start()
+        envelope = self.manager.envelope(self.manager.task(self.task_id))
+        live = dict(self.runner, mode="live", enabled=True)
+        orca = Orca("fixture-orca")
+        local = orca.worker_command(envelope, "orca-task", "run", live, "request", "workspace")["argv"]
+        self.assertNotIn("--environment", local)
+        remote = dict(live, environment="cm-worker")
+        with self.assertRaises(ContractError):
+            orca.worker_command(envelope, "orca-task", "run", remote, "request", "workspace")
+        argv = orca.worker_command(envelope, "orca-task", "run", remote, "request", "workspace", mailbox="term_1")["argv"]
+        self.assertEqual(argv[argv.index("--environment") + 1], "cm-worker")
+        self.assertEqual(argv[argv.index("--from") + 1], "term_1")
+        self.assertNotIn("--on", argv)
+        self.assertEqual(argv[-1], "--json")
+
     def test_failed_checks_cannot_pass_acceptance(self):
         self.start(); self.implement()
         bad = self.verification(); bad["checks"][0]["passed"] = False

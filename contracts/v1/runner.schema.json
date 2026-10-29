@@ -41,6 +41,10 @@
       "type": "string",
       "minLength": 1
     },
+    "environment": {
+      "type": "string",
+      "minLength": 1
+    },
     "enabled": {
       "type": "boolean"
     }

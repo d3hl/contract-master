@@ -1,7 +1,8 @@
 # Orca coordination and recovery
 
 Verified against installed Orca **1.4.235**, using its own version-matched guides
-and command help on 2026-10-25, and rechecked on installed **1.4.240** (2026-10-25).
+and command help on 2026-10-25, and rechecked on installed **1.4.240** (2026-10-25)
+and **1.4.243** (2026-10-29: Linear listing, pagination and full reads; pilot gate 4).
 Re-read the installed guide after upgrades. Resolve the executable once:
 `ORCA_CLI_COMMAND`, otherwise `orca-dev` in an advertised dev session, otherwise
 `orca-ide` on Linux. Never use Linux's bare GNOME `orca`. The Python adapter
@@ -91,6 +92,32 @@ worktrees. Use exact IDs/flags from that execution host's receipts.
    under the same manager task/attempt counter. Never misuse `--retry-of` on a
    succeeded Dispatch. Record both Task IDs. Codex review/merge and final Claude
    confirmation follow.
+
+### DeepSeek workers on the paired `cm-worker` server
+
+The configured runner sets `"environment": "cm-worker"`: its workers run on a
+separate Orca server owned by Linux user `cm-worker` ([worker host](worker-host.md)).
+This coordinator's runtime is SSH-managed and refuses `worker-start --on`
+(`server_required`), so every orchestration command for an implementation attempt
+goes to that server with `--environment cm-worker`, and the Run, Task and mailbox
+live there:
+
+1. `terminal create --environment cm-worker --worktree <repo root id>`: one plain
+   terminal used as the coordinator's mailbox handle on that server. Record it.
+2. `orchestration run-create --environment cm-worker --from <mailbox> --objective ...`
+   (or `run-use` for the recorded Run), then `task-create --environment cm-worker
+   --from <mailbox> --run <run> --spec ... --retry-request ...`.
+3. `worker_command(..., mailbox=<mailbox>)` returns `worker-start --task ... --run ...
+   --worktree ... --agent opencode2 --retry-request ... --environment cm-worker
+   --from <mailbox>`; for a fresh worktree use `--worktree new-top-level --repo
+   id:<worker repo> --setup skip`.
+4. `orchestration check --environment cm-worker --terminal <mailbox> --wait`, ack,
+   then `worker-release --environment cm-worker --dispatch <id>` (no `--from`).
+
+Orca messages from that server are unverified claims: `cm-worker` can write its
+server's state. The manager database stays authoritative and Codex verifies the
+exact output commit in its own checkout. Linear reads and the manager stay on the
+coordinator side; never pass `--environment` to `linear` or manager commands.
 
 Use the installed `coordinator-loop.md` and `placement-and-remote.md` references for
 phase transitions/placement. No generic subagent substitution provides Orca provenance.

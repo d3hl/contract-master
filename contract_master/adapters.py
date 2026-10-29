@@ -58,17 +58,26 @@ class Orca:
                 raise ProviderError("Required issue context is truncated")
         return result
 
-    def worker_command(self, task, orca_task_id, run_id, runner, request_id, workspace):
-        """Return argv for coordinator review. This method NEVER launches a process."""
+    def worker_command(self, task, orca_task_id, run_id, runner, request_id, workspace, mailbox=None):
+        """Return argv for coordinator review. This method NEVER launches a process.
+
+        A runner with an `environment` lives on a separate paired Orca server. Its Run,
+        Task and mailbox terminal belong to that server, so `mailbox` is required.
+        """
         validate("runner", runner)
         if not runner["enabled"] or runner["mode"] != "live":
             raise ContractError("Runner has no verified live integration")
+        remote = []
+        if runner.get("environment"):
+            if not mailbox:
+                raise ContractError("Runner on a paired environment needs a mailbox terminal on that server")
+            remote = ["--environment", runner["environment"], "--from", mailbox]
         spec = json.dumps({"target": task["allowed_scope"], "change": task["acceptance_criteria"],
                            "constraints": "Use only the pinned plan/context. One task writer. No Linear writes.",
                            "ownership": workspace, "task": task}, indent=2)
         return {"spec": spec, "argv": [self.executable, "orchestration", "worker-start", "--task", orca_task_id,
                 "--run", run_id, "--worktree", workspace, "--agent", runner["agent"],
-                "--retry-request", request_id, "--json"]}
+                "--retry-request", request_id, *remote, "--json"]}
 
 
 def provider_status(state_type):
