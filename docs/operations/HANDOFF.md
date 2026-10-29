@@ -25,12 +25,6 @@
   `cm-worker` on a localhost-only Orca server (environment `cm-worker`,
   [worker host](worker-host.md)); probe Dispatch `ctx_ac7cba883d03` confirmed model
   `deepseek/deepseek-v4.1-flash-1017` and blocked access to coordinator credentials.
-- Gate 4 rechecked 2026-10-29 on Orca 1.4.243: listing, cursor paging and full-read
-  completeness pass (6 issues, read-only). Relation direction not re-observed: no
-  live blocking relation exists in D3S; unknown shapes fail closed.
-- Coordinator flow: runner `environment: cm-worker`; `worker_command` adds
-  `--environment cm-worker --from <mailbox>`; coordinator prompt and Orca doc use
-  that flow instead of `--on`. 84 tests pass.
 - Configuration: production runner `enabled=true`, automation disabled.
   Reviewed master `26e14a8` pinned (bundle digest `9ac1eae1…c5b7eb`). No external rule,
   credential, historical issue or deployment was changed. PRs #8 and #9 were

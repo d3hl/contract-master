@@ -12,6 +12,5 @@
   ],
   "evidence": "Isolated run 2026-10-29: OpenCode 2.1.4 as Linux user cm-worker on its own localhost-only Orca server (saved environment cm-worker); Orca Task task_bb472d0c607f, Dispatch ctx_ac7cba883d03; session metadata shows openrouter deepseek/deepseek-v4.1-flash-1017 (7 records); all coordinator credential paths blocked; worker commit 7acb8fb verified independently. Original capability run at f381bb8 (7 probe + 38 repository tests). See docs/operations/runner-verification.md and docs/operations/worker-host.md.",
   "agent": "opencode2",
-  "environment": "cm-worker",
   "enabled": true
 }
