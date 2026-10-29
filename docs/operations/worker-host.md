@@ -32,6 +32,7 @@ home. It clones the public `d3hl/contract-master`, `d3-corp/cf-mcp-gw` and
 | Orca server data | `~cm-worker/.orca-serve/` |
 | Worker repo clone | `~cm-worker/repos/contract-master` (Orca repo `ddd5af7e-…`) |
 | Target repo clones | `~cm-worker/repos/cf-mcp-gw` (`a848e871-…`), `~cm-worker/repos/action1-dashboard` (`e6dcfb9d-…`); public HTTPS fetch |
+| Model pin | `~cm-worker/.config/opencode/opencode.json` (OpenRouter `deepseek/deepseek-v4.1-flash-1017`) for repos without `.opencode/opencode.json` |
 | Git identity | `contract-master DeepSeek worker <cm-worker@d3hl.invalid>` |
 | Service | `cm-worker-orca.service` (systemd, enabled) |
 
