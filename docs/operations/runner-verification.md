@@ -68,6 +68,32 @@ were queried (installed patch 2.1.4 was unavailable). The local CLI help and act
 run established compatibility. Primary sources: [model selection](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/models.mdx)
 and [project config](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/config.mdx).
 
+## Isolated worker run (2026-10-29)
+
+Production isolation is in place: OpenCode runs as Linux user `cm-worker` on its own
+Orca server bound to `127.0.0.1:6791`, paired to the coordinator as environment
+`cm-worker` ([setup](worker-host.md)). One supervised probe ran there:
+
+- Run `run_920486eba1c1` on the worker server; Task `task_bb472d0c607f`. The first
+  Dispatch `ctx_603e2243be03` failed at `agent_readiness` because `cm-worker` lacked
+  the `opencode2` shim; after adding it, `--retry-of` Dispatch `ctx_ac7cba883d03`
+  reported `succeeded`, was acknowledged and released.
+- **Model:** the exported OpenCode session `ses_e7b1eeae9ffe0jvfa3IMw5wjDH` records
+  provider `openrouter`, model `deepseek/deepseek-v4.1-flash-1017`, variant `default`
+  on all 7 model records. Reported cost about US$0.003.
+- **Isolation:** from inside the agent, `whoami` = `cm-worker`, `HOME` =
+  `/home/cm-worker`; `/home/d3`, the 1Password service account token, the `gh`
+  login and the manager database were all `blocked`. A separate shell check as
+  `cm-worker` also blocked `~/.orca` and `~/.ssh`, and found no `sudo`, `op` or `gh`
+  access.
+- **Edit/Git:** commit `7acb8fb597c080d95ab2cd29160ba3c637c49568` adds only
+  `runner_probe/isolation-probe.md`, authored by the worker identity, with a clean
+  tree, verified by the coordinator rather than taken from the report. It was not
+  pushed.
+
+`config/deepseek-runner.json` is now `enabled: true`. Live dispatch still needs
+`automation_enabled` (pilot gate 7).
+
 ## Scope and remaining gates
 
 This is a user-authorized **capability probe**, not the registered production

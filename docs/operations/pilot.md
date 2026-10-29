@@ -31,8 +31,14 @@ not store/provision credentials. It does not assert production eligibility.
    use a placeholder SHA.
 3. The OpenCode 2.1.4 capability probe passed. Before production, apply the verified
    target-workspace model configuration, verify actual session model identity,
-   configure runner isolation and approved `op://` references. Keep the runner
-   disabled until the other gates pass.
+   configure runner isolation and approved `op://` references.
+   **Done 2026-10-29:** workers run as Linux user `cm-worker` on a localhost-only
+   Orca server ([worker host](worker-host.md)). An isolated probe (Dispatch
+   `ctx_ac7cba883d03`) confirmed from session metadata OpenRouter
+   `deepseek/deepseek-v4.1-flash-1017`, found every coordinator credential path
+   blocked, and committed `7acb8fb` (checked independently). The worker's only
+   credential is its own OpenRouter login; it needs no `op://` reference. The
+   runner is `enabled: true`; live dispatch still requires `automation_enabled`.
 4. Recheck Linear context completeness and project pagination after any Orca upgrade.
    Blocking relation direction was verified live on the newly created D3S-99/100 pair
    and is covered by an adapter test.
@@ -86,7 +92,7 @@ Installed Orca exposes scheduled automations and Linear issue APIs. The availabl
 Linear connector does not expose a verified setter for GitHub issue-status workflow
 automations. A live DeepSeek capability probe is now verified; production
 configuration and the external status settings remain separate gates. Automatic execution remains
-blocked by default (`automation_enabled=false`, runner disabled). These are activation
+blocked by default (`automation_enabled=false`). These are activation
 prerequisites, not extra plan approval for otherwise eligible work.
 
 ## Abort and recovery
