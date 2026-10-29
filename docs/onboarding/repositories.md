@@ -56,8 +56,11 @@ Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks and
 `repo:action1-dashboard` for Action1 tasks, including the dashboard. Target
 `AGENTS.md` stays out of scope so a worker cannot edit its own instructions.
 Both `d3-corp` repositories are public (GitHub Free allows branch protection only
-on public repositories) and on phase A protection; apply phase B after each one's
-first `codex-merge`. Their checks run `npm ci --ignore-scripts` first and need
+on public repositories). Both are on phase B protection since 2026-10-30, after
+their first `codex-merge` (cf-mcp-gw PR #7, action1-dashboard PR #2): `main`
+requires `codex-verification` from App 5511451, only `d3hl-codex` may push, and
+admins cannot bypass. Owner PRs there can no longer merge outside a Contract Master
+task. Their checks run `npm ci --ignore-scripts` first and need
 Node.js 24 and registry.npmjs.org, no credentials. Widening scope beyond docs is a
 reviewed registry change.
 

@@ -99,8 +99,27 @@
 - D3S-109 step 2 complete: target `AGENTS.md` PRs (cf-mcp-gw #6, action1-dashboard
   #1) and registry change #36 merged. DeepSeek runner probes passed on both
   repositories (2026-10-30, [runner verification](runner-verification.md)).
-- Exact next action (D3S-109 step 3): one bounded docs pilot issue per repository
-  in its Linear project with its `repo:` label; after each one's first
-  `codex-merge`, apply phase B protection there.
+- D3S-109 step 3 complete (2026-10-30, one coordinator turn): first docs pilot per
+  repository, both Done. [D3S-116](https://linear.app/d3space/issue/D3S-116)
+  (cf-mcp-gw README and onboarding note): DeepSeek `d860e29` (Dispatch
+  `ctx_e480b8dbba58`), Codex pass, PR #7 opened by `d3hl-orca[bot]` and merged by
+  `d3hl-codex[bot]` as `91806ff`. [D3S-117](https://linear.app/d3space/issue/D3S-117)
+  (action1-dashboard README section): DeepSeek `7e6c229` (Dispatch
+  `ctx_ec8d7f6f02f8`), Codex pass, PR #2 merged by `d3hl-codex[bot]` as `d6abcc5`.
+  Claude found each merged tree identical to the verified commit and reran the
+  registered checks on it. One attempt each, no rework.
+- Phase B protection applied to `main` of both repositories at the owner's request
+  (2026-10-30): required `codex-verification` from App 5511451, push only
+  `d3hl-codex`, `enforce_admins` on; PR still required (0 approvals, since
+  `codex-merge` checks the Codex approval). Phase A settings are saved under
+  `.state/branch-protection/` for rollback.
+- Observed in D3S-117: the worker's first `worker_done` used a mistyped task ID and
+  Orca rejected it; its resend settled the Dispatch. The worker's
+  `~cm-worker/repos/contract-master` checkout is stale (`c92b334`, registry without
+  `b590eb4`), so `bundle` refused there; it used an existing bundle whose digest
+  matched. Neither prompt needed the extra Enter.
+- Exact next action: fast-forward the worker's contract-master checkout. Further
+  work for both repositories arrives as ordinary issues; widening scope beyond docs
+  is a reviewed registry change.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
