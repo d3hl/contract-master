@@ -22,6 +22,8 @@ another repository. Query it again after an upgrade. No webhook registration is 
 [real DeepSeek/OpenCode capability run](../operations/runner-verification.md) now
 provides actual client/model/tool evidence; production activation remains disabled.
 Promote new reusable findings through reviewed master changes.
+Orca Linear listings hide archived issues unless `--include-archived` is passed;
+see [Linear listing omits archived issues](./linear-archived-issues.md).
 
 OpenCode 2.1.4 was verified with local CLI help and a real run. Context7 resolved
 `/anomalyco/opencode` and supplied `v2.1.2` docs (patch-exact docs unavailable).
