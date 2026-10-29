@@ -1,4 +1,4 @@
-# HANDOFF — coordinator automation enabled (gate 7)
+# HANDOFF — pilot gate 8 passed
 
 - Issue: [D3S-101](https://linear.app/d3space/issue/D3S-101), parent D3S-98.
 - Phase: inspection and verification complete; In Review. No Done transition.
@@ -60,12 +60,21 @@
   `contract-master`, the only vault the service account can read; a second live
   run with those keys (`d3hl/sandbox` PR #2) also passed. `contract-master` stays on
   phase A branch protection; phase B applies to onboarded target repos. 83 tests pass.
-- Gate 8 in progress. [D3S-114](https://linear.app/d3space/issue/D3S-114) is Done
-  (2026-10-29): planned, implemented by DeepSeek (`cd7486f`, Dispatch
+- Gate 8 **passed** (2026-10-30). [D3S-114](https://linear.app/d3space/issue/D3S-114)
+  is Done (2026-10-29): planned, implemented by DeepSeek (`cd7486f`, Dispatch
   `ctx_56bf0be2af03`), PR #29 opened by `d3hl-orca[bot]`, verified, approved and
   merged by `d3hl-codex[bot]` as `a6bccb7`, confirmed by Claude. Scenarios 01 and 05
-  observed live. [D3S-115](https://linear.app/d3space/issue/D3S-115) (record all ten
-  scenarios) is open in Backlog and has not been queued.
+  observed live. [D3S-115](https://linear.app/d3space/issue/D3S-115) is Done
+  (2026-10-30, manual run 132): DeepSeek `f5540e6` (Dispatch `ctx_1e04d27edf3a`),
+  Codex pass, PR #32 merged by `d3hl-codex[bot]` as `9b3e141`, Claude reran the
+  checks on the merged commit. All ten scenarios are recorded in
+  [failure-scenarios.md](../knowledge/failure-scenarios.md).
+- D3S-115 was closed by hand at 18:05 UTC on 2026-10-29 without a manager task, then
+  reopened. Intake meanwhile queued `TRIAGE: Issue is closed` for it; the owner chose
+  to send it in order. Bug to fix: intake must not comment on closed issues that
+  have a complete block (`contract_master/manager.py`).
+- Dispatch quirks: `worker-start` left the OpenCode prompt pasted but unsubmitted
+  (the coordinator sent one Enter); `codex exec` needs stdin closed (`< /dev/null`).
 - Overlapping runs: Orca started run 106 while 105 was still active, and both used
   the same owner. 106 was told to stand down (it changed nothing). The automation
   precheck now also skips while any run of it is still `dispatched`.
@@ -75,10 +84,10 @@
   stopped before intake. No provider writes; outbox all delivered. Per-turn notes
   are in the local `.state/coordinator-turn-HANDOFF.md`. The automation is now
   disabled, with agent `opencode2`.
-- Those turns noted that the ownership row for D3S-114 still exists although run 107
-  reported it released. It is preserved; reconcile before any cleanup.
-- Exact next action: set the automation agent back to `claude` (the coordinator
-  prompt assumes Claude) and re-enable it; the next run should queue D3S-115.
-  After D3S-115 is Done, record gate 8 in `pilot.md`.
+- Ownership rows for D3S-114 and D3S-115 still exist in the manager database
+  (both tasks done). They are preserved; reconcile before any cleanup.
+- Exact next action: fix the closed-issue triage comment in intake, then set the
+  automation agent back to `claude` (the coordinator prompt assumes Claude) and
+  re-enable it. Gate 8 has passed; adding repositories is a reviewed registry change.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
