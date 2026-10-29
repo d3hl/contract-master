@@ -45,6 +45,15 @@ of the automation is still `dispatched`**. Orca does not serialize runs: on
 held the same owner token. A run is marked `dispatched` only after its precheck, so
 the check does not see itself; an unreadable run list also skips the tick.
 
+Run status alone is not enough: Orca marks a **manually started** run `completed`
+while its session is still working, so on 2026-10-30 scheduled runs 133 and 134
+started alongside manual run 132 (both stood down by hand). Every coordinator turn
+therefore holds the manager's **turn lease** (`turn-start`, `turn-renew`,
+`turn-end`; table `turn_lease` in the manager database), and the precheck ends with
+`python3 -m contract_master turn-check`, which exits non-zero while a lease is live.
+A second turn's `turn-start` is refused. A lease left by a crashed turn expires after
+60 minutes unless renewed; a turn that finds its lease lost stops without writes.
+
 Scheduled runs inherit no 1Password session. `open-pr` and `codex-merge` read the
 service account token from the owner-only file `~/.config/op/contract-master-sa-token`
 (override with `CONTRACT_MASTER_OP_TOKEN_FILE`) and pass it only to `op`; a file
@@ -100,7 +109,8 @@ worktrees. Use exact IDs/flags from that execution host's receipts.
    `worker_done --outcome succeeded|failed`. Worker settlement is not acceptance.
 7. After a valid settlement, release/reuse the proven terminal per Orca docs.
    Transfer to a separate Codex verification checkout with the **exact output SHA**.
-   Preserve the editing workspace. Codex reviews actual diff, runs checks and
+   Preserve the editing workspace. Codex (`codex exec ... < /dev/null`; it hangs
+   if stdin stays open) reviews actual diff, runs checks and
    submits structured verification. Send failed criteria as actionable corrections.
 8. Rework follows the manager's two-attempt cap. For an Orca *failed/stopped* Task,
    use documented `--task` and `--retry-of`; a successful implementation Dispatch
@@ -127,6 +137,9 @@ live there:
    --worktree ... --agent opencode2 --retry-request ... --environment cm-worker
    --from <mailbox>`; for a fresh worktree use `--worktree new-top-level --repo
    id:<worker repo> --setup skip`.
+   Then read the worker terminal: on 2026-10-30 (D3S-115) OpenCode showed the
+   prompt pasted but unsubmitted. Send exactly one Enter in that case and confirm
+   the worker started; never paste the prompt again.
 4. `orchestration check --environment cm-worker --terminal <mailbox> --wait`, ack,
    then `worker-release --environment cm-worker --dispatch <id>` (no `--from`).
 

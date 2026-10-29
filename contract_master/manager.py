@@ -91,7 +91,9 @@ class Manager:
             if existing:
                 return {"queued": False, "task_id": existing[0], "reason": "Revision already accounted for"}
             if reason:
-                queue_comment(db, "triage:" + digest([material, reason]), issue["identifier"], "TRIAGE: " + reason)
+                # Closed issues are settled history: record why, but never comment on them.
+                if issue["status"] == "open":
+                    queue_comment(db, "triage:" + digest([material, reason]), issue["identifier"], "TRIAGE: " + reason)
                 return {"queued": False, "reason": reason}
             task = {"id": task_id, "issue": issue, "revision": revision, "phase": "planning", "plan_revision": 0,
                     "attempt": 0, "policy": copy.deepcopy(repo), "policy_digest": digest(repo), "context": None,

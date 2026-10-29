@@ -33,6 +33,16 @@ class WorkflowTests(WorkflowFixture):
         with self.manager.store.transaction() as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0], 0)
 
+    def test_closed_complete_issue_is_settled_without_comment(self):
+        for status in ("done", "canceled"):
+            result = self.manager.intake(dict(self.issue, status=status, updated_at="2026-10-26T00:00:00.000Z"))
+            self.assertEqual((result["queued"], result["reason"]), (False, "Issue is closed"))
+        with self.manager.store.transaction() as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM outbox").fetchone()[0], 0)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0], 0)
+        # Reopened, the same issue is queued normally.
+        self.assertTrue(self.manager.intake(dict(self.issue, updated_at="2026-10-27T00:00:00.000Z"))["queued"])
+
     def test_03_concurrent_duplicate_intake(self):
         other = Manager(self.database, self.registry)
         with ThreadPoolExecutor(max_workers=8) as pool:
