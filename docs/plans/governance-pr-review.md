@@ -57,13 +57,18 @@ Codex: review-inspect (trusted-base check argv at exact head) + diff review
 
 ## Registry block
 
-Added to `d3hl/contract-master` only, **disabled** in this PR. Turning it on is
-its own reviewed registry change (a person merges it; the governance path refuses
-any change to `governance_review` itself).
+Added to `d3hl/contract-master` only and **enabled** in this PR: this PR is the
+reviewed authorization for the bounded policy, so the path is usable after merge
+without another activation PR. That changes no runtime or automation state:
+`review-merge` stays a dry run unless `--live` is passed, and `--live` keeps the
+existing gates (`automation_enabled`, `merge_gate_audited`, complete App config).
+Because the path does not exist on `main` yet, this bootstrap PR follows the
+current external review process. Later changes to `governance_review` itself are
+refused by the governance path and stay human-merged.
 
 ```json
 "governance_review": {
-  "enabled": false,
+  "enabled": true,
   "authors": [{"login": "d3adc3II", "type": "User"}],
   "allowed_paths": ["config/registry.json", "docs/onboarding", "docs/knowledge",
                     "docs/operations/HANDOFF.md"],
@@ -157,8 +162,9 @@ round-trips; existing suites unchanged (ordinary task path unaffected).
 - Checks execute PR code (as CI does) in Codex's separate checkout; argv comes from
   the trusted base only.
 - Any movement of the base branch forces re-verification.
-- Branch protection on `contract-master` stays phase A; enabling the block and
-  any protection change are separate reviewed changes.
+- Branch protection on `contract-master` stays phase A; any protection change is
+  a separate reviewed change. The coordinator starts calling `review-scan` only
+  after this PR merges and the scheduled turn reads the updated prompt.
 - No Linear records: progress lives in `pr_reviews` and the turn HANDOFF.
 
 ## Execution
