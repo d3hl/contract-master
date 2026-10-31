@@ -121,8 +121,20 @@
   to `87af868` on 2026-10-30.
 - D3S-109 closed as Done (2026-10-30, owner decision): every step and acceptance
   criterion was met, so no child issues were needed.
-- Exact next action: none queued. Further work for both repositories arrives as
-  ordinary issues in their own Linear projects; widening scope beyond docs is a
-  reviewed registry change.
+- 2026-11-01: `d3-corp/corp-integrated-dashboard` onboarding started (no Linear
+  issue; tracked in project Corp Integrated Dashboard `90d27bb0-…`, label
+  `repo:corp-integrated-dashboard`). The repo held a real Action1 tenant snapshot
+  while briefly public; `src/data/raw.ts` was replaced with fictional Contoso data
+  and history rewritten (`a2e27c1` → `d6f76be`). GitHub may still serve the old
+  SHAs until Support purges them. Then: public again, phase A protection (saved in
+  `.state/branch-protection/`), both Apps mint narrowed tokens for it,
+  `typecheck`/`build` pass on `d6f76be`, worker clone
+  `~cm-worker/repos/corp-integrated-dashboard` (`57907de9-…`), target `AGENTS.md`
+  PR (corp-integrated-dashboard #1), registry entry in this change.
+- Exact next action: merge corp-integrated-dashboard #1, then this registry change;
+  then the DeepSeek runner probe and one bounded docs pilot issue for it, then
+  phase B after its first `codex-merge`. Other work for the registered
+  repositories arrives as ordinary issues in their own Linear projects; widening
+  scope beyond docs is a reviewed registry change.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.

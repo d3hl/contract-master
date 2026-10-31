@@ -237,6 +237,78 @@
       },
       "runner_config": "config/deepseek-runner.json",
       "linear_label": "repo:action1-dashboard"
+    },
+    "d3-corp/corp-integrated-dashboard": {
+      "url": "https://github.com/d3-corp/corp-integrated-dashboard",
+      "orca_repo_id": "f6e1ebd3-c395-4708-95a2-054d9024bf5c",
+      "base_ref": "origin/main",
+      "linear_projects": [
+        "90d27bb0-1090-485d-98b1-61bd375e21da"
+      ],
+      "documentation_entrypoints": [
+        "AGENTS.md"
+      ],
+      "required_context": [
+        "AGENTS.md",
+        "docs/policies/workflow.md",
+        "docs/policies/context-and-security.md",
+        "docs/contracts/v1.md",
+        "docs/operations/orca.md"
+      ],
+      "allowed_scope": [
+        "README.md",
+        "docs"
+      ],
+      "checks": {
+        "typecheck": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && npm run typecheck"
+          ],
+          "timeout_seconds": 300
+        },
+        "build": {
+          "argv": [
+            "sh",
+            "-c",
+            "npm ci --ignore-scripts && npm run build"
+          ],
+          "timeout_seconds": 300
+        }
+      },
+      "planning_runner": "claude",
+      "implementation_runner": "deepseek-portable",
+      "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_gate_audited": true,
+      "merge_identity": {
+        "login": "d3hl-codex[bot]",
+        "type": "Bot"
+      },
+      "github_apps": {
+        "pr": {
+          "slug": "d3hl-orca",
+          "app_id": 5516831,
+          "installation_id": 176676496,
+          "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"
+        },
+        "merge": {
+          "slug": "d3hl-codex",
+          "app_id": 5511451,
+          "installation_id": 176676979,
+          "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"
+        }
+      },
+      "credential_references": [
+        "op://contract-master/SSH Key-d3hl-orca-github/private key",
+        "op://contract-master/SSH Key-d3hl-codex/private key"
+      ],
+      "dependency_versions": {
+        "node": "24.22.2"
+      },
+      "runner_config": "config/deepseek-runner.json",
+      "linear_label": "repo:corp-integrated-dashboard"
     }
   }
 }
