@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "cf-portal": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@latest", "https://portal.d3adc3ii.cc/mcp",
+               "--header", "CF-Access-Client-Id:${ACCESS_CLIENT_ID}",
+               "--header", "CF-Access-Client-Secret:${ACCESS_CLIENT_SECRET}"]
+    }
+  }
+}
