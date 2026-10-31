@@ -44,24 +44,30 @@ repository. Other labels are ignored. Each label belongs to one repository
 (`doctor` reports duplicates). Repositories without `linear_label`, such as
 `d3hl/contract-master`, accept issues without a `repo:` label.
 
-Registered repositories (D3S-109, 2026-10-30):
+Registered repositories (D3S-109, 2026-10-30; corp-integrated-dashboard 2026-11-01):
 
 | Repository | Linear project | Label | Allowed scope (docs only) | Checks |
 |---|---|---|---|---|
 | `d3hl/contract-master` | Contract Master Automation | none | `docs/knowledge` | `unit` |
 | `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs`, `pilot.example.json` | `typecheck`, `docs`, `secrets`, `tests` |
 | `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs` | `test` |
+| `d3-corp/corp-integrated-dashboard` | Corp Integrated Dashboard | `repo:corp-integrated-dashboard` | `README.md`, `docs` | `typecheck`, `build` |
 
-Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks and
-`repo:action1-dashboard` for Action1 tasks, including the dashboard. Target
-`AGENTS.md` stays out of scope so a worker cannot edit its own instructions.
-Both `d3-corp` repositories are public (GitHub Free allows branch protection only
-on public repositories). Both are on phase B protection since 2026-10-30, after
-their first `codex-merge` (cf-mcp-gw PR #7, action1-dashboard PR #2): `main`
-requires `codex-verification` from App 5511451, only `d3hl-codex` may push, and
-admins cannot bypass. Owner PRs there can no longer merge outside a Contract Master
-task. Their checks run `npm ci --ignore-scripts` first and need
-Node.js 24 and registry.npmjs.org, no credentials. Widening scope beyond docs is a
+Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks,
+`repo:action1-dashboard` for Action1 tasks, including the Action1 dashboard, and
+`repo:corp-integrated-dashboard` for the Vite/React corp integrated dashboard.
+Target `AGENTS.md` stays out of scope so a worker cannot edit its own instructions.
+All three `d3-corp` repositories are public (GitHub Free allows branch protection
+only on public repositories). cf-mcp-gw and action1-dashboard are on phase B
+protection since 2026-10-30, after their first `codex-merge` (cf-mcp-gw PR #7,
+action1-dashboard PR #2): `main` requires `codex-verification` from App 5511451,
+only `d3hl-codex` may push, and admins cannot bypass. Owner PRs there can no longer
+merge outside a Contract Master task. corp-integrated-dashboard (registered
+2026-11-01) is on phase A until its first `codex-merge`. Its tracked sample data
+must stay fictional: the repository was briefly public with a real tenant snapshot,
+which was removed by rewriting history. Checks on all three run
+`npm ci --ignore-scripts` first and need Node.js 24 and registry.npmjs.org, no
+credentials. Widening scope beyond docs is a
 reviewed registry change.
 
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
