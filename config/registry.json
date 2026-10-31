@@ -257,7 +257,11 @@
       ],
       "allowed_scope": [
         "README.md",
-        "docs"
+        "docs",
+        "package-lock.json",
+        "package.json",
+        "server",
+        "src"
       ],
       "checks": {
         "typecheck": {

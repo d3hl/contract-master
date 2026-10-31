@@ -46,12 +46,12 @@ repository. Other labels are ignored. Each label belongs to one repository
 
 Registered repositories (D3S-109, 2026-10-30; corp-integrated-dashboard 2026-11-01):
 
-| Repository | Linear project | Label | Allowed scope (docs only) | Checks |
+| Repository | Linear project | Label | Allowed scope | Checks |
 |---|---|---|---|---|
 | `d3hl/contract-master` | Contract Master Automation | none | `docs/knowledge` | `unit` |
 | `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs`, `pilot.example.json` | `typecheck`, `docs`, `secrets`, `tests` |
 | `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs` | `test` |
-| `d3-corp/corp-integrated-dashboard` | Corp Integrated Dashboard | `repo:corp-integrated-dashboard` | `README.md`, `docs` | `typecheck`, `build` |
+| `d3-corp/corp-integrated-dashboard` | Corp Integrated Dashboard | `repo:corp-integrated-dashboard` | `README.md`, `docs`, `src`, `server`, `package.json`, `package-lock.json` | `typecheck`, `build` |
 
 Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks,
 `repo:action1-dashboard` for Action1 tasks, including the Action1 dashboard, and
@@ -68,7 +68,12 @@ must stay fictional: the repository was briefly public with a real tenant snapsh
 which was removed by rewriting history. Checks on all three run
 `npm ci --ignore-scripts` first and need Node.js 24 and registry.npmjs.org, no
 credentials. Widening scope beyond docs is a
-reviewed registry change.
+reviewed registry change. corp-integrated-dashboard was widened on 2026-11-01 for
+the live-data feature (D3S-127): `src` and `package*.json` for the app and the
+`@modelcontextprotocol/sdk` dependency, and `server` for a local 127.0.0.1 bridge
+to the Action1 MCP gateway. `src/data/raw.ts` stays fictional; tasks may not
+commit live tenant data, and `index.html`, `vite.config.ts`, `tsconfig.json` and
+CI stay out of scope.
 
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
 Ordinary product tasks should target other registered repositories. The current
