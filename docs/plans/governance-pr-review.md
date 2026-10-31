@@ -1,6 +1,6 @@
 # Plan: Codex review and merge of manually opened registry/policy PRs
 
-Status: proposed (2026-11-01), author: claude. Motivation: PR #56 (scope widening
+Status: implemented in this PR (2026-11-01), author: claude; Codex verification pending. Motivation: PR #56 (scope widening
 for `d3-corp/corp-integrated-dashboard`) is a person-opened registry PR. Today no
 manager path reviews or merges such PRs, so they wait for an ad hoc human merge
 (pilot gate 6: "Revisit if contract-master gets a command for Codex to review and
@@ -54,6 +54,10 @@ Codex: review-inspect (trusted-base check argv at exact head) + diff review
   needs `automation_enabled`, `merge_gate_audited`, complete App config and an
   enabled `governance_review`.
 - **Claude confirmation** records final acceptance on the merged commit (`done`).
+- **Escalation is final for automation.** Two `changes` verdicts on a PR (counted
+  across all its heads), a human veto, an unmergeable PR or a merge at an
+  unverified head set `escalated`. Later heads or base moves never reopen it;
+  a person merges or closes the PR by hand.
 
 ## Registry block
 
@@ -76,6 +80,19 @@ refused by the governance path and stay human-merged.
   "checks": ["unit"]
 }
 ```
+
+The same change raises `d3hl/contract-master` `checks.unit.timeout_seconds` from
+120 to 600: the 95-test base suite measured 116.6 s (PR #56 verification), so the
+expanded suite would otherwise time out under `inspect_checkout`. The worker
+records the measured duration of the final suite as evidence.
+
+A PR's registry changes are its own delta: the registry at the PR's merge base
+compared with the registry at its head (both untrusted data). Base-branch
+additions since the merge base (for example this block, for PR #56) are not
+deletions proposed by the PR. Each proposed change is then checked against the
+current trusted registry: if the base changed the same field since the merge base,
+or removed that repository, the PR is ineligible until rebased. Check argv always
+comes from the current trusted registry.
 
 Any registry change outside `registry_fields` of an **existing** repository makes
 the PR ineligible: top-level keys (`automation_enabled`, `reviewed_master_commits`,
@@ -166,6 +183,42 @@ round-trips; existing suites unchanged (ordinary task path unaffected).
   a separate reviewed change. The coordinator starts calling `review-scan` only
   after this PR merges and the scheduled turn reads the updated prompt.
 - No Linear records: progress lives in `pr_reviews` and the turn HANDOFF.
+
+## Activation after merge (not automatic)
+
+Merging this PR does **not** by itself start discovery. Read-only check on
+2026-11-01 (`automations show --id dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9`):
+
+- The installed prompt is a pointer, not a copy: "Run one Contract Master
+  coordinator turn. Read docs/operations/coordinator-prompt.md in this workspace
+  and follow it exactly, together with every document it requires." So no stored
+  prompt refresh is needed; each turn reads the prompt file from the workspace.
+- That workspace is the existing checkout `/home/d3/orca/workspaces/contract-master`
+  (`workspaceMode: existing`), at `main` `e53703c`. Neither the precheck nor the
+  prompt fetches or fast-forwards it, so a turn keeps reading the old prompt and
+  old registry until someone updates the checkout.
+- The automation is currently `enabled: false` (`config/orca-automation.json`
+  still says `true`; the live state differs).
+
+Steps for the owner after merge (none are done by this PR):
+
+1. `git -C /home/d3/orca/workspaces/contract-master pull --ff-only` on `main`
+   when no turn holds the lease (`python3 -m contract_master turn-check`).
+2. Confirm `doctor` reports no blockers from that checkout.
+3. Re-enable the schedule when the owner chooses
+   (`automations edit dc0657b8-… --enabled`); the stored prompt stays as is.
+   If an operator ever replaces it with a copied prompt, it must again only point
+   to `docs/operations/coordinator-prompt.md`.
+
+After that first manual update, `review-refresh` (run under the turn lease before
+`review-scan`) fast-forwards the checkout only to a commit that the governance path
+itself merged and recorded (`merge_receipt.merged_commit`). Any other movement of
+`main` makes it refuse; a person updates the checkout, and ordinary Linear intake
+continues meanwhile. This PR's own merge is not such a commit, so step 1 is manual.
+
+`review-scan` checks that the checkout is clean for tracked files only
+(`git status --porcelain --untracked-files=no`), the same rule as the precheck's
+`git diff --quiet HEAD`, because the checkout holds untracked worktree folders.
 
 ## Execution
 
