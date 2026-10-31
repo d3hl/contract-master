@@ -115,11 +115,14 @@
   `.state/branch-protection/` for rollback.
 - Observed in D3S-117: the worker's first `worker_done` used a mistyped task ID and
   Orca rejected it; its resend settled the Dispatch. The worker's
-  `~cm-worker/repos/contract-master` checkout is stale (`c92b334`, registry without
+  `~cm-worker/repos/contract-master` checkout was stale (`c92b334`, registry without
   `b590eb4`), so `bundle` refused there; it used an existing bundle whose digest
-  matched. Neither prompt needed the extra Enter.
-- Exact next action: fast-forward the worker's contract-master checkout. Further
-  work for both repositories arrives as ordinary issues; widening scope beyond docs
-  is a reviewed registry change.
+  matched. Neither prompt needed the extra Enter. That checkout was fast-forwarded
+  to `87af868` on 2026-10-30.
+- D3S-109 closed as Done (2026-10-30, owner decision): every step and acceptance
+  criterion was met, so no child issues were needed.
+- Exact next action: none queued. Further work for both repositories arrives as
+  ordinary issues in their own Linear projects; widening scope beyond docs is a
+  reviewed registry change.
 - Local recovery: `.state/linear-audit/HANDOFF.md`, evidence manifest, settings
   screenshots and manager outbox preserve the result through Linear outages.
