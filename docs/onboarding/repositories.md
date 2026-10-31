@@ -49,7 +49,7 @@ Registered repositories (D3S-109, 2026-10-30):
 | Repository | Linear project | Label | Allowed scope (docs only) | Checks |
 |---|---|---|---|---|
 | `d3hl/contract-master` | Contract Master Automation | none | `docs/knowledge` | `unit` |
-| `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs` | `typecheck`, `docs`, `secrets`, `tests` |
+| `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs`, `pilot.example.json` | `typecheck`, `docs`, `secrets`, `tests` |
 | `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs` | `test` |
 
 Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks and

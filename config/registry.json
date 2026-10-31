@@ -98,7 +98,8 @@
         "LINEAR-MIGRATION.md",
         "PLAN.md",
         "README.md",
-        "docs"
+        "docs",
+        "pilot.example.json"
       ],
       "checks": {
         "typecheck": {
