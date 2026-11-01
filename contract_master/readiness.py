@@ -1,7 +1,7 @@
 """Report configuration gates without provisioning credentials or starting workers."""
 import json
-from . import github_app
-from .contracts import ROOT, validate
+from . import github_app, governance
+from .contracts import ContractError, ROOT, validate
 from .manager import LABEL_PREFIX, REQUIRED_CAPABILITIES
 
 
@@ -23,6 +23,12 @@ def report(registry):
         if not policy.get("merge_identity"):
             blockers.append(repo_id + ": create the Codex GitHub merge identity and record merge_identity")
         blockers.extend(repo_id + ": " + problem for problem in github_app.problems(policy))
+        block = policy.get("governance_review")
+        if block is not None and not (isinstance(block, dict) and block.get("enabled") is False):
+            try:
+                governance.policy(registry, repo_id)
+            except ContractError as exc:
+                blockers.append(repo_id + ": " + str(exc))
         roles = (policy.get("planning_runner"), policy.get("verification_runner"), policy.get("merge_runner"))
         if roles != ("claude", "codex", "codex"):
             blockers.append(repo_id + ": planning must be Claude; verification and merge must be Codex")

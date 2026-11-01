@@ -27,6 +27,16 @@
    after its activation gates are met. Adding future repositories is a reviewed
    registry change, not an issue instruction.
 
+A repository may opt in to bounded person-opened PR review with a
+`governance_review` registry block: `enabled`, `authors` (login/type),
+`allowed_paths`, `registry_fields` and check IDs. The block only authorizes the
+path; it never dispatches tasks or writes Linear. Only the registered
+`registry_fields` of an existing repository may change through this path. Every
+other registry change — top-level keys, adding or removing a repository,
+`merge_identity`, `github_apps`, `credential_references`, `merge_gate_audited`,
+`governance_review` itself, `linear_projects`, `url` and `base_ref` — stays
+human-merged.
+
 ## Repository labels
 
 A registry entry may set `linear_label` (a Linear label starting with `repo:`) to

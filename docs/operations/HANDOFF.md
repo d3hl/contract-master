@@ -121,6 +121,10 @@
   to `87af868` on 2026-10-30.
 - D3S-109 closed as Done (2026-10-30, owner decision): every step and acceptance
   criterion was met, so no child issues were needed.
+- 2026-11-01: Governance PR review path implemented by DeepSeek on `cm-worker`
+  (`contract_master/governance.py`, `review-*` commands, `pr_reviews`, two schemas,
+  the enabled `governance_review` block and tests/docs); verification pending. PR
+  #56 is unchanged.
 - 2026-11-01: `d3-corp/corp-integrated-dashboard` onboarding started (no Linear
   issue; tracked in project Corp Integrated Dashboard `90d27bb0-…`, label
   `repo:corp-integrated-dashboard`). The repo held a real Action1 tenant snapshot

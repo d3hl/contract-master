@@ -71,6 +71,30 @@
         "op://contract-master/SSH Key-d3hl-codex/private key"
       ],
       "dependency_versions": {},
+      "governance_review": {
+        "enabled": true,
+        "authors": [
+          {
+            "login": "d3adc3II",
+            "type": "User"
+          }
+        ],
+        "allowed_paths": [
+          "config/registry.json",
+          "docs/onboarding",
+          "docs/knowledge",
+          "docs/operations/HANDOFF.md"
+        ],
+        "registry_fields": [
+          "allowed_scope",
+          "checks",
+          "documentation_entrypoints",
+          "dependency_versions"
+        ],
+        "checks": [
+          "unit"
+        ]
+      },
       "runner_config": "config/deepseek-runner.json"
     },
     "d3-corp/cf-mcp-gw": {
