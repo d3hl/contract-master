@@ -42,6 +42,7 @@ COMMANDS = {
     "turn-renew": ("lease",),
     "turn-end": ("lease",),
     "turn-check": (),
+    "review-refresh": (),
     "review-scan": (),
     "review-list": (),
     "review-show": ("key",),
@@ -78,7 +79,7 @@ def parser():
             command.add_argument(argument)
         if name in ("prepare-dispatch", "open-pr", "codex-merge", "review-merge"):
             command.add_argument("--live", action="store_true")
-        if name in ("review-scan", "review-verify", "review-merge", "review-confirm"):
+        if name in ("review-refresh", "review-scan", "review-verify", "review-merge", "review-confirm"):
             command.add_argument("--lease", required=True)
         if name in ("turn-start", "turn-renew"):
             command.add_argument("--minutes", type=int, default=turns.DEFAULT_MINUTES)
@@ -164,18 +165,25 @@ def github_writes(manager, registry, args):
     return manager.codex_merge(args.task, args.token, app, GitHub())
 
 
-def _head_registry(reader, name, pull):
-    try:
-        return json.loads(reader.content(name, "config/registry.json", pull["head"]["sha"]))
-    except ValueError:
-        return []
-
-
 def clean_checkout(root):
     """Tracked files only: the manager checkout legitimately holds untracked worktrees."""
     status = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
                             capture_output=True, text=True, check=False)
     return status.returncode == 0 and not status.stdout.strip()
+
+
+def review_refresh(store, registry, args):
+    enabled = [(repo_id, repo) for repo_id, repo in registry["repositories"].items()
+               if (repo.get("governance_review") or {}).get("enabled") is True]
+    if not enabled:
+        return {"refreshed": False}
+    branch = governance.git_run(ROOT, "rev-parse", "--abbrev-ref", "HEAD")
+    current = branch.stdout.strip() if branch.returncode == 0 else ""
+    bases = {github_app.base_branch(repo) for _, repo in enabled}
+    if current not in bases:
+        raise ContractError("Checkout is not on a governance base branch")
+    return governance.Governance(store, registry).refresh(args.lease, ROOT, current,
+                                                         governance.git_run)
 
 
 def review_scan(store, registry, args, reader=None):
@@ -189,38 +197,12 @@ def review_scan(store, registry, args, reader=None):
     if head.returncode:
         raise ContractError("review-scan cannot read checkout HEAD")
     checkout = head.stdout.strip()
-    reader = reader or governance.GitHubReader()
-    engine, results = governance.Governance(store, registry), []
-    for repo_id, repo in registry["repositories"].items():
-        block = repo.get("governance_review")
-        if not block or block.get("enabled") is not True:
-            continue
-        governance.policy(registry, repo_id)
-        name = github_app.repo_name(repo["url"])
-        tip = reader.base_tip(name, github_app.base_branch(repo))
-        if tip != checkout:
-            raise ContractError("Checkout HEAD is not the base branch tip for " + repo_id)
-        open_pulls = reader.open_pulls(name)
-        numbers = set()
-        for pull in open_pulls:
-            numbers.add(pull["number"])
-            files = reader.files(name, pull["number"])
-            head_registry = None
-            if "config/registry.json" in files:
-                head_registry = _head_registry(reader, name, pull)
-            results.append(engine.intake(args.lease, repo_id, pull, files, tip, head_registry))
-        for record in engine.list():
-            if record["repo"] != repo_id or record["phase"] in governance.FINAL:
-                continue
-            if record["number"] in numbers:
-                continue
-            pull = reader.pull(name, record["number"])
-            files = reader.files(name, record["number"])
-            head_registry = None
-            if "config/registry.json" in files:
-                head_registry = _head_registry(reader, name, pull)
-            results.append(engine.intake(args.lease, repo_id, pull, files, tip, head_registry))
-    return {"records": results}
+
+    def root_ok(tip):
+        return tip == checkout
+
+    engine = governance.Governance(store, registry)
+    return governance.scan(engine, reader or governance.GitHubReader(), registry, args.lease, root_ok)
 
 
 def review_inspect(store, registry, args):
@@ -263,6 +245,8 @@ def review_merge(store, registry, args):
 
 def review_commands(store, registry, args):
     engine = governance.Governance(store, registry)
+    if args.command == "review-refresh":
+        return review_refresh(store, registry, args)
     if args.command == "review-scan":
         return review_scan(store, registry, args)
     if args.command == "review-list":

@@ -1,4 +1,5 @@
 import argparse
+import base64
 import copy
 import json
 import subprocess
@@ -6,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from contract_master import governance
+from contract_master import github_app, governance
 from contract_master.__main__ import clean_checkout, review_merge
 from contract_master.contracts import ContractError, ProviderError
 from contract_master.store import Store
@@ -51,6 +52,46 @@ def registry():
                 "checks": ["unit"]},
         }},
     }
+
+
+def scan_registry():
+    base = registry()
+    base["repositories"]["example/repo"]["governance_review"]["authors"] = [
+        {"login": "d3adc3II", "type": "User"}]
+    base["repositories"]["d3-corp/corp-integrated-dashboard"] = {
+        "url": "https://github.com/d3-corp/corp-integrated-dashboard",
+        "base_ref": "origin/main",
+        "allowed_scope": ["README.md", "docs"],
+        "checks": {"typecheck": {"argv": ["python3", "-c", "print('typecheck')"]}},
+    }
+    return base
+
+
+class ScanAPI:
+    """REST-shaped read-only GitHub double for governance.scan."""
+
+    def __init__(self, pulls, files, contents, tip):
+        self.pulls, self.files, self.contents, self.tip = pulls, files, contents, tip
+
+    def __call__(self, path):
+        if path.startswith("repos/example/repo/pulls?state=open"):
+            return [self.pulls[number] for number in sorted(self.pulls)]
+        if "/pulls/" in path and path.endswith("/files?per_page=100&page=1"):
+            number = int(path.split("/pulls/")[1].split("/")[0])
+            return self.files[number][:100]
+        if "/pulls/" in path and path.endswith("/files?per_page=100&page=2"):
+            number = int(path.split("/pulls/")[1].split("/")[0])
+            return self.files[number][100:200]
+        if path.startswith("repos/example/repo/pulls/"):
+            return self.pulls[int(path.rsplit("/", 1)[1])]
+        if path.startswith("repos/example/repo/commits/"):
+            return {"sha": self.tip}
+        if path.startswith("repos/example/repo/contents/"):
+            target = path.split("/contents/", 1)[1].split("?", 1)[0]
+            ref = path.split("ref=", 1)[1]
+            return {"encoding": "base64",
+                    "content": base64.b64encode(self.contents[(target, ref)].encode()).decode()}
+        raise AssertionError("unexpected path " + path)
 
 
 class Clock:
@@ -117,6 +158,11 @@ class IntakeTests(GovernanceFixture):
         self.assertEqual(len(record["criteria"]), 2)
         self.assertEqual(len(record["history"]), 1)
         self.assertEqual(len(self.gov.list()), 1)
+
+    def test_intake_rejects_non_string_files(self):
+        with self.assertRaises(ContractError):
+            self.intake(files=[{"filename": "docs/knowledge/note.md"}])
+        self.assertEqual(self.gov.list(), [])
 
     def test_second_intake_of_same_head_is_a_noop(self):
         first = self.intake()
@@ -191,6 +237,22 @@ class IntakeTests(GovernanceFixture):
                 self.assertEqual(record["phase"], "ineligible")
                 self.assertIn(text, record["reason"])
 
+    def test_malformed_registry_shapes_are_ineligible(self):
+        shapes = []
+        for value in (["bad"], "bad", 3, None):
+            head = copy.deepcopy(self.registry)
+            head["repositories"]["example/repo"] = value
+            shapes.append(head)
+        bad_repos = copy.deepcopy(self.registry)
+        bad_repos["repositories"] = []
+        shapes.append(bad_repos)
+        shapes.append([])
+        for head in shapes:
+            with self.subTest(head=head):
+                record = self.intake(files=["config/registry.json"], head_registry=head)
+                self.assertEqual(record["phase"], "ineligible")
+                self.assertTrue(record["reason"])
+
     def test_head_registry_problems_are_ineligible(self):
         missing = self.intake(files=["config/registry.json"])
         self.assertEqual(missing["phase"], "ineligible")
@@ -210,14 +272,168 @@ class IntakeTests(GovernanceFixture):
         self.assertTrue(any("Documentation matches" in item for item in record["criteria"]))
 
 
+class ChangedPathsTests(unittest.TestCase):
+    def test_rename_collects_both_paths(self):
+        paths = governance.changed_paths(
+            {"changed_files": 1},
+            [{"filename": "docs/knowledge/x.py", "previous_filename": "contract_master/x.py"}])
+        self.assertEqual(paths, ["docs/knowledge/x.py", "contract_master/x.py"])
+
+    def test_malformed_or_incomplete_lists_raise(self):
+        cases = [
+            ({"changed_files": 1}, [{"filename": "a"}, "bad"]),
+            ({"changed_files": 1}, ["bad"]),
+            ({"changed_files": 1}, [{"filename": 3}]),
+            ({"changed_files": 1}, [{"filename": "a", "previous_filename": 3}]),
+            ({}, [{"filename": "a"}]),
+            ({"changed_files": 3000}, [{"filename": "a"}]),
+            ({"changed_files": 2}, [{"filename": "a"}]),
+            ({"changed_files": True}, [{"filename": "a"}]),
+            ([], [{"filename": "a"}]),
+        ]
+        for pull_data, files in cases:
+            with self.subTest(pull=pull_data, files=files):
+                with self.assertRaises(ProviderError):
+                    governance.changed_paths(pull_data, files)
+
+
+class ScanTests(GovernanceFixture):
+    def setUp(self):
+        super().setUp()
+        self.registry = scan_registry()
+        self.gov = governance.Governance(self.store, self.registry, self.clock)
+        head = copy.deepcopy(self.registry)
+        head["repositories"]["d3-corp/corp-integrated-dashboard"]["allowed_scope"] = [
+            "README.md", "docs", "src", "server", "package.json", "package-lock.json"]
+        self.contents = {("config/registry.json", A): json.dumps(head)}
+        self.pulls, self.files = {}, {}
+        for number in range(1, 10):
+            self.pulls[number] = pull(number=number, author=("d3adc3II", "User"))
+        self.pulls[1]["changed_files"] = 2
+        self.files[1] = [{"filename": "config/registry.json"},
+                         {"filename": "docs/onboarding/repositories.md"}]
+        self.pulls[2]["changed_files"] = 150
+        self.files[2] = [{"filename": "docs/knowledge/note-%03d.md" % index}
+                         for index in range(150)]
+        self.pulls[3]["changed_files"] = 1
+        self.files[3] = [{"filename": "docs/knowledge/moved.py",
+                          "previous_filename": "contract_master/moved.py"}]
+        self.pulls[4]["changed_files"] = 2
+        self.files[4] = [{"filename": "docs/knowledge/note.md"}, "bad"]
+        self.pulls[5]["changed_files"] = 3000
+        self.files[5] = [{"filename": "docs/knowledge/note.md"}]
+        self.pulls[6]["changed_files"] = 2
+        self.files[6] = [{"filename": "docs/knowledge/note.md"}]
+        self.pulls[7]["changed_files"] = 1
+        self.files[7] = [{"filename": "docs/knowledge/note.md"}]
+        self.pulls[8] = pull(number=8, head=C, author=("d3adc3II", "User"))
+        self.pulls[8]["changed_files"] = 1
+        self.files[8] = [{"filename": "config/registry.json"}]
+        bad = copy.deepcopy(self.registry)
+        bad["repositories"]["example/repo"] = ["bad"]
+        self.contents[("config/registry.json", C)] = json.dumps(bad)
+        self.pulls[9]["changed_files"] = 1
+        self.files[9] = [{"filename": "docs/knowledge/note.md"}]
+
+    def test_scan_reads_rest_shaped_files_and_isolates_failures(self):
+        reader = governance.GitHubReader(api=ScanAPI(self.pulls, self.files, self.contents, B))
+        result = governance.scan(self.gov, reader, self.registry, self.lease, lambda tip: True)
+        records = {record["key"]: record for record in self.gov.list()}
+        first = records["example/repo#1"]
+        self.assertEqual(first["phase"], "verifying")
+        self.assertTrue(any("Scope change for d3-corp/corp-integrated-dashboard" in item
+                            for item in first["criteria"]))
+        self.assertEqual(len(records["example/repo#2"]["files"]), 150)
+        self.assertEqual(records["example/repo#3"]["phase"], "ineligible")
+        self.assertIn("contract_master/moved.py", records["example/repo#3"]["reason"])
+        for number in (4, 5, 6):
+            self.assertNotIn("example/repo#" + str(number), records)
+        self.assertEqual(records["example/repo#7"]["phase"], "verifying")
+        self.assertEqual(records["example/repo#8"]["phase"], "ineligible")
+        self.assertEqual(records["example/repo#9"]["phase"], "verifying")
+        retry = {item["number"] for item in result["records"] if item.get("retry")}
+        self.assertEqual(retry, {4, 5, 6})
+
+
+class RefreshTests(GovernanceFixture):
+    def setUp(self):
+        super().setUp()
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.origin = Path(temp.name) / "origin.git"
+        self.clone = Path(temp.name) / "clone"
+        subprocess.run(["git", "init", "--bare", "-q", str(self.origin)], check=True)
+        subprocess.run(["git", "clone", "-q", str(self.origin), str(self.clone)], check=True,
+                       stderr=subprocess.DEVNULL)
+        self.git(self.clone, "config", "user.email", "test@example.invalid")
+        self.git(self.clone, "config", "user.name", "Test")
+        self.git(self.clone, "checkout", "-q", "-b", "main")
+        (self.clone / "a.txt").write_text("base\n")
+        self.git(self.clone, "add", "a.txt")
+        self.git(self.clone, "commit", "-qm", "base")
+        self.base = self.git(self.clone, "rev-parse", "HEAD").strip()
+        self.git(self.clone, "push", "-q", "origin", "main")
+
+    def git(self, root, *args):
+        return subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True,
+                              text=True).stdout
+
+    def record(self, merged):
+        with self.store.transaction() as db:
+            db.execute("INSERT OR REPLACE INTO pr_reviews VALUES(?,?)", (KEY, json.dumps({
+                "key": KEY, "phase": "merged", "merge_receipt": {"merged_commit": merged},
+                "merge_steps": {}, "head_sha": merged})))
+
+    def advance_remote(self, name):
+        (self.clone / name).write_text("next\n")
+        self.git(self.clone, "add", name)
+        self.git(self.clone, "commit", "-qm", name)
+        commit = self.git(self.clone, "rev-parse", "HEAD").strip()
+        self.git(self.clone, "push", "-q", "origin", "main")
+        self.git(self.clone, "reset", "-q", "--hard", self.base)
+        return commit
+
+    def test_fast_forwards_to_recorded_merge(self):
+        commit = self.advance_remote("merged.txt")
+        self.record(commit)
+        (self.clone / "untracked.txt").write_text("keep\n")
+        result = self.gov.refresh(self.lease, self.clone, "main", governance.git_run)
+        self.assertEqual(result, {"refreshed": True, "commit": commit})
+        self.assertEqual(self.git(self.clone, "rev-parse", "HEAD").strip(), commit)
+        self.assertTrue((self.clone / "untracked.txt").exists())
+
+    def test_no_op_when_base_is_current(self):
+        result = self.gov.refresh(self.lease, self.clone, "main", governance.git_run)
+        self.assertEqual(result, {"refreshed": False})
+
+    def test_refuses_unrecorded_remote_commit(self):
+        self.advance_remote("unrecorded.txt")
+        with self.assertRaises(ContractError) as caught:
+            self.gov.refresh(self.lease, self.clone, "main", governance.git_run)
+        self.assertIn("outside the governance path", str(caught.exception))
+        self.assertEqual(self.git(self.clone, "rev-parse", "HEAD").strip(), self.base)
+
+    def test_refuses_dirty_tracked_file(self):
+        (self.clone / "a.txt").write_text("dirty\n")
+        with self.assertRaises(ContractError):
+            self.gov.refresh(self.lease, self.clone, "main", governance.git_run)
+        self.assertEqual(self.git(self.clone, "rev-parse", "HEAD").strip(), self.base)
+
+    def test_refuses_wrong_branch(self):
+        self.git(self.clone, "checkout", "-q", "-b", "topic")
+        with self.assertRaises(ContractError):
+            self.gov.refresh(self.lease, self.clone, "main", governance.git_run)
+
+
 class BindingTests(GovernanceFixture):
     def test_head_move_before_verify_resets(self):
-        self.intake()
+        record = self.verified("changes")
+        self.assertEqual(record["changes_verdicts"], 1)
         moved = self.intake(pull=pull(head=C))
         self.assertEqual(moved["phase"], "verifying")
         self.assertEqual(moved["head_sha"], C)
         self.assertEqual(len(moved["history"]), 2)
-        self.assertEqual(moved["changes_verdicts"], 0)
+        self.assertEqual(moved["changes_verdicts"], 1)
 
     def test_head_move_after_verify_resets(self):
         self.verified()
@@ -309,6 +525,170 @@ class VerifyAndMergeTests(GovernanceFixture):
                 self.assertEqual(len([write for write in app.writes if write[0] == "approve"]), 1)
                 self.assertEqual(len([write for write in app.writes if write[0] == "merge"]), 1)
 
+    def test_merge_confirm_failure_recovers_after_base_advance(self):
+        self.verified()
+        app = self.app()
+
+        class FlakyReader:
+            def __init__(self):
+                self.calls = 0
+
+            def confirm(self, *args):
+                self.calls += 1
+                if self.calls == 1:
+                    raise ProviderError("lost acknowledgement")
+                return FakeReader(app).confirm(*args)
+
+        reader = FlakyReader()
+        with self.assertRaises(ProviderError):
+            self.gov.merge(self.lease, KEY, app, reader, B)
+        self.assertEqual(self.gov.get(KEY)["phase"], "awaiting_merge")
+        self.assertEqual(len([write for write in app.writes if write[0] == "check"]), 1)
+        self.assertEqual(len([write for write in app.writes if write[0] == "approve"]), 1)
+        self.assertEqual(len([write for write in app.writes if write[0] == "merge"]), 1)
+        unchanged = self.intake(pull=pull(state="closed", merged=True,
+                                         merged_at="2026-11-01T00:00:00Z"))
+        self.assertEqual(unchanged["phase"], "awaiting_merge")
+        merged = self.gov.merge(self.lease, KEY, app, reader, C)
+        self.assertEqual(merged["phase"], "merged")
+        self.assertIsNotNone(merged["merge_receipt"])
+        self.assertEqual(len([write for write in app.writes if write[0] == "check"]), 1)
+        self.assertEqual(len([write for write in app.writes if write[0] == "approve"]), 1)
+        self.assertEqual(len([write for write in app.writes if write[0] == "merge"]), 1)
+
+    def test_crash_after_merge_before_merged_step_recovers(self):
+        self.verified()
+        clock = self.clock
+
+        class ClockJumpApp(FakeApp):
+            def merge(self, number, commit, method="squash"):
+                super().merge(number, commit, method)
+                clock.now += 81 * 60
+
+        app = ClockJumpApp(login="codex-bot[bot]", app_id=7)
+        app.pulls[1] = copy.deepcopy(self.pull)
+        with self.assertRaises(ContractError):
+            self.gov.merge(self.lease, KEY, app, FakeReader(app), B)
+        self.assertEqual(self.gov.get(KEY)["phase"], "awaiting_merge")
+        self.assertEqual(len([write for write in app.writes if write[0] == "merge"]), 1)
+        TurnLease(self.store, self.clock).renew(self.lease, 60)
+        merged = self.gov.merge(self.lease, KEY, app, FakeReader(app), C)
+        self.assertEqual(merged["phase"], "merged")
+        self.assertEqual(len([write for write in app.writes if write[0] == "check"]), 1)
+        self.assertEqual(len([write for write in app.writes if write[0] == "approve"]), 1)
+        self.assertEqual(len([write for write in app.writes if write[0] == "merge"]), 1)
+
+    def test_merged_at_different_head_escalates(self):
+        self.verified()
+        app = self.app()
+        app.pulls[1].update(state="closed", merged=True, merged_at="2026-11-01T00:00:00Z")
+        app.pulls[1]["head"]["sha"] = C
+        with self.assertRaises(ContractError) as caught:
+            self.merge(app)
+        self.assertIn("not verified", str(caught.exception))
+        record = self.gov.get(KEY)
+        self.assertEqual(record["phase"], "escalated")
+        self.assertEqual(record["reason"], "PR merged at a head that was not verified")
+        self.assertEqual(app.writes, [])
+
+    def test_409_head_move_resets_and_does_not_retry_merge(self):
+        self.verified()
+
+        class RacingApp(FakeApp):
+            def __init__(self):
+                super().__init__(login="codex-bot[bot]", app_id=7)
+                self.merge_calls = 0
+
+            def merge(self, number, commit, method="squash"):
+                self.merge_calls += 1
+                self.pulls[number]["head"]["sha"] = C
+                raise github_app.GitHubWriteError(409, "head moved")
+
+        app = RacingApp()
+        app.pulls[1] = copy.deepcopy(self.pull)
+        with self.assertRaises(ContractError) as caught:
+            self.merge(app)
+        self.assertIn("head moved before merge", str(caught.exception))
+        self.assertEqual(app.merge_calls, 1)
+        record = self.gov.get(KEY)
+        self.assertEqual(record["phase"], "verifying")
+        self.assertIsNone(record["verification"])
+        self.assertEqual(record["merge_steps"], {})
+
+    def test_409_conflict_without_head_move_escalates(self):
+        self.verified()
+        app = self.app()
+        app.fail["merge"] = github_app.GitHubWriteError(409, "conflict")
+        with self.assertRaises(ContractError) as caught:
+            self.merge(app)
+        self.assertIn("escalate", str(caught.exception))
+        self.assertEqual(self.gov.get(KEY)["phase"], "escalated")
+
+    def test_lease_expiry_inside_github_reads_prevents_all_mutations(self):
+        for trigger in ("pull", "reviews", "check_runs"):
+            with self.subTest(trigger=trigger):
+                self.setUp()
+                self.verified()
+                clock = self.clock
+
+                class JumpingApp(FakeApp):
+                    def __init__(self):
+                        super().__init__(login="codex-bot[bot]", app_id=7)
+
+                    def _jump(self, name):
+                        if name == trigger:
+                            clock.now += 81 * 60
+
+                    def pull(self, number):
+                        self._jump("pull")
+                        return super().pull(number)
+
+                    def reviews(self, number):
+                        self._jump("reviews")
+                        return super().reviews(number)
+
+                    def check_runs(self, commit):
+                        self._jump("check_runs")
+                        return super().check_runs(commit)
+
+                app = JumpingApp()
+                app.pulls[1] = copy.deepcopy(self.pull)
+                with self.assertRaises(ContractError):
+                    self.merge(app)
+                self.assertEqual(app.writes, [])
+
+    def test_lease_takeover_between_approve_and_merge_prevents_merge(self):
+        self.verified()
+        store, clock = self.store, self.clock
+
+        class TakeoverApp(FakeApp):
+            def __init__(self):
+                super().__init__(login="codex-bot[bot]", app_id=7)
+
+            def approve(self, number, commit, body):
+                super().approve(number, commit, body)
+                with store.transaction() as db:
+                    db.execute("INSERT OR REPLACE INTO turn_lease VALUES(1,?,?)",
+                               ("other", clock.now + 3600))
+
+        app = TakeoverApp()
+        app.pulls[1] = copy.deepcopy(self.pull)
+        with self.assertRaises(ContractError):
+            self.merge(app)
+        self.assertEqual(len([write for write in app.writes if write[0] == "approve"]), 1)
+        self.assertEqual([write for write in app.writes if write[0] == "merge"], [])
+        self.assertEqual(self.gov.get(KEY)["phase"], "awaiting_merge")
+
+    def test_second_changes_verdict_after_head_move_escalates(self):
+        record = self.verified("changes")
+        self.assertEqual(record["changes_verdicts"], 1)
+        moved = self.intake(pull=pull(head=C))
+        self.assertEqual(moved["phase"], "verifying")
+        self.assertEqual(moved["changes_verdicts"], 1)
+        record = self.gov.verify(self.lease, KEY, self.evidence(moved, "changes"))
+        self.assertEqual(record["phase"], "escalated")
+        self.assertEqual(record["changes_verdicts"], 2)
+
     def test_human_veto_escalates_without_writes(self):
         self.verified()
         app = self.app()
@@ -350,6 +730,9 @@ class VerifyAndMergeTests(GovernanceFixture):
             "checks": [{"id": check_id, "commit": receipt["merged_commit"], "passed": True,
                         "evidence": "independent check output"} for check_id in record["checks"]],
         }
+        bad = dict(evidence, merger="someone-else")
+        with self.assertRaises(ContractError):
+            self.gov.confirm(self.lease, KEY, bad)
         done = self.gov.confirm(self.lease, KEY, evidence)
         self.assertEqual(done["phase"], "done")
         self.assertEqual(done["completion"], evidence)

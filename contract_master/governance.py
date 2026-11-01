@@ -2,11 +2,12 @@
 import base64
 import copy
 import json
+import subprocess
 import time
 import urllib.parse
 
 from . import github, github_app
-from .contracts import ContractError, digest, safe_path, validate, within
+from .contracts import ContractError, ProviderError, digest, safe_path, validate, within
 from .turns import TurnLease
 
 PHASES = ("verifying", "changes_requested", "awaiting_merge", "merged", "done", "escalated",
@@ -14,6 +15,10 @@ PHASES = ("verifying", "changes_requested", "awaiting_merge", "merged", "done", 
 FINAL = ("merged", "done")
 FORBIDDEN_TOP = ("version", "automation_enabled", "linear_workspace", "reviewed_master_commits")
 REGISTRY_PATH = "config/registry.json"
+
+
+def git_run(root, *args):
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, check=False)
 
 
 def policy(registry, repo_id):
@@ -56,15 +61,38 @@ def policy(registry, repo_id):
     return block
 
 
+def changed_paths(pull, rest_files):
+    """Normalize REST file objects to path strings; renames include both names."""
+    if not isinstance(pull, dict) or not isinstance(rest_files, list):
+        raise ProviderError("Malformed PR file list")
+    paths = []
+    for item in rest_files:
+        if not isinstance(item, dict) or not isinstance(item.get("filename"), str) or not item["filename"]:
+            raise ProviderError("Malformed PR file list")
+        paths.append(item["filename"])
+        previous = item.get("previous_filename")
+        if previous is not None:
+            if not isinstance(previous, str) or not previous:
+                raise ProviderError("Malformed PR file list")
+            paths.append(previous)
+    declared = pull.get("changed_files")
+    if (not isinstance(declared, int) or isinstance(declared, bool)
+            or declared >= 3000 or declared != len(rest_files)):
+        raise ProviderError("Incomplete PR file list")
+    return paths
+
+
 def registry_changes(base, head, fields):
     """Return deterministic allowed registry field changes; refuse everything else."""
-    if not isinstance(head, dict):
+    if not isinstance(base, dict) or not isinstance(head, dict):
         raise ContractError("Head registry is not a JSON object")
     for key in sorted((set(base) | set(head)) - {"repositories"}):
         if base.get(key) != head.get(key):
             raise ContractError("Registry change to " + key + " needs a human merge")
-    old_repos = base.get("repositories") or {}
-    new_repos = head.get("repositories") or {}
+    old_repos = base.get("repositories")
+    new_repos = head.get("repositories")
+    if not isinstance(old_repos, dict) or not isinstance(new_repos, dict):
+        raise ContractError("Registry repositories must be a JSON object")
     added = sorted(set(new_repos) - set(old_repos))
     removed = sorted(set(old_repos) - set(new_repos))
     if added:
@@ -73,7 +101,9 @@ def registry_changes(base, head, fields):
         raise ContractError("Registry removed repository " + removed[0] + "; needs a human merge")
     changes = []
     for repo in sorted(old_repos):
-        old, new = old_repos[repo] or {}, new_repos[repo] or {}
+        old, new = old_repos.get(repo), new_repos.get(repo)
+        if not isinstance(old, dict) or not isinstance(new, dict):
+            raise ContractError("Registry entry for " + repo + " must be a JSON object")
         for key in sorted(set(old) | set(new)):
             if old.get(key) == new.get(key):
                 continue
@@ -129,7 +159,6 @@ class Governance:
     def _new_record(self, block, repo_id, pull, files, base_sha, old, phase, reason, changes, checks):
         key = repo_id + "#" + str(pull["number"])
         head = pull["head"]["sha"]
-        same_head = bool(old) and old.get("head_sha") == head
         names = sorted(files)
         return {
             "key": key, "repo": repo_id, "number": pull["number"],
@@ -139,7 +168,7 @@ class Governance:
             "changes": changes, "criteria": criteria(names, changes, block["checks"]),
             "checks": checks, "policy_digest": digest(block), "phase": phase,
             "verification": None,
-            "changes_verdicts": old.get("changes_verdicts", 0) if same_head else 0,
+            "changes_verdicts": (old or {}).get("changes_verdicts", 0),
             "merge_steps": {}, "merge_receipt": None, "completion": None, "reason": reason,
             "history": list((old or {}).get("history") or [])
                        + [{"head_sha": head, "base_sha": base_sha, "at": self.clock()}],
@@ -177,6 +206,8 @@ class Governance:
 
     def intake(self, lease, repo_id, pull, files, base_sha, head_registry=None):
         """Record eligibility and the trusted-base policy snapshot, or refuse to record."""
+        if not isinstance(files, list) or not all(isinstance(path, str) and path for path in files):
+            raise ContractError("Governance intake requires a list of changed paths")
         block = policy(self.registry, repo_id)
         repo = self.registry["repositories"][repo_id]
         checks = self._snapshot(repo_id, block)
@@ -188,7 +219,12 @@ class Governance:
                 return old
             if pull.get("state") == "closed":
                 if pull.get("merged") or pull.get("merged_at"):
-                    return old
+                    if old and (old["phase"] == "awaiting_merge" or old.get("merge_steps")):
+                        return old
+                    record = self._new_record(block, repo_id, pull, files, base_sha, old, "closed",
+                                              "Merged outside the governance path", [], checks)
+                    self._save(db, record)
+                    return record
                 record = self._new_record(block, repo_id, pull, files, base_sha, old, "closed",
                                           "PR is closed", [], checks)
                 self._save(db, record)
@@ -255,6 +291,17 @@ class Governance:
             record.setdefault("merge_steps", {})[step] = value
             self._save(db, record)
 
+    def _intent(self, lease, key, head, step):
+        with self.store.transaction() as db:
+            self._require(db, lease)
+            record = self._load(db, key)
+            if not record or record["head_sha"] != head:
+                raise ContractError("Governance record head moved")
+            if record["phase"] != "awaiting_merge":
+                raise ContractError("Governance record is not awaiting merge")
+            record.setdefault("merge_steps", {})["intent"] = step + ":" + head
+            self._save(db, record)
+
     def _mutate(self, lease, key, head, updates):
         with self.store.transaction() as db:
             self._require(db, lease)
@@ -266,6 +313,18 @@ class Governance:
 
     def _reset(self, lease, key, head):
         self._mutate(lease, key, head, {"phase": "verifying", "verification": None, "merge_steps": {}})
+
+    def _reconcile(self, lease, key, head, reader, repo_url, url, identity):
+        receipt = reader.confirm(repo_url, url, head, identity)
+        with self.store.transaction() as db:
+            self._require(db, lease)
+            record = self._load(db, key)
+            if not record or record["head_sha"] != head:
+                raise ContractError("Governance record head moved")
+            record["merge_receipt"] = receipt
+            record["phase"] = "merged"
+            self._save(db, record)
+            return record
 
     def merge(self, lease, key, app, reader, current_base_sha):
         """Check, approve and merge the exact verified head as the registered Codex App."""
@@ -286,43 +345,52 @@ class Governance:
             number, url = record["number"], record["url"]
             repo_url, base_sha = repo.get("url"), record["base_sha"]
         pull = app.pull(number)
-        if (pull["head"]["sha"] != head and not pull.get("merged")) or current_base_sha != base_sha:
+        merged = bool(pull.get("merged") or pull.get("merged_at"))
+        pull_head = (pull.get("head") or {}).get("sha")
+        if merged:
+            if pull_head != head:
+                self._mutate(lease, key, head, {"phase": "escalated",
+                                                "reason": "PR merged at a head that was not verified"})
+                raise ContractError("PR merged at a head that was not verified")
+            return self._reconcile(lease, key, head, reader, repo_url, url, identity)
+        if pull_head != head:
             self._reset(lease, key, head)
-            raise ContractError("PR head or base moved; verify again")
+            raise ContractError("PR head moved; verify again")
+        if current_base_sha != base_sha:
+            self._reset(lease, key, head)
+            raise ContractError("PR base moved; verify again")
         if (pull["user"]["login"], pull["user"]["type"]) == (identity["login"], identity["type"]):
             raise ContractError("The merge App cannot approve a PR it opened")
         latest = github.latest_reviews(app.reviews(number))
         if github.human_veto(latest):
             self._mutate(lease, key, head, {"phase": "escalated", "reason": "A human requested changes"})
             raise ContractError("A human requested changes; escalate instead of merging")
-        if not pull.get("merged"):
-            runs = app.check_runs(head)
-            if not any(run["app"]["id"] == app.app_id and run["head_sha"] == head
-                       and run["conclusion"] == "success" for run in runs):
-                summary = "Codex verified " + head + " for " + key + ". " + verification["diff_evidence"]
-                app.create_check(head, summary)
-            self._step(lease, key, head, "check", head)
-            if not github.approved_by(latest, identity, head):
-                app.approve(number, head, "Codex verification passed for " + head)
-            self._step(lease, key, head, "approved", head)
-            try:
-                app.merge(number, head)
-            except github_app.GitHubWriteError as exc:
-                if exc.status not in (405, 409, 422):
-                    raise
-                self._mutate(lease, key, head, {"phase": "escalated", "reason": str(exc)})
-                raise ContractError("PR is not mergeable; escalate: " + str(exc)) from None
+        runs = app.check_runs(head)
+        if not any(run["app"]["id"] == app.app_id and run["head_sha"] == head
+                   and run["conclusion"] == "success" for run in runs):
+            self._intent(lease, key, head, "check")
+            summary = "Codex verified " + head + " for " + key + ". " + verification["diff_evidence"]
+            app.create_check(head, summary)
+        self._step(lease, key, head, "check", head)
+        if not github.approved_by(latest, identity, head):
+            self._intent(lease, key, head, "approve")
+            app.approve(number, head, "Codex verification passed for " + head)
+        self._step(lease, key, head, "approved", head)
+        self._intent(lease, key, head, "merge")
+        try:
+            app.merge(number, head)
+        except github_app.GitHubWriteError as exc:
+            if exc.status == 409:
+                latest_pull = app.pull(number)
+                if (latest_pull.get("head") or {}).get("sha") != head:
+                    self._reset(lease, key, head)
+                    raise ContractError("PR head moved before merge; verify again") from None
+            if exc.status not in (405, 409, 422):
+                raise
+            self._mutate(lease, key, head, {"phase": "escalated", "reason": str(exc)})
+            raise ContractError("PR is not mergeable; escalate: " + str(exc)) from None
         self._step(lease, key, head, "merged", head)
-        receipt = reader.confirm(repo_url, url, head, identity)
-        with self.store.transaction() as db:
-            self._require(db, lease)
-            record = self._load(db, key)
-            if not record or record["head_sha"] != head:
-                raise ContractError("Governance record head moved")
-            record["merge_receipt"] = receipt
-            record["phase"] = "merged"
-            self._save(db, record)
-            return record
+        return self._reconcile(lease, key, head, reader, repo_url, url, identity)
 
     def confirm(self, lease, key, evidence):
         """Record Claude's final acceptance of the provider-merged commit."""
@@ -344,6 +412,8 @@ class Governance:
                 raise ContractError("Accepted commit does not match the head")
             if evidence["merged_commit"] != receipt["merged_commit"]:
                 raise ContractError("Merged commit does not match the provider receipt")
+            if evidence["merger"] != receipt.get("merger"):
+                raise ContractError("Completion merger does not match the provider receipt")
             ids = [item["id"] for item in evidence["checks"]]
             if len(ids) != len(set(ids)) or set(ids) != set(record["checks"]):
                 raise ContractError("Governance check set differs")
@@ -363,6 +433,49 @@ class Governance:
         with self.store.transaction() as db:
             rows = db.execute("SELECT data FROM pr_reviews ORDER BY key").fetchall()
         return [json.loads(row[0]) for row in rows]
+
+    def refresh(self, lease, root, base, git_runner=git_run):
+        """Fast-forward the checkout only to a recorded governance merge commit."""
+        with self.store.transaction() as db:
+            self._require(db, lease)
+        status = git_runner(root, "status", "--porcelain", "--untracked-files=no")
+        if status.returncode or status.stdout.strip():
+            raise ContractError("review-refresh requires a clean checkout")
+        branch = git_runner(root, "rev-parse", "--abbrev-ref", "HEAD")
+        if branch.returncode or branch.stdout.strip() != base:
+            raise ContractError("review-refresh requires the " + base + " branch")
+        fetch = git_runner(root, "fetch", "origin", base)
+        if fetch.returncode:
+            raise ContractError("review-refresh could not fetch origin")
+        remote = git_runner(root, "rev-parse", "origin/" + base)
+        head = git_runner(root, "rev-parse", "HEAD")
+        if remote.returncode or head.returncode:
+            raise ContractError("review-refresh could not read commits")
+        remote_sha, head_sha = remote.stdout.strip(), head.stdout.strip()
+        if remote_sha == head_sha:
+            return {"refreshed": False}
+        with self.store.transaction() as db:
+            self._require(db, lease)
+            rows = db.execute("SELECT data FROM pr_reviews").fetchall()
+            records = [json.loads(row[0]) for row in rows]
+        recorded = any(
+            record.get("phase") in ("merged", "done")
+            and (record.get("merge_receipt") or {}).get("merged_commit") == remote_sha
+            for record in records
+        )
+        if not recorded:
+            raise ContractError("Base branch moved outside the governance path;"
+                                " a person must update the checkout")
+        ancestry = git_runner(root, "merge-base", "--is-ancestor", head_sha, remote_sha)
+        if ancestry.returncode:
+            raise ContractError("Base branch moved outside the governance path;"
+                                " a person must update the checkout")
+        with self.store.transaction() as db:
+            self._require(db, lease)
+        merged = git_runner(root, "merge", "--ff-only", remote_sha)
+        if merged.returncode:
+            raise ContractError("review-refresh could not fast-forward the checkout")
+        return {"refreshed": True, "commit": remote_sha}
 
 
 class GitHubReader:
@@ -399,3 +512,52 @@ class GitHubReader:
 
     def base_tip(self, repo, branch):
         return self.api("repos/" + repo + "/commits/" + urllib.parse.quote(branch, safe=""))["sha"]
+
+
+def _head_registry(reader, name, pull):
+    try:
+        return json.loads(reader.content(name, REGISTRY_PATH, pull["head"]["sha"]))
+    except ValueError:
+        return []
+
+
+def scan(engine, reader, registry, lease, root_ok):
+    """Scan every enabled governance repository; one bad PR never stops the scan."""
+    results = []
+    for repo_id, repo in registry["repositories"].items():
+        block = repo.get("governance_review")
+        if not block or block.get("enabled") is not True:
+            continue
+        policy(registry, repo_id)
+        name = github_app.repo_name(repo["url"])
+        tip = reader.base_tip(name, github_app.base_branch(repo))
+        if not root_ok(tip):
+            raise ContractError("Checkout HEAD is not the base branch tip for " + repo_id)
+        numbers = set()
+        for pull in reader.open_pulls(name):
+            number = pull.get("number") if isinstance(pull, dict) else None
+            try:
+                if number is None:
+                    raise ProviderError("Malformed pull request")
+                numbers.add(number)
+                full = reader.pull(name, number)
+                files = reader.files(name, number)
+                paths = changed_paths(full, files)
+                head_registry = _head_registry(reader, name, full) if REGISTRY_PATH in paths else None
+                results.append(engine.intake(lease, repo_id, full, paths, tip, head_registry))
+            except (ProviderError, ContractError, KeyError, TypeError, AttributeError, IndexError) as exc:
+                results.append({"number": number, "retry": True, "error": str(exc)})
+        for record in engine.list():
+            if record["repo"] != repo_id or record["phase"] in FINAL:
+                continue
+            if record["number"] in numbers:
+                continue
+            try:
+                full = reader.pull(name, record["number"])
+                files = reader.files(name, record["number"])
+                paths = changed_paths(full, files)
+                head_registry = _head_registry(reader, name, full) if REGISTRY_PATH in paths else None
+                results.append(engine.intake(lease, repo_id, full, paths, tip, head_registry))
+            except (ProviderError, ContractError, KeyError, TypeError, AttributeError, IndexError) as exc:
+                results.append({"number": record["number"], "retry": True, "error": str(exc)})
+    return {"records": results}
