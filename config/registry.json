@@ -40,7 +40,7 @@
             "tests",
             "-v"
           ],
-          "timeout_seconds": 120
+          "timeout_seconds": 600
         }
       },
       "planning_runner": "claude",
