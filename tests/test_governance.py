@@ -15,6 +15,7 @@ from contract_master.turns import TurnLease
 from support import A, B, C, FakeApp, FakeReader, WorkflowFixture
 
 KEY = "example/repo#1"
+MB = "d" * 40
 
 
 def pull(number=1, state="open", draft=False, merged=False, head=A, base="main",
@@ -70,8 +71,9 @@ def scan_registry():
 class ScanAPI:
     """REST-shaped read-only GitHub double for governance.scan."""
 
-    def __init__(self, pulls, files, contents, tip):
-        self.pulls, self.files, self.contents, self.tip = pulls, files, contents, tip
+    def __init__(self, pulls, files, contents, tip, merge_base):
+        self.pulls, self.files, self.contents = pulls, files, contents
+        self.tip, self.merge_base = tip, merge_base
 
     def __call__(self, path):
         if path.startswith("repos/example/repo/pulls?state=open"):
@@ -84,6 +86,8 @@ class ScanAPI:
             return self.files[number][100:200]
         if path.startswith("repos/example/repo/pulls/"):
             return self.pulls[int(path.rsplit("/", 1)[1])]
+        if path.startswith("repos/example/repo/compare/"):
+            return {"merge_base_commit": {"sha": self.merge_base}}
         if path.startswith("repos/example/repo/commits/"):
             return {"sha": self.tip}
         if path.startswith("repos/example/repo/contents/"):
@@ -233,7 +237,8 @@ class IntakeTests(GovernanceFixture):
                 self.setUp()
                 head = copy.deepcopy(self.registry)
                 mutate(head)
-                record = self.intake(files=["config/registry.json"], head_registry=head)
+                record = self.intake(files=["config/registry.json"], head_registry=head,
+                                     merge_base_registry=self.registry)
                 self.assertEqual(record["phase"], "ineligible")
                 self.assertIn(text, record["reason"])
 
@@ -249,27 +254,87 @@ class IntakeTests(GovernanceFixture):
         shapes.append([])
         for head in shapes:
             with self.subTest(head=head):
-                record = self.intake(files=["config/registry.json"], head_registry=head)
+                record = self.intake(files=["config/registry.json"], head_registry=head,
+                                     merge_base_registry=self.registry)
                 self.assertEqual(record["phase"], "ineligible")
                 self.assertTrue(record["reason"])
 
     def test_head_registry_problems_are_ineligible(self):
-        missing = self.intake(files=["config/registry.json"])
+        missing = self.intake(files=["config/registry.json"], merge_base_registry=self.registry)
         self.assertEqual(missing["phase"], "ineligible")
         self.assertIn("unavailable", missing["reason"])
-        not_object = self.intake(files=["config/registry.json"], head_registry=[])
+        not_object = self.intake(files=["config/registry.json"], head_registry=[],
+                                 merge_base_registry=self.registry)
         self.assertEqual(not_object["phase"], "ineligible")
         self.assertIn("not a JSON object", not_object["reason"])
 
     def test_allowed_check_change_keeps_base_argv_and_adds_criterion(self):
         head = copy.deepcopy(self.registry)
         head["repositories"]["example/repo"]["checks"]["unit"]["argv"] = ["python3", "-c", "print('new')"]
-        record = self.intake(files=["config/registry.json"], head_registry=head)
+        record = self.intake(files=["config/registry.json"], head_registry=head,
+                             merge_base_registry=self.registry)
         self.assertEqual(record["phase"], "verifying")
         self.assertEqual(record["checks"]["unit"]["argv"], ["python3", "-c", "print('ok')"])
         self.assertEqual(record["changes"][0]["field"], "checks")
         self.assertTrue(any("Check argv change" in item for item in record["criteria"]))
         self.assertTrue(any("Documentation matches" in item for item in record["criteria"]))
+
+
+class MergeBaseTests(GovernanceFixture):
+    def setUp(self):
+        super().setUp()
+        self.trusted = scan_registry()
+        self.trusted["repositories"]["example/repo"]["checks"]["unit"]["timeout_seconds"] = 600
+        self.merge_base = copy.deepcopy(self.trusted)
+        self.merge_base["repositories"]["example/repo"].pop("governance_review")
+        self.merge_base["repositories"]["example/repo"]["checks"]["unit"]["timeout_seconds"] = 120
+        self.head = copy.deepcopy(self.merge_base)
+        self.head["repositories"]["d3-corp/corp-integrated-dashboard"]["allowed_scope"] = [
+            "README.md", "docs", "src", "server", "package.json", "package-lock.json"]
+        self.gov = governance.Governance(self.store, self.trusted, self.clock)
+        self.pull = pull(author=("d3adc3II", "User"))
+        self.files = ["config/registry.json", "docs/onboarding/repositories.md"]
+
+    def intake(self, trusted=None):
+        engine = (governance.Governance(self.store, trusted, self.clock)
+                  if trusted is not None else self.gov)
+        return engine.intake(self.lease, "example/repo", copy.deepcopy(self.pull), self.files, B,
+                             head_registry=self.head, merge_base_registry=self.merge_base,
+                             merge_base_sha=MB)
+
+    def test_old_base_pr_is_evaluated_from_its_merge_base(self):
+        record = self.intake()
+        self.assertEqual(record["phase"], "verifying")
+        self.assertEqual(record["merge_base_sha"], MB)
+        self.assertEqual(record["checks"]["unit"]["timeout_seconds"], 600)
+        self.assertEqual(len(record["changes"]), 1)
+        change = record["changes"][0]
+        self.assertEqual((change["repo"], change["field"]),
+                         ("d3-corp/corp-integrated-dashboard", "allowed_scope"))
+        self.assertEqual(change["before"], ["README.md", "docs"])
+        self.assertEqual(change["after"], ["README.md", "docs", "src", "server", "package.json",
+                                           "package-lock.json"])
+        scope = [item for item in record["criteria"]
+                 if "Scope change for d3-corp/corp-integrated-dashboard" in item]
+        self.assertEqual(len(scope), 1)
+
+    def test_base_change_to_same_field_is_ineligible(self):
+        trusted = copy.deepcopy(self.trusted)
+        trusted["repositories"]["d3-corp/corp-integrated-dashboard"]["allowed_scope"] = [
+            "README.md", "docs", "already"]
+        record = self.intake(trusted)
+        self.assertEqual(record["phase"], "ineligible")
+        self.assertIn("conflicts with base changes since the PR branched", record["reason"])
+
+    def test_governance_review_change_relative_to_merge_base_is_ineligible(self):
+        self.head = copy.deepcopy(self.merge_base)
+        self.head["repositories"]["example/repo"]["governance_review"] = {
+            "enabled": True, "authors": [{"login": "d3adc3II", "type": "User"}],
+            "allowed_paths": ["config/registry.json"], "registry_fields": ["allowed_scope"],
+            "checks": ["unit"]}
+        record = self.intake()
+        self.assertEqual(record["phase"], "ineligible")
+        self.assertIn("governance_review", record["reason"])
 
 
 class ChangedPathsTests(unittest.TestCase):
@@ -305,7 +370,8 @@ class ScanTests(GovernanceFixture):
         head = copy.deepcopy(self.registry)
         head["repositories"]["d3-corp/corp-integrated-dashboard"]["allowed_scope"] = [
             "README.md", "docs", "src", "server", "package.json", "package-lock.json"]
-        self.contents = {("config/registry.json", A): json.dumps(head)}
+        self.contents = {("config/registry.json", A): json.dumps(head),
+                         ("config/registry.json", MB): json.dumps(self.registry)}
         self.pulls, self.files = {}, {}
         for number in range(1, 10):
             self.pulls[number] = pull(number=number, author=("d3adc3II", "User"))
@@ -336,7 +402,7 @@ class ScanTests(GovernanceFixture):
         self.files[9] = [{"filename": "docs/knowledge/note.md"}]
 
     def test_scan_reads_rest_shaped_files_and_isolates_failures(self):
-        reader = governance.GitHubReader(api=ScanAPI(self.pulls, self.files, self.contents, B))
+        reader = governance.GitHubReader(api=ScanAPI(self.pulls, self.files, self.contents, B, MB))
         result = governance.scan(self.gov, reader, self.registry, self.lease, lambda tip: True)
         records = {record["key"]: record for record in self.gov.list()}
         first = records["example/repo#1"]
@@ -688,6 +754,37 @@ class VerifyAndMergeTests(GovernanceFixture):
         record = self.gov.verify(self.lease, KEY, self.evidence(moved, "changes"))
         self.assertEqual(record["phase"], "escalated")
         self.assertEqual(record["changes_verdicts"], 2)
+
+    def test_escalation_is_sticky_and_blocks_verify_and_merge(self):
+        record = self.verified("changes")
+        moved = self.intake(pull=pull(head=C))
+        record = self.gov.verify(self.lease, KEY, self.evidence(moved, "changes"))
+        self.assertEqual(record["phase"], "escalated")
+        later = self.intake(pull=pull(head="e" * 40))
+        self.assertEqual(later["phase"], "escalated")
+        self.assertEqual(later["changes_verdicts"], 2)
+        self.assertEqual(later["head_sha"], C)
+        self.assertEqual(later["verification"], record["verification"])
+        self.assertEqual(later["merge_steps"], record["merge_steps"])
+        evidence = self.evidence(later, "pass")
+        evidence["head_sha"] = "e" * 40
+        with self.assertRaises(ContractError):
+            self.gov.verify(self.lease, KEY, evidence)
+        app = self.app()
+        with self.assertRaises(ContractError):
+            self.merge(app)
+        self.assertEqual(app.writes, [])
+
+    def test_human_veto_escalation_stays_escalated(self):
+        self.verified()
+        app = self.app()
+        app.review_list.append({"user": {"login": "person", "type": "User"},
+                                "state": "CHANGES_REQUESTED", "commit_id": A})
+        with self.assertRaises(ContractError):
+            self.merge(app)
+        later = self.intake(pull=pull(head=C))
+        self.assertEqual(later["phase"], "escalated")
+        self.assertEqual(later["reason"], "A human requested changes")
 
     def test_human_veto_escalates_without_writes(self):
         self.verified()

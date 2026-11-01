@@ -13,6 +13,7 @@ from .turns import TurnLease
 PHASES = ("verifying", "changes_requested", "awaiting_merge", "merged", "done", "escalated",
           "closed", "ineligible")
 FINAL = ("merged", "done")
+STICKY = FINAL + ("escalated",)
 FORBIDDEN_TOP = ("version", "automation_enabled", "linear_workspace", "reviewed_master_commits")
 REGISTRY_PATH = "config/registry.json"
 
@@ -156,7 +157,8 @@ class Governance:
         checks = self.registry["repositories"][repo_id]["checks"]
         return {check_id: copy.deepcopy(checks[check_id]) for check_id in block["checks"]}
 
-    def _new_record(self, block, repo_id, pull, files, base_sha, old, phase, reason, changes, checks):
+    def _new_record(self, block, repo_id, pull, files, base_sha, old, phase, reason, changes, checks,
+                    merge_base_sha=None):
         key = repo_id + "#" + str(pull["number"])
         head = pull["head"]["sha"]
         names = sorted(files)
@@ -164,7 +166,7 @@ class Governance:
             "key": key, "repo": repo_id, "number": pull["number"],
             "url": pull.get("html_url") or pull.get("url"),
             "author": (pull.get("user") or {}).get("login"),
-            "base_sha": base_sha, "head_sha": head, "files": names,
+            "base_sha": base_sha, "head_sha": head, "merge_base_sha": merge_base_sha, "files": names,
             "changes": changes, "criteria": criteria(names, changes, block["checks"]),
             "checks": checks, "policy_digest": digest(block), "phase": phase,
             "verification": None,
@@ -174,7 +176,7 @@ class Governance:
                        + [{"head_sha": head, "base_sha": base_sha, "at": self.clock()}],
         }
 
-    def _eligibility(self, repo, block, pull, files, head_registry):
+    def _eligibility(self, repo, block, pull, files, head_registry, merge_base_registry):
         if pull.get("draft"):
             return "Draft PR", None
         if (pull.get("base") or {}).get("ref") != github_app.base_branch(repo):
@@ -198,13 +200,32 @@ class Governance:
         if REGISTRY_PATH in files:
             if head_registry is None:
                 return "Head registry unavailable", None
+            if merge_base_registry is None:
+                return "Merge-base registry unavailable", None
             try:
-                changes = registry_changes(self.registry, head_registry, block["registry_fields"])
+                changes = registry_changes(merge_base_registry, head_registry,
+                                           block["registry_fields"])
             except ContractError as exc:
                 return str(exc), None
+            for change in changes:
+                current = self.registry["repositories"].get(change["repo"])
+                if not isinstance(current, dict) or current.get(change["field"]) != change["before"]:
+                    return ("Registry change to " + change["repo"] + "." + change["field"]
+                            + " conflicts with base changes since the PR branched;"
+                              " rebase and resubmit"), None
+                change["before"] = current.get(change["field"])
         return None, changes
 
-    def intake(self, lease, repo_id, pull, files, base_sha, head_registry=None):
+    def _observe_escalated(self, db, record, pull, base_sha):
+        head = (pull.get("head") or {}).get("sha")
+        history = list(record.get("history") or [])
+        if not history or history[-1].get("head_sha") != head or history[-1].get("base_sha") != base_sha:
+            record["history"] = history + [{"head_sha": head, "base_sha": base_sha,
+                                            "at": self.clock()}]
+            self._save(db, record)
+
+    def intake(self, lease, repo_id, pull, files, base_sha, head_registry=None,
+               merge_base_registry=None, merge_base_sha=None):
         """Record eligibility and the trusted-base policy snapshot, or refuse to record."""
         if not isinstance(files, list) or not all(isinstance(path, str) and path for path in files):
             raise ContractError("Governance intake requires a list of changed paths")
@@ -215,31 +236,35 @@ class Governance:
         with self.store.transaction() as db:
             self._require(db, lease)
             old = self._load(db, key)
-            if old and old["phase"] in FINAL:
+            if old and old["phase"] in STICKY:
+                if old["phase"] == "escalated":
+                    self._observe_escalated(db, old, pull, base_sha)
                 return old
             if pull.get("state") == "closed":
                 if pull.get("merged") or pull.get("merged_at"):
                     if old and (old["phase"] == "awaiting_merge" or old.get("merge_steps")):
                         return old
                     record = self._new_record(block, repo_id, pull, files, base_sha, old, "closed",
-                                              "Merged outside the governance path", [], checks)
+                                              "Merged outside the governance path", [], checks,
+                                              merge_base_sha)
                     self._save(db, record)
                     return record
                 record = self._new_record(block, repo_id, pull, files, base_sha, old, "closed",
-                                          "PR is closed", [], checks)
+                                          "PR is closed", [], checks, merge_base_sha)
                 self._save(db, record)
                 return record
-            reason, changes = self._eligibility(repo, block, pull, files, head_registry)
+            reason, changes = self._eligibility(repo, block, pull, files, head_registry,
+                                                merge_base_registry)
             if reason:
                 record = self._new_record(block, repo_id, pull, files, base_sha, old, "ineligible",
-                                          reason, [], checks)
+                                          reason, [], checks, merge_base_sha)
                 self._save(db, record)
                 return record
             if (old and old["head_sha"] == pull["head"]["sha"] and old["base_sha"] == base_sha
                     and old["phase"] not in ("ineligible", "closed")):
                 return old
             record = self._new_record(block, repo_id, pull, files, base_sha, old, "verifying",
-                                      None, changes, checks)
+                                      None, changes, checks, merge_base_sha)
             self._save(db, record)
             return record
 
@@ -513,12 +538,32 @@ class GitHubReader:
     def base_tip(self, repo, branch):
         return self.api("repos/" + repo + "/commits/" + urllib.parse.quote(branch, safe=""))["sha"]
 
+    def compare(self, repo, base_sha, head_sha):
+        value = self.api("repos/" + repo + "/compare/" + base_sha + "..." + head_sha)
+        merge = value.get("merge_base_commit") if isinstance(value, dict) else None
+        sha = merge.get("sha") if isinstance(merge, dict) else None
+        if (not isinstance(sha, str) or len(sha) != 40
+                or any(character not in "0123456789abcdef" for character in sha)):
+            raise ProviderError("Incomplete compare result")
+        return sha
 
-def _head_registry(reader, name, pull):
+
+def _registry_at(reader, name, ref):
     try:
-        return json.loads(reader.content(name, REGISTRY_PATH, pull["head"]["sha"]))
+        return json.loads(reader.content(name, REGISTRY_PATH, ref))
     except ValueError:
         return []
+
+
+def _scan_inputs(reader, name, full, tip):
+    files = reader.files(name, full["number"])
+    paths = changed_paths(full, files)
+    merge_base_sha = reader.compare(name, tip, full["head"]["sha"])
+    head_registry = merge_base_registry = None
+    if REGISTRY_PATH in paths:
+        head_registry = _registry_at(reader, name, full["head"]["sha"])
+        merge_base_registry = _registry_at(reader, name, merge_base_sha)
+    return paths, head_registry, merge_base_registry, merge_base_sha
 
 
 def scan(engine, reader, registry, lease, root_ok):
@@ -541,10 +586,12 @@ def scan(engine, reader, registry, lease, root_ok):
                     raise ProviderError("Malformed pull request")
                 numbers.add(number)
                 full = reader.pull(name, number)
-                files = reader.files(name, number)
-                paths = changed_paths(full, files)
-                head_registry = _head_registry(reader, name, full) if REGISTRY_PATH in paths else None
-                results.append(engine.intake(lease, repo_id, full, paths, tip, head_registry))
+                paths, head_registry, merge_base_registry, merge_base_sha = _scan_inputs(
+                    reader, name, full, tip)
+                results.append(engine.intake(lease, repo_id, full, paths, tip,
+                                             head_registry=head_registry,
+                                             merge_base_registry=merge_base_registry,
+                                             merge_base_sha=merge_base_sha))
             except (ProviderError, ContractError, KeyError, TypeError, AttributeError, IndexError) as exc:
                 results.append({"number": number, "retry": True, "error": str(exc)})
         for record in engine.list():
@@ -554,10 +601,12 @@ def scan(engine, reader, registry, lease, root_ok):
                 continue
             try:
                 full = reader.pull(name, record["number"])
-                files = reader.files(name, record["number"])
-                paths = changed_paths(full, files)
-                head_registry = _head_registry(reader, name, full) if REGISTRY_PATH in paths else None
-                results.append(engine.intake(lease, repo_id, full, paths, tip, head_registry))
+                paths, head_registry, merge_base_registry, merge_base_sha = _scan_inputs(
+                    reader, name, full, tip)
+                results.append(engine.intake(lease, repo_id, full, paths, tip,
+                                             head_registry=head_registry,
+                                             merge_base_registry=merge_base_registry,
+                                             merge_base_sha=merge_base_sha))
             except (ProviderError, ContractError, KeyError, TypeError, AttributeError, IndexError) as exc:
                 results.append({"number": record["number"], "retry": True, "error": str(exc)})
     return {"records": results}

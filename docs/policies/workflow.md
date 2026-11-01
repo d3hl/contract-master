@@ -89,10 +89,13 @@ registers an enabled `governance_review` block. The coordinator discovers open P
 with one `review-scan` step from its clean `main` checkout; there is no extra
 scheduler, timer or poller. Each PR becomes a dedicated `pr_reviews` record keyed
 `<repo>#<number>`, never a task and never a Linear write. The record binds the
-repository, PR number, author, trusted base SHA, exact head SHA, changed files,
-structured registry changes, derived criteria and the check argv snapshotted from
-the trusted base registry. PR titles, bodies, labels and the PR's own registry
-content never grant eligibility, authors, paths, checks or commands.
+repository, PR number, author, trusted base SHA, merge-base SHA, exact head SHA,
+changed files, structured registry changes, derived criteria and the check argv
+snapshotted from the trusted base registry. A registry-changing PR is evaluated
+against the registry at its merge base, not the current base branch; if the trusted
+base changed the same field since that point, the record is ineligible and the PR
+must be rebased. PR titles, bodies, labels and the PR's own registry content never
+grant eligibility, authors, paths, checks or commands.
 
 Codex reviews the actual diff and runs the snapshot checks at the exact head
 (`review-inspect`) and records criterion/check evidence (`review-verify`). A moved
@@ -100,10 +103,11 @@ head or base resets the record to `verifying` and discards verdicts and merge
 steps. `review-merge` acts as `d3hl-codex`: post `codex-verification`, approve the
 exact head, merge with that `sha`, and confirm read-only; it is a dry run unless
 `--live` and the existing activation gates hold. A human's latest
-`CHANGES_REQUESTED` vetoes and escalates; an unmergeable PR also escalates. Claude
-runs `review-confirm` on the merged commit before the record is `done`. Changes to
-`governance_review` itself and every registry field outside the registered
-`registry_fields` stay human-merged.
+`CHANGES_REQUESTED` vetoes and escalates; an unmergeable PR also escalates. An
+escalated record is final for automation: later heads or rebases never re-open it,
+and a person must merge or close the PR by hand. Claude runs `review-confirm` on the
+merged commit before the record is `done`. Changes to `governance_review` itself and
+every registry field outside the registered `registry_fields` stay human-merged.
 
 ## Trust
 
