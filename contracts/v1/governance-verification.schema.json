@@ -1,0 +1,120 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "type": "string"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "const": "codex",
+      "type": "string"
+    },
+    "head_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "base_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "changes"
+      ]
+    },
+    "acceptance_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "criterion",
+          "passed",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "commit",
+          "passed",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "diff_evidence": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "version",
+    "key",
+    "author",
+    "head_sha",
+    "base_sha",
+    "verdict",
+    "acceptance_evidence",
+    "checks",
+    "corrections",
+    "diff_evidence"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d3hl/contract-master/contracts/v1/governance-verification.schema.json",
+  "title": "governance-verification"
+}

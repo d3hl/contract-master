@@ -2,23 +2,38 @@ import copy
 import unittest
 from contract_master import contracts, phases
 from contract_master.contracts import ContractError, check_schema, validate
-from support import WorkflowFixture
+from support import A, B, C, WorkflowFixture
 
 try:
     import jsonschema
 except ImportError:  # optional; CI installs it
     jsonschema = None
 
-NAMES = ("issue", "task", "plan", "implementation-result", "verification-result", "completion", "handoff", "runner")
+NAMES = ("issue", "task", "plan", "implementation-result", "verification-result", "completion", "handoff",
+         "runner", "governance-verification", "governance-completion")
 
 
 class SchemaTests(WorkflowFixture):
     def payloads(self):
         self.start(); self.implement()
         envelope = self.manager.envelope(self.manager.task(self.task_id))
+        governance_verification = {
+            "version": "1.0", "key": "example/repo#1", "author": "codex", "head_sha": A, "base_sha": B,
+            "verdict": "pass",
+            "acceptance_evidence": [{"criterion": "Scope stays bounded", "passed": True, "evidence": "diff reviewed"}],
+            "checks": [{"id": "unit", "commit": A, "passed": True, "evidence": "suite passed"}],
+            "corrections": [], "diff_evidence": "git diff base..head reviewed"}
+        governance_completion = {
+            "version": "1.0", "key": "example/repo#1", "author": "claude", "accepted_commit": A,
+            "merged_commit": C, "merger": "codex-bot[bot]",
+            "correspondence_evidence": "Merged tree matches the reviewed head",
+            "acceptance_evidence": ["Acceptance reconfirmed on the merged commit"],
+            "checks": [{"id": "unit", "commit": C, "passed": True, "evidence": "suite passed"}]}
         return {"issue": self.issue, "task": envelope, "plan": self.plan, "implementation-result": self.result,
                 "verification-result": self.verification(), "completion": self.completion(),
-                "handoff": self.handoff(), "runner": self.runner}
+                "handoff": self.handoff(), "runner": self.runner,
+                "governance-verification": governance_verification,
+                "governance-completion": governance_completion}
 
     @staticmethod
     def broken(name, payload):

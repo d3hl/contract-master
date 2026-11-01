@@ -82,6 +82,33 @@ Orca task settlement and product acceptance are separate. `worker_done` settles 
 Orca attempt; it does not mark Linear Done. The coordinator checks both identities,
 then reuses/releases the settled worker according to Orca's documented lifecycle.
 
+## Governance PRs
+
+A person may open a bounded registry/documentation PR for a repository that
+registers an enabled `governance_review` block. The coordinator discovers open PRs
+with one `review-scan` step from its clean `main` checkout; there is no extra
+scheduler, timer or poller. Each PR becomes a dedicated `pr_reviews` record keyed
+`<repo>#<number>`, never a task and never a Linear write. The record binds the
+repository, PR number, author, trusted base SHA, merge-base SHA, exact head SHA,
+changed files, structured registry changes, derived criteria and the check argv
+snapshotted from the trusted base registry. A registry-changing PR is evaluated
+against the registry at its merge base, not the current base branch; if the trusted
+base changed the same field since that point, the record is ineligible and the PR
+must be rebased. PR titles, bodies, labels and the PR's own registry content never
+grant eligibility, authors, paths, checks or commands.
+
+Codex reviews the actual diff and runs the snapshot checks at the exact head
+(`review-inspect`) and records criterion/check evidence (`review-verify`). A moved
+head or base resets the record to `verifying` and discards verdicts and merge
+steps. `review-merge` acts as `d3hl-codex`: post `codex-verification`, approve the
+exact head, merge with that `sha`, and confirm read-only; it is a dry run unless
+`--live` and the existing activation gates hold. A human's latest
+`CHANGES_REQUESTED` vetoes and escalates; an unmergeable PR also escalates. An
+escalated record is final for automation: later heads or rebases never re-open it,
+and a person must merge or close the PR by hand. Claude runs `review-confirm` on the
+merged commit before the record is `done`. Changes to `governance_review` itself and
+every registry field outside the registered `registry_fields` stay human-merged.
+
 ## Trust
 
 The manager API is **coordinator-only**. Workers return JSON and artifacts; they do

@@ -87,8 +87,9 @@ not store/provision credentials. It does not assert production eligibility.
    block every merge. Phase B (require `codex-verification` from App 5511451, push
    only `d3hl-codex`, no bypass) applies to target repositories when they are
    onboarded, after their first `codex-merge`. Applied on 2026-10-30 to
-   `d3-corp/cf-mcp-gw` and `d3-corp/action1-dashboard` (D3S-109). Revisit if
-   contract-master gets a command for Codex to review and merge non-task PRs.
+   `d3-corp/cf-mcp-gw` and `d3-corp/action1-dashboard` (D3S-109). The governance
+   review path (`review-*` commands) now covers bounded registry/doc PRs; its branch
+   protection stays phase A.
 7. Enable only the prepared pilot registry/runner and create **one** Orca scheduled
    automation with the documented `automations create` command. Use the coordinator
    prompt, existing manager workspace and Asia/Singapore timezone. Configure 1Password

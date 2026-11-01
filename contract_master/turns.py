@@ -43,6 +43,12 @@ class TurnLease:
             db.execute("UPDATE turn_lease SET expires=? WHERE id=1", (now + minutes * 60,))
         return {"lease": lease, "expires": iso(now + minutes * 60)}
 
+    def require(self, db, lease):
+        """Fence a write inside the caller's open transaction; never opens its own."""
+        row = self._current(db)
+        if not row or row["lease"] != lease or row["expires"] <= self.clock():
+            raise ContractError("Turn lease lost or not held; stop without writes")
+
     def end(self, lease):
         with self.store.transaction() as db:
             released = db.execute("DELETE FROM turn_lease WHERE id=1 AND lease=?", (lease,)).rowcount

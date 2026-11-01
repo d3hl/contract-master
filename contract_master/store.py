@@ -28,6 +28,7 @@ class Store:
                 CREATE TABLE IF NOT EXISTS handoffs(task TEXT PRIMARY KEY, data TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS turn_lease(id INTEGER PRIMARY KEY CHECK(id=1), lease TEXT NOT NULL,
                     expires REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS pr_reviews(key TEXT PRIMARY KEY, data TEXT NOT NULL);
             ''')
 
         self.path.chmod(0o600)
