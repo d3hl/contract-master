@@ -1,6 +1,15 @@
-# Contract Master — Repository Workflow
+---
+title: Contract Master Workflow
+repo: d3hl/contract-master
+updated: 2026-11-02
+tags: [contract-master, workflow, orca, automation]
+aliases: [Contract Master, CM workflow]
+---
 
-As of 2026-11-02
+# Contract Master Workflow
+
+> [!summary]
+> Linear issue → Orca triage → Claude plans → DeepSeek implements → Codex verifies, opens PR and merges → Claude confirms → Linear Done.
 
 ## Purpose and scope
 
@@ -29,7 +38,7 @@ The manager has no timer, poller or dispatch loop of its own. The manager API is
 
 A task moves through six manager phases, and each phase has exactly one owner.
 
-![Task lifecycle](task-lifecycle.png)
+![[task-lifecycle.png]]
 
 1. **Intake:** Orca reconciles the Linear project; an issue is queued only with an explicit goal, scope, acceptance, registered check IDs, repository and full base commit. Incomplete issues get a missing-information comment.
 2. **planning:** Claude reads the issue, latest HANDOFF, `AGENTS.md`, pinned guidance and code, then records a bounded plan (`author: claude`). No extra plan approval.
@@ -38,6 +47,9 @@ A task moves through six manager phases, and each phase has exactly one owner.
 5. **rework:** concrete corrections go back to DeepSeek. Two attempts total; a second failure escalates to a human.
 6. **awaiting_review:** `open-pr` opens the PR as `d3hl-orca` (`Related to <issue>`); `codex-merge` checks, approves and merges the exact head as `d3hl-codex`. A moved head returns the task to verifying.
 7. **done:** Claude confirms provider merge facts, reruns checks on the merged commit and records completion. Only then is Done queued to Linear.
+
+> [!warning]
+> Never mark Done before the Codex merge and Claude's final confirmation.
 
 A material scope change sends the task back to planning; a revision hash covers repository, base, goal, scope, acceptance and checks.
 
@@ -113,7 +125,8 @@ All eight activation gates have passed; automation is enabled, and onboarding of
 | 7. Single scheduler | One Orca automation, `automation_enabled=true` | Done 2026-10-29 |
 | 8. Pilot issue + 10 failure scenarios | D3S-114 and D3S-115 Done end to end | Passed 2026-10-30 |
 
-**Next action (from HANDOFF):** merge corp-integrated-dashboard #1 and its registry change, run the DeepSeek runner probe and one bounded docs pilot, then apply phase B protection after its first `codex-merge`.
+> [!todo] Next action (from HANDOFF)
+> merge corp-integrated-dashboard #1 and its registry change, run the DeepSeek runner probe and one bounded docs pilot, then apply phase B protection after its first `codex-merge`.
 
 ## Developer checklist
 
