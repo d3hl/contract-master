@@ -282,10 +282,12 @@
       "allowed_scope": [
         "README.md",
         "docs",
+        "mcp-app.html",
         "package-lock.json",
         "package.json",
         "server",
-        "src"
+        "src",
+        "vite.mcp.config.ts"
       ],
       "checks": {
         "typecheck": {
