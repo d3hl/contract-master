@@ -41,6 +41,10 @@ not store/provision credentials. It does not assert production eligibility.
    blocked, and committed `7acb8fb` (checked independently). The worker's only
    credential is its own OpenRouter login; it needs no `op://` reference. The
    runner is `enabled: true`; live dispatch still requires `automation_enabled`.
+   **Reopened 2026-11-03:** workers moved to Linux user `d3` on NTNSG-RH1
+   (environment `rh1-d3`). The runner is `enabled: false` until `d3` on that host
+   holds no coordinator credentials and a new probe confirms model identity and
+   blocked credential paths ([worker host](worker-host.md) preconditions).
 4. Recheck Linear context completeness and project pagination after any Orca upgrade.
    Blocking relation direction was verified live on the newly created D3S-99/100 pair
    and is covered by an adapter test.

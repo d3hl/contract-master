@@ -68,6 +68,12 @@ were queried (installed patch 2.1.4 was unavailable). The local CLI help and act
 run established compatibility. Primary sources: [model selection](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/models.mdx)
 and [project config](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/config.mdx).
 
+## Worker host change (2026-11-03)
+
+Workers now run as `d3` on NTNSG-RH1 (environment `rh1-d3`). The `cm-worker` evidence
+below does not carry over. Record the new probe here before the runner is enabled
+([preconditions](worker-host.md)).
+
 ## Isolated worker run (2026-10-29)
 
 Production isolation is in place: OpenCode runs as Linux user `cm-worker` on its own
