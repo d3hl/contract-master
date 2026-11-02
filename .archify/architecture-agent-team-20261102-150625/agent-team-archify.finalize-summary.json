@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/user/contract-master/.archify/architecture-agent-team-20261102-150625/candidate.json",
+    "sha256": "fd89d29c6effe7a88f68b135abe9a6ac288ef30ad9a9fcc848195af38085cf62",
+    "bytes": 9025
+  },
+  "artifact": {
+    "path": "/home/user/contract-master/docs/architecture/agent-team-archify.html",
+    "sha256": "6b0232a757df603f9081f9855f0970e0d5f5eefdc17baf31919b25e704b547e8",
+    "bytes": 863288
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/user/contract-master/docs/architecture/agent-team-archify.finalize.json",
+    "summaryReceipt": "/home/user/contract-master/docs/architecture/agent-team-archify.finalize-summary.json",
+    "browserCheckReceipt": "/home/user/contract-master/docs/architecture/agent-team-archify.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6480,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

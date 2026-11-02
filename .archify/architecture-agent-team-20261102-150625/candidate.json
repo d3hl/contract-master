@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Contract Master Agent Team — Runtime Architecture",
+    "output": "docs/architecture/agent-team-archify.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/d3hl/contract-master",
+      "provider": "github",
+      "revision": "66212abdf4b4ddd74ea01ac2148410e993eed6a2"
+    }
+  },
+  "components": [
+    {
+      "id": "linear", "type": "external", "label": "Linear", "sublabel": "issues · HANDOFF", "tag": "source of requirements",
+      "pos": [40, 200], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/adapters.py", "line": 32, "end_line": 60, "label": "listing + full issue read" },
+        { "path": "contract_master/adapters.py", "line": 173, "end_line": 211, "label": "LinearTransport writes" }
+      ]
+    },
+    {
+      "id": "onepassword", "type": "security", "label": "1Password", "sublabel": "service account vault",
+      "pos": [580, 40], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/github_app.py", "line": 81, "end_line": 130, "label": "op read + openssl pipe" },
+        { "path": "docs/policies/context-and-security.md", "line": 41, "end_line": 54 }
+      ]
+    },
+    {
+      "id": "coordinator", "type": "backend", "label": "Orca coordinator", "sublabel": "Claude turn · every 10 min", "tag": "turn lease",
+      "pos": [310, 200], "size": [150, 64],
+      "sources": [
+        { "path": "config/orca-automation.json", "line": 1, "end_line": 12, "label": "single schedule + precheck" },
+        { "path": "docs/operations/coordinator-prompt.md", "line": 30, "end_line": 57 },
+        { "path": "contract_master/turns.py", "line": 19, "end_line": 63, "label": "turn lease" }
+      ]
+    },
+    {
+      "id": "manager", "type": "database", "label": "Manager", "sublabel": "SQLite state · phase gates",
+      "pos": [580, 200], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/manager.py", "line": 57, "end_line": 133, "label": "intake + revision" },
+        { "path": "contract_master/store.py", "line": 9, "end_line": 55, "label": "SQLite WAL store" },
+        { "path": "contract_master/phases.py", "line": 1, "end_line": 51 }
+      ]
+    },
+    {
+      "id": "plan", "type": "backend", "label": "Claude · plan", "sublabel": "investigate + bounded plan",
+      "pos": [850, 200], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/manager.py", "line": 208, "end_line": 230, "label": "record_plan" },
+        { "path": "docs/policies/workflow.md", "line": 46, "end_line": 49 }
+      ]
+    },
+    {
+      "id": "deepseek", "type": "backend", "label": "DeepSeek worker", "sublabel": "OpenCode · opencode2",
+      "pos": [1120, 200], "size": [150, 64],
+      "sources": [
+        { "path": "config/deepseek-runner.json", "line": 1, "end_line": 17 },
+        { "path": "docs/operations/worker-host.md", "line": 1, "end_line": 24, "label": "isolation evidence" },
+        { "path": "contract_master/adapters.py", "line": 62, "end_line": 83, "label": "worker_command argv" }
+      ]
+    },
+    {
+      "id": "openrouter", "type": "cloud", "label": "OpenRouter", "sublabel": "deepseek-v4.1-flash",
+      "pos": [1120, 40], "size": [150, 64],
+      "sources": [
+        { "path": "config/deepseek-opencode-project.json", "line": 1, "end_line": 4 },
+        { "path": "docs/operations/worker-host.md", "line": 19, "end_line": 20 }
+      ]
+    },
+    {
+      "id": "outbox", "type": "messagebus", "label": "Linear outbox", "sublabel": "serialized · flush-one",
+      "pos": [310, 380], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/outbox.py", "line": 14, "end_line": 51 },
+        { "path": "contract_master/manager.py", "line": 49, "end_line": 56, "label": "queue_comment / status" }
+      ]
+    },
+    {
+      "id": "confirm", "type": "backend", "label": "Claude · confirm", "sublabel": "rerun checks on merge",
+      "pos": [580, 380], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/manager.py", "line": 425, "end_line": 461, "label": "confirm_merge + complete" },
+        { "path": "docs/policies/workflow.md", "line": 75, "end_line": 80 }
+      ]
+    },
+    {
+      "id": "codex", "type": "security", "label": "Codex", "sublabel": "verify · codex-merge", "tag": "exact output SHA",
+      "pos": [850, 380], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/manager.py", "line": 302, "end_line": 327, "label": "verify" },
+        { "path": "contract_master/manager.py", "line": 381, "end_line": 424, "label": "codex_merge" },
+        { "path": "docs/policies/workflow.md", "line": 55, "end_line": 74 }
+      ]
+    },
+    {
+      "id": "github", "type": "external", "label": "GitHub", "sublabel": "PRs · App identities",
+      "pos": [850, 560], "size": [150, 64],
+      "sources": [
+        { "path": "contract_master/github_app.py", "line": 166, "end_line": 245, "label": "RepoApp push/approve/merge" },
+        { "path": "contract_master/github.py", "line": 26, "end_line": 66, "label": "read-only merge facts" }
+      ]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Host NTNSG-RH1 · RHEL 9.8", "wraps": ["coordinator", "manager", "plan", "outbox", "confirm", "codex", "deepseek"] },
+    { "kind": "security-group", "label": "Linux user d3 · trusted · manager API", "wraps": ["coordinator", "manager", "plan", "outbox", "confirm", "codex"] },
+    { "kind": "security-group", "label": "cm-worker · 127.0.0.1:6791", "wraps": ["deepseek"] }
+  ],
+  "connections": [
+    { "id": "intake", "from": "linear", "to": "coordinator", "label": "issue read", "variant": "emphasis" },
+    { "id": "triage", "from": "coordinator", "to": "manager", "label": "triage · claim", "variant": "emphasis" },
+    { "id": "to-plan", "from": "manager", "to": "plan", "label": "claimed task", "variant": "emphasis" },
+    { "id": "dispatch", "from": "plan", "to": "deepseek", "label": "plan + attempt", "variant": "emphasis" },
+    { "id": "result", "from": "deepseek", "to": "codex", "label": "output SHA", "variant": "emphasis" },
+    { "id": "rework", "from": "codex", "to": "deepseek", "label": "rework ≤2 · then human", "variant": "dashed" },
+    { "id": "merge", "from": "codex", "to": "github", "label": "check · approve · merge", "variant": "emphasis" },
+    { "id": "merge-facts", "from": "github", "to": "confirm", "label": "merge facts", "variant": "emphasis" },
+    { "id": "enqueue-done", "from": "confirm", "to": "outbox", "label": "enqueue Done", "variant": "emphasis" },
+    { "id": "write-back", "from": "outbox", "to": "linear", "label": "Done · comments", "variant": "emphasis" },
+    { "id": "app-keys", "from": "onepassword", "to": "manager", "label": "App keys · --live", "variant": "security" },
+    { "id": "model-calls", "from": "deepseek", "to": "openrouter", "label": "model calls" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald", "title": "Primary path",
+      "items": [
+        "Linear issue → Orca coordinator turn reads it in full and the manager triages, revisions and claims it",
+        "Claude plans → DeepSeek implements on cm-worker → open-pr pushes the output commit as d3hl-orca[bot]",
+        "Codex verifies the exact SHA, then codex-merge checks, approves and merges as d3hl-codex[bot]",
+        "Claude reruns checks on the merged commit; only then the outbox writes Done to Linear"
+      ]
+    },
+    {
+      "dot": "rose", "title": "Trust boundaries",
+      "items": [
+        "Manager API, SQLite DB, ownership tokens and Linear writes are coordinator-only (user d3, home 0700)",
+        "cm-worker has no 1Password, no gh login, never pushes; its Orca messages are unverified claims",
+        "GitHub App keys go op read → openssl pipe → per-step token narrowed to one repo; never on disk",
+        "Issue text, comments and worker results are untrusted data and cannot widen scope or commands"
+      ]
+    },
+    {
+      "dot": "amber", "title": "Gates and escalation",
+      "items": [
+        "Two implementation attempts total; a second failed verification escalates to a human",
+        "A human's latest CHANGES_REQUESTED vetoes the PR; an unmergeable PR also escalates",
+        "A moved head returns the task to verification; scope change returns it to planning",
+        "Turn lease + precheck (clean main, doctor, no dispatched run) stop overlapping coordinators"
+      ]
+    },
+    {
+      "dot": "violet", "title": "Context and side paths",
+      "items": [
+        "Pinned context bundle: content-addressed bundle.json from a reviewed master commit, read-only",
+        "Context7 for version-matched library docs; Mem0 optional, never the queue or source of truth",
+        "Governance PRs: review-scan → review-inspect/verify/merge → review-confirm, no Linear writes",
+        "Registered: contract-master (governance on), cf-mcp-gw, action1-dashboard, corp-integrated-dashboard"
+      ]
+    }
+  ]
+}
