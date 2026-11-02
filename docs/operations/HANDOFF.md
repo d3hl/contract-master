@@ -21,6 +21,10 @@
 - Access correction: direct Orca browser access worked despite the runtime's
   `browser_unavailable` diagnostic. Actual settings replaced the earlier access
   blocker. User-supplied rule values are no longer required for this inspection.
+- 2026-11-03: worker host changed to Linux user `d3` on NTNSG-RH1, Orca environment
+  `rh1-d3` ([worker host](worker-host.md)). Runner set `enabled: false`; gate 3 is
+  reopened until coordinator credentials are removed from `d3` on NTNSG-RH1 and a
+  probe on `rh1-d3` passes. The `cm-worker` notes below are history.
 - Runner isolation (gate 3) done 2026-10-29: DeepSeek workers run as Linux user
   `cm-worker` on a localhost-only Orca server (environment `cm-worker`,
   [worker host](worker-host.md)); probe Dispatch `ctx_ac7cba883d03` confirmed model
