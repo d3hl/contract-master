@@ -21,6 +21,11 @@
 - Access correction: direct Orca browser access worked despite the runtime's
   `browser_unavailable` diagnostic. Actual settings replaced the earlier access
   blocker. User-supplied rule values are no longer required for this inspection.
+- 2026-11-03 (later): coordinator moved to `ntnsg-rh3` (manager database byte-identical,
+  automation `c0e63d16-…`, created disabled). Worker server `d3-worker-orca` on RH1 runs
+  sandboxed as `d3` on 127.0.0.1:6792, tunnelled from RH3 and paired as `rh1-d3`; probe
+  Dispatch `ctx_a001868bdc78` passed; runner re-enabled. Gate 3 done again. `cm-worker`
+  is still running on 6791 as a fallback.
 - 2026-11-03: worker host changed to Linux user `d3` on NTNSG-RH1, Orca environment
   `rh1-d3` ([worker host](worker-host.md)). Runner set `enabled: false`; gate 3 is
   reopened until coordinator credentials are removed from `d3` on NTNSG-RH1 and a

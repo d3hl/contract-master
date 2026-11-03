@@ -10,8 +10,8 @@
     "git",
     "structured_results"
   ],
-  "evidence": "2026-11-03: workers moved to Linux user d3 on NTNSG-RH1, separate Orca server saved as environment rh1-d3 (docs/operations/worker-host.md). Disabled until the d3 account on NTNSG-RH1 holds no coordinator credentials and a supervised probe on rh1-d3 confirms model identity and blocked credential paths. Prior capability evidence: OpenCode 2.1.4 run as cm-worker 2026-10-29 (Task task_bb472d0c607f, Dispatch ctx_ac7cba883d03, openrouter deepseek/deepseek-v4.1-flash-1017, commit 7acb8fb verified); original probe f381bb8. See docs/operations/runner-verification.md.",
+  "evidence": "Supervised probe 2026-11-03 on environment rh1-d3 (Linux user d3 on NTNSG-RH1, sandboxed Orca server 127.0.0.1:6792, coordinator on ntnsg-rh3): Run run_2679dfa51f3b, Task task_dc04cb423eff, Dispatch ctx_a001868bdc78; OpenCode 2.1.4 reported openrouter deepseek/deepseek-v4.1-flash-1017; gh/ssh/zshrc/op/cm-worker paths hidden, sudo refused (no new privileges), docker socket inaccessible, system read-only; worker commit c35202c checked from inside the sandbox. Original capability run at f381bb8. See docs/operations/runner-verification.md and docs/operations/worker-host.md.",
   "agent": "opencode2",
   "environment": "rh1-d3",
-  "enabled": false
+  "enabled": true
 }

@@ -45,6 +45,10 @@ not store/provision credentials. It does not assert production eligibility.
    (environment `rh1-d3`). The runner is `enabled: false` until `d3` on that host
    holds no coordinator credentials and a new probe confirms model identity and
    blocked credential paths ([worker host](worker-host.md) preconditions).
+   **Done again 2026-11-03:** the `d3` worker server runs in a systemd sandbox (only
+   `~/.orca-serve` and `~/worker` visible, no sudo, no docker socket). Probe Dispatch
+   `ctx_a001868bdc78` confirmed the model and the hidden credential paths
+   ([evidence](runner-verification.md#rh1-d3-probe-2026-11-03)). Runner `enabled: true`.
 4. Recheck Linear context completeness and project pagination after any Orca upgrade.
    Blocking relation direction was verified live on the newly created D3S-99/100 pair
    and is covered by an adapter test.

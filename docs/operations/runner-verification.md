@@ -68,11 +68,31 @@ were queried (installed patch 2.1.4 was unavailable). The local CLI help and act
 run established compatibility. Primary sources: [model selection](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/models.mdx)
 and [project config](https://github.com/anomalyco/opencode/blob/v2.1.2/services/www/src/docs/content/config.mdx).
 
-## Worker host change (2026-11-03)
+## rh1-d3 probe (2026-11-03)
 
-Workers now run as `d3` on NTNSG-RH1 (environment `rh1-d3`). The `cm-worker` evidence
-below does not carry over. Record the new probe here before the runner is enabled
-([preconditions](worker-host.md)).
+Workers now run as `d3` on NTNSG-RH1 in a sandboxed Orca server, paired as `rh1-d3` from
+the coordinator on `ntnsg-rh3` ([setup](worker-host.md)). One supervised probe ran there
+(Run `run_2679dfa51f3b`, Task `task_dc04cb423eff`, Dispatch `ctx_a001868bdc78`, agent
+`opencode2`):
+
+- **Identity:** `whoami` = `d3`, host `NTNSG-RH1`, OpenCode v2.1.4, git email
+  `d3-worker@d3hl.invalid`. The worker reported provider `openrouter`, model
+  `deepseek/deepseek-v4.1-flash-1017`.
+- **Isolation:** hidden: `~/.config/gh/hosts.yml`, `~/.ssh`, `~/.zshrc`, `~/.config/op`,
+  `/home/cm-worker`. `sudo -n true` failed (exit 1, no new privileges); `/etc` read-only.
+- **Claims checked from inside the sandbox** (`nsenter` into the service's mount
+  namespace): the `~/.claude` the worker saw is a sandbox-local folder Orca created
+  (`keybindings.json`, `orca-agent-view.json` only), not `d3`'s real one.
+  `/run/docker.sock` is a mode-000 placeholder on a read-only tmpfs. The probe file
+  matched the report, and commit `c35202c` existed.
+- **Finding fixed:** the probe worktree landed in the sandbox tmpfs
+  (`/home/d3/orca/workspaces/...`), which is lost on restart and unreachable over SSH.
+  Each project's `worktreeBasePath` is now `/home/d3/worker/worktrees`; a check
+  worktree landed there and was readable from outside.
+- **Transfers:** a git bundle created over SSH on RH1 verified on RH3, and pinned
+  context copied to `~/worker/context`.
+
+The `cm-worker` evidence below is history.
 
 ## Isolated worker run (2026-10-29)
 
