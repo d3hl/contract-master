@@ -41,7 +41,7 @@ implementation [D3S-99](https://linear.app/d3space/issue/D3S-99).
 
 Automation is enabled: one Orca scheduled automation runs the
 [coordinator turn](docs/operations/coordinator-prompt.md) every ten minutes. The
-DeepSeek runner is disabled while it moves to a new [worker host](docs/operations/worker-host.md)
-(user `d3` on NTNSG-RH1),
+DeepSeek runner is enabled on a sandboxed [worker host](docs/operations/worker-host.md)
+(user `d3` on NTNSG-RH1, coordinator on ntnsg-rh3),
 and reviewed master commits are pinned in the registry. [Activation gates](docs/operations/pilot.md)
 record the setup; the pilot's first executable issue (gate 8) is still to come.

@@ -123,8 +123,10 @@ worktrees. Use exact IDs/flags from that execution host's receipts.
 
 The configured runner sets `"environment": "rh1-d3"`: its workers run on a
 separate Orca server owned by Linux user `d3` on NTNSG-RH1 ([worker host](worker-host.md)).
-That account must hold no coordinator credentials; the runner stays disabled until
-the worker host preconditions pass.
+The server runs in a systemd sandbox that hides the rest of that account. The
+coordinator on ntnsg-rh3 reaches it through an SSH tunnel, copies pinned context in
+with `scp` and fetches output commits as git bundles over SSH (exact commands in the
+worker host doc).
 This coordinator's runtime is SSH-managed and refuses `worker-start --on`
 (`server_required`), so every orchestration command for an implementation attempt
 goes to that server with `--environment rh1-d3`, and the Run, Task and mailbox

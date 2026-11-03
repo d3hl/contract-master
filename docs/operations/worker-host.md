@@ -1,104 +1,116 @@
 # DeepSeek worker host
 
 Since 2026-11-03, DeepSeek/OpenCode workers run as Linux user **`d3`** on
-**`NTNSG-RH1`** (RHEL 9.8). They use their own Orca server there, which the coordinator
-pairs as saved environment **`rh1-d3`**. This replaces the `cm-worker` account
+**`NTNSG-RH1`** (RHEL 9.8), on their own Orca server inside a systemd sandbox. The
+coordinator runs on **`ntnsg-rh3`**. It reaches the server through an SSH tunnel and
+pairs it as saved environment **`rh1-d3`**. This replaces the `cm-worker` account
 ([previous setup](#previous-setup-cm-worker)).
 
-The runner stays `enabled: false` until both preconditions below are met.
+## Isolation
 
-## Precondition 1: no coordinator secrets in `d3` on NTNSG-RH1
+`d3` on RH1 is a full user account. It has passwordless `sudo`, belongs to the
+`docker` group, and holds personal credentials (`gh` login, SSH keys, an API token in
+`~/.zshrc`, a Claude Code login). Workers run as `d3` but cannot use any of that,
+because the `d3-worker-orca` service, and every agent it starts, runs in a sandbox:
 
-A worker can read everything its Linux user can read. Running as `d3` is safe only
-when the `d3` account on NTNSG-RH1 holds none of the coordinator's secrets or state.
-Before enabling the runner, confirm that none of these exist or can be read as `d3`
-on NTNSG-RH1:
+- `ProtectHome=tmpfs` plus `TemporaryFileSystem=/home/d3`: the worker's `/home/d3` is
+  an empty private tmpfs. Only `~/.orca-serve` and `~/worker` are bind-mounted in.
+  Every other home directory is hidden.
+- `NoNewPrivileges` and an empty `CapabilityBoundingSet`, so `sudo` is refused.
+- `InaccessiblePaths=/run/docker.sock`. The socket exists as a mode-000 placeholder
+  and cannot be opened.
+- `ProtectSystem=strict`: the system is read-only apart from the two bound folders.
+- The `XDG_*` folders and `GIT_CONFIG_GLOBAL` point into `~/worker`, so the worker
+  never reads `d3`'s personal OpenCode, git or shell configuration.
 
-- the 1Password service-account token (`~/.config/op/contract-master-sa-token`)
-  and any `op` session;
-- a `gh` login (`~/.config/gh/hosts.yml`), GitHub App private keys or any token
-  that can push, approve or merge;
-- SSH private keys that grant push or access to other hosts;
-- the manager database and outbox (`.state/` of the coordinator checkout);
-- the coordinator's own Orca runtime data (`~/.orca`), its Linear access and the
-  scheduled coordinator automation.
+Anything created elsewhere under `/home/d3` inside the sandbox (for example Orca's
+`~/.claude` agent hooks or `~/.orca`) lives in the tmpfs and is lost on restart.
+Workers hold no GitHub credential and never push. `open-pr` (d3hl-orca) pushes
+output commits from the coordinator.
 
-If the coordinator itself still runs as `d3` on NTNSG-RH1, this precondition is not
-met. Move it to another host or account first. The worker keeps only its own
-OpenRouter login for OpenCode. It clones the target repositories over public HTTPS
-and never pushes; `open-pr` (d3hl-orca) pushes output commits from the coordinator
-side.
+Probe evidence: [runner verification](runner-verification.md#rh1-d3-probe-2026-11-03).
 
-## Precondition 2: probe on `rh1-d3`
-
-Run one supervised probe through the flow below and record it in
-[runner verification](runner-verification.md). The probe must show:
-
-- `whoami` = `d3` on `NTNSG-RH1`;
-- the session model is OpenRouter `deepseek/deepseek-v4.1-flash-1017`;
-- every path in precondition 1 is missing or refused;
-- an output commit that Codex verifies independently.
-
-Then set `enabled: true` in `config/deepseek-runner.json`.
-
-## Layout
+## Layout on NTNSG-RH1
 
 | Item | Location |
 |---|---|
-| Worker user | `d3` on `NTNSG-RH1`, with no coordinator credentials (precondition 1) |
-| `opencode` / `opencode2` on PATH | `~d3/.opencode/bin/` |
-| Orca server data | `~d3/.orca-serve/` (separate from any `~/.orca` runtime) |
-| Worker repo clones | `~d3/repos/<repo>`; register each in the `rh1-d3` server and record its Orca repo id here |
-| Model pin | `~d3/.config/opencode/opencode.json` (OpenRouter `deepseek/deepseek-v4.1-flash-1017`) for repos without `.opencode/opencode.json` |
-| Git identity | `contract-master DeepSeek worker <d3-worker@d3hl.invalid>` |
-| Service | `d3-worker-orca.service` (systemd user or system unit, `User=d3`) |
+| Service | `/etc/systemd/system/d3-worker-orca.service` (`User=d3`, enabled) |
+| Orca server | orcad `0.1.0+befec5392488` (app 1.4.243), `ws://127.0.0.1:6792`, data in `~/.orca-serve/` |
+| Log | `~/.orca-serve/serve.log` (owned by `d3`; pairing lines deleted after pairing) |
+| OpenCode | verified v2.1.4: `~/worker/bin/opencode` → `/opt/contract-master-worker/bin/opencode`, plus the `opencode2` shim. Not `d3`'s own v2.2.5 |
+| OpenCode config/data | `~/worker/config/opencode/opencode.json` (model `openrouter/deepseek/deepseek-v4.1-flash-1017`), `~/worker/data/opencode` (the worker's own OpenRouter credential) |
+| Git identity | `~/worker/config/git/config`: `contract-master DeepSeek worker <d3-worker@d3hl.invalid>` |
+| Repo clones | `~/worker/repos/<repo>`, public HTTPS, no credential helper |
+| Worker worktrees | `~/worker/worktrees/<repo>/<name>` (each project's `worktreeBasePath`) |
+| Pinned context | `~/worker/context/<digest>/` |
 
-## Orca server
+Orca repo ids on `rh1-d3`: contract-master `047231de-…`, cf-mcp-gw `1d201aa6-…`,
+action1-dashboard `340ff8b0-…`, corp-integrated-dashboard `1501836a-…`.
 
-Start orcad with `--bind 127.0.0.1` on a fixed port (for example `6791`), as the
-`cm-worker` service did. `orca serve` binds `0.0.0.0` by default. Keep the systemd
-hardening (`ProtectSystem=strict`, `NoNewPrivileges`). Write output to
-`~d3/.orca-serve/serve.log` and delete the pairing lines once pairing is done.
+## Coordinator side (ntnsg-rh3)
 
-If the coordinator runs on another host, reach the server through an SSH tunnel to
-`127.0.0.1:<port>` on NTNSG-RH1. Do not expose the port on the LAN. As of
-2026-11-03, `ntnsg-rh3` cannot resolve `NTNSG-RH1`. Add a DNS or SSH config entry
-before pairing from there.
+| Item | Location |
+|---|---|
+| SSH alias | `rh1-worker` in `~/.ssh/config` → `d3@10.203.1.121`, key `~/.ssh/id_ed25519_rh1_worker`, host key alias `NTNSG-RH1` (ED25519 `SHA256:nb82cMH2…K004yOA`) |
+| Tunnel | user unit `~/.config/systemd/user/rh1-d3-tunnel.service` (lingering): `127.0.0.1:6792` → RH1 `127.0.0.1:6792` |
+| Orca environment | `rh1-d3` (`b0a564ff-…`) |
 
-## Coordinator connection
+The SSH key lives only on RH3 and grants RH3 → RH1, never the reverse. The worker
+cannot see `~/.ssh/authorized_keys` on RH1.
 
-The coordinator pairs the server as saved environment **`rh1-d3`**
-(`orca environment add --name rh1-d3 --pairing-code …`, without printing the code).
-Its runtime rejects `worker-start --on` (`server_required`), so it addresses the
-worker server directly:
+## Dispatch flow
 
-1. `terminal create --environment rh1-d3 --worktree <repo root id>` → a plain
-   mailbox terminal handle.
-2. `orchestration run-create --environment rh1-d3 --from <mailbox>`.
-3. `orchestration worker-start --environment rh1-d3 --from <mailbox> --run <run>
-   --worktree new-top-level --repo id:<worker repo> --agent opencode2 --setup skip`.
-4. `orchestration check --environment rh1-d3 --terminal <mailbox> --wait`, then
-   ack, `worker-release --environment rh1-d3 --dispatch <id>`.
+Every orchestration command for an implementation attempt uses `--environment rh1-d3`.
+The Run, Task and mailbox live on the worker server:
 
-The Orca Run and mailbox live on the worker's server, which the worker can write.
-Orca messages are hints only. The manager database stays authoritative on the
-coordinator side, and Codex verifies the actual output commit independently. Treat
-every `worker_done` as an unverified claim.
+1. `terminal create --environment rh1-d3 --worktree id:<repo id>::/home/d3/worker/repos/<repo>`
+   → a plain mailbox terminal handle.
+2. `orchestration run-create --environment rh1-d3 --from <mailbox> --objective ...`.
+3. Copy the pinned context in: `scp -r <context dir> rh1-worker:worker/context/`. The
+   spec refers to `/home/d3/worker/context/...`.
+4. `orchestration worker-start --environment rh1-d3 --from <mailbox> --run <run>
+   --spec-file <spec> --worktree new-top-level --repo id:<repo id> --name <task>
+   --agent opencode2 --setup skip --json`. Pass `--retry-request` only with a UUID
+   Orca printed for the original request; it rejects made-up ids. Then read the
+   worker (`worker-read --source auto`). If OpenCode shows the prompt pasted but not
+   submitted, send exactly one Enter.
+5. `orchestration check --environment rh1-d3 --terminal <mailbox> --wait`, then
+   `worker-release --environment rh1-d3 --dispatch <id>`. This Orca version has no
+   separate `ack`: `check` consumes the message.
+6. Fetch the output commit as a bundle:
+   `ssh rh1-worker "git -C ~/worker/worktrees/<repo>/<name> bundle create - <base>..<commit>" > out.bundle`,
+   then `git bundle verify` and `git fetch out.bundle` in the coordinator/Codex
+   checkout.
+
+Orca messages from that server are unverified claims. The manager database
+(coordinator-only) stays authoritative, and Codex verifies the actual output commit
+independently. To see what a worker really saw, inspect the sandbox from RH1:
+`sudo nsenter -t $(systemctl show -p MainPID --value d3-worker-orca) -m <command>`.
 
 ## Rebuild or remove
 
-- Re-pair: restart the service, read the new `Pairing URL` from `serve.log`
-  without printing it, `orca environment add --name rh1-d3 --pairing-code …`,
-  then delete the pairing lines from the log.
-- Remove: stop and disable `d3-worker-orca`, `orca environment rm --environment
-  rh1-d3`, remove `~d3/.orca-serve` and `~d3/repos`.
+- Restart: `sudo systemctl restart d3-worker-orca`. Sandbox tmpfs contents are lost;
+  `~/worker` and `~/.orca-serve` persist.
+- Re-pair: restart the service, then on RH3 read the new code over SSH straight into
+  `orca environment add --name rh1-d3 --pairing-code …` without printing it. Delete
+  the pairing lines from `serve.log`.
+- After an Orca upgrade, re-run the selection entry as `d3` to refresh
+  `~/.orca-serve/orcad-artifacts`, then update `ExecStart`:
+
+  ```
+  ELECTRON_RUN_AS_NODE=1 /opt/contract-master-worker/orca-app/orca-ide \
+    /opt/contract-master-worker/orca-app/resources/app.asar/out/main/orcad/orcad-local-serve-selection-entry.js \
+    --user-data ~/.orca-serve --app-root /opt/contract-master-worker/orca-app/resources/app.asar
+  ```
+- Remove: `sudo systemctl disable --now d3-worker-orca`, delete the unit,
+  `orca environment rm --environment rh1-d3`, `systemctl --user disable --now
+  rh1-d3-tunnel` on RH3, then remove `~/worker` and `~/.orca-serve` on RH1.
 
 ## Previous setup: `cm-worker`
 
-From 2026-10-29 to 2026-11-03, workers ran as the locked-down user `cm-worker` on
-NTNSG-RH1. The account could not read `/home/d3` at all. It had its own Orca server
-on `127.0.0.1:6791` (`cm-worker-orca.service`, binaries under
-`/opt/contract-master-worker`) and was paired as environment `cm-worker`.
-Evidence is in [runner verification](runner-verification.md). To remove it:
-`systemctl disable --now cm-worker-orca`, `orca environment rm --environment
-cm-worker`, `userdel -r cm-worker`, `rm -rf /opt/contract-master-worker`.
+From 2026-10-29 to 2026-11-03, workers ran as the locked-down user `cm-worker`
+(`cm-worker-orca.service`, `127.0.0.1:6791`, binaries under
+`/opt/contract-master-worker`), paired as environment `cm-worker` from a coordinator
+on RH1. It is still running as a fallback. `/opt/contract-master-worker` is shared
+with the new setup, so keep it. To retire `cm-worker`: `sudo systemctl disable --now
+cm-worker-orca`, then `sudo userdel -r cm-worker`.
