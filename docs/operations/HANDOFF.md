@@ -21,6 +21,11 @@
 - Access correction: direct Orca browser access worked despite the runtime's
   `browser_unavailable` diagnostic. Actual settings replaced the earlier access
   blocker. User-supplied rule values are no longer required for this inspection.
+- 2026-11-03 (evening): automation `c0e63d16-…` on ntnsg-rh3 is enabled, hourly
+  (`*/60`), fresh session per run (a reused session made the 10:00 SGT run fail with
+  "Orca stopped watching this run"). RH1 runs no Orca app and stores no trace of
+  `dc0657b8-…` for user `d3`, so only one schedule exists. If Orca is opened on RH1,
+  list automations there and disable `dc0657b8-…` if it reappears.
 - 2026-11-03 (later): coordinator moved to `ntnsg-rh3` (manager database byte-identical,
   automation `c0e63d16-…`, created disabled). Worker server `d3-worker-orca` on RH1 runs
   sandboxed as `d3` on 127.0.0.1:6792, tunnelled from RH3 and paired as `rh1-d3`; probe

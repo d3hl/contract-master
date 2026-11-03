@@ -11,8 +11,10 @@ follows this resolution and never switches builds on failure.
 ## Intake and scheduling
 
 No Orca automation existed at bootstrap. `config/orca-automation.json` records the
-one Orca-owned ten-minute schedule, installed at pilot gate 7 as automation
-`dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9`. The CLI exposed scheduled triggers,
+one Orca-owned schedule. It was installed at pilot gate 7 as automation
+`dc0657b8-923e-4d65-a57f-0a1d8b8ab4a9` on NTNSG-RH1 (every ten minutes) and moved
+on 2026-11-03 to `c0e63d16-c147-40b2-bb1b-5698891f2ff0` on ntnsg-rh3 (hourly,
+fresh session per run). The CLI exposed scheduled triggers,
 not a verified Linear webhook registration capability. Full reconciliation is the
 working intake path. A future existing webhook can wake the **same** coordinator;
 it must fetch current issues and call the same manager, not create another scheduler.
