@@ -9,6 +9,11 @@ Before planning or editing, explicitly read:
 
 Product code, tests and API contracts live here. Shared automation policies live
 in contract-master. Follow the task's allowed scope, acceptance and required checks.
+
+Work test-first: for each plan step, write the failing test, run it and see it fail,
+make the smallest change that passes, then run the required checks. Report check
+output as evidence; never claim a check passed without running it. When a test
+fails unexpectedly, find the cause before changing code.
 Claude investigates and plans; DeepSeek implements and tests; Codex independently
 verifies, reviews and merges. Send results to the coordinator. Only the manager
 writes Linear. Humans handle escalations.
