@@ -10,6 +10,7 @@ Read these documents explicitly before work; links alone do not load context:
 - [Registry and onboarding](docs/onboarding/repositories.md)
 - [Orca coordination and recovery](docs/operations/orca.md)
 - [Security and context](docs/policies/context-and-security.md)
+- [Superpowers skills by phase](docs/policies/superpowers.md)
 - [Pilot and activation gates](docs/operations/pilot.md)
 - [Current HANDOFF](docs/operations/HANDOFF.md)
 
