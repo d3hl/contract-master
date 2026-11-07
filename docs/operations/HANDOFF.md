@@ -149,6 +149,18 @@
   `typecheck`/`build` pass on `d6f76be`, worker clone
   `~cm-worker/repos/corp-integrated-dashboard` (`57907de9-…`), target `AGENTS.md`
   PR (corp-integrated-dashboard #1), registry entry in this change.
+- 2026-11-07: `d3hl/pve-orchenv` onboarding started (no Linear issue; tracked in
+  project PVE Orchestration Env `15fd150b-…`, label `repo:pve-orchenv`). Python 3.12
+  installed on RH1 (RH3 already had it). Checks `test` and `lint` pass on `5cad6fe` on
+  both hosts and leave the checkout clean. Worker clone `~/worker/repos/pve-orchenv`
+  (`d2492923-…`), target `AGENTS.md` PR (pve-orchenv #1), registry entry in this
+  change. Blocker: the `d3hl` installations of both Apps (176325322, 176202750) do not
+  include pve-orchenv yet (narrowed token mint returns 422); the owner added it to
+  both the same day and narrowed tokens now mint for both. DeepSeek runner probe passed
+  (Dispatch `ctx_ad25fd4ff9ae`, [runner verification](runner-verification.md)). Next:
+  merge pve-orchenv #1 and this change, one bounded docs pilot issue, then phase B
+  after its first `codex-merge`. The owner's `feat/pve-bare-metal-provisioning`
+  work is unaffected until phase B, which stops direct pushes to `main`.
 - Exact next action: merge corp-integrated-dashboard #1, then this registry change;
   then the DeepSeek runner probe and one bounded docs pilot issue for it, then
   phase B after its first `codex-merge`. Other work for the registered

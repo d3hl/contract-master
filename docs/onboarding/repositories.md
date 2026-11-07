@@ -54,7 +54,8 @@ repository. Other labels are ignored. Each label belongs to one repository
 (`doctor` reports duplicates). Repositories without `linear_label`, such as
 `d3hl/contract-master`, accept issues without a `repo:` label.
 
-Registered repositories (D3S-109, 2026-10-30; corp-integrated-dashboard 2026-11-01):
+Registered repositories (D3S-109, 2026-10-30; corp-integrated-dashboard 2026-11-01;
+pve-orchenv 2026-11-07):
 
 | Repository | Linear project | Label | Allowed scope | Checks |
 |---|---|---|---|---|
@@ -62,6 +63,7 @@ Registered repositories (D3S-109, 2026-10-30; corp-integrated-dashboard 2026-11-
 | `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs`, `pilot.example.json` | `typecheck`, `docs`, `secrets`, `tests` |
 | `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs` | `test` |
 | `d3-corp/corp-integrated-dashboard` | Corp Integrated Dashboard | `repo:corp-integrated-dashboard` | `README.md`, `docs`, `src`, `server`, `package.json`, `package-lock.json`, `mcp-app.html`, `vite.mcp.config.ts` | `typecheck`, `build` |
+| `d3hl/pve-orchenv` | PVE Orchestration Env | `repo:pve-orchenv` | `docs`, `build/README.md`, `bootserver/answer`, `ansible/roles`, `ansible/tasks`, `ansible/tests`, `ansible/{site,e2e_up,e2e_down,e2e_vars}.yml` | `test`, `lint` |
 
 Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks,
 `repo:action1-dashboard` for Action1 tasks, including the Action1 dashboard, and
@@ -87,6 +89,20 @@ CI stay out of scope. It was widened again on 2026-11-02 for MCP App packaging
 (D3S-132): `mcp-app.html` and `vite.mcp.config.ts`, the separate single-file entry
 and build config for the MCP App. They sit beside the standalone build, which stays
 out of scope; the MCP server lives in `server`.
+
+`d3hl/pve-orchenv` (registered 2026-11-07) provisions Proxmox VE on bare metal: a
+PXE boot server, the `bootserver/answer` Flask service and Ansible roles. Use
+`repo:pve-orchenv` for its tasks. It is the first `d3hl` target besides the
+manager, so it uses the `d3hl` App installations (176325322 orca, 176202750 codex),
+which include it since 2026-11-07. It is on phase A until its first `codex-merge`. Its checks are offline and need Python 3.12 on both hosts plus
+PyPI and Ansible Galaxy, no credentials: `test` runs pytest for the answer service
+and `lint` runs ansible-lint and yamllint, each in a fresh temporary venv. Because
+`ansible/ansible.cfg` names `config/vault-pass`, `lint` passes a throwaway vault
+password file; no check decrypts the vault. Tasks never run `make check`, `e2e-*`,
+`bootserver-*` or anything that reaches real hosts. `inventory`, `config`,
+`versions.env`, `Makefile`, lint configuration, `ansible/ansible.cfg`,
+`ansible/requirements.yml` and the build and boot-server scripts stay out of
+scope; a new playbook needs a reviewed registry change.
 
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
 Ordinary product tasks should target other registered repositories. The current

@@ -45,7 +45,9 @@ Probe evidence: [runner verification](runner-verification.md#rh1-d3-probe-2026-1
 | Pinned context | `~/worker/context/<digest>/` |
 
 Orca repo ids on `rh1-d3`: contract-master `047231de-…`, cf-mcp-gw `1d201aa6-…`,
-action1-dashboard `340ff8b0-…`, corp-integrated-dashboard `1501836a-…`.
+action1-dashboard `340ff8b0-…`, corp-integrated-dashboard `1501836a-…`,
+pve-orchenv `d2492923-…` (added 2026-11-07 with `orca project setup-update
+--worktree-base-path /home/d3/worker/worktrees`; `repo add` leaves it unset).
 
 ## Coordinator side (ntnsg-rh3)
 
@@ -78,7 +80,9 @@ The Run, Task and mailbox live on the worker server:
    `worker-release --environment rh1-d3 --dispatch <id>`. This Orca version has no
    separate `ack`: `check` consumes the message.
 6. Fetch the output commit as a bundle:
-   `ssh rh1-worker "git -C ~/worker/worktrees/<repo>/<name> bundle create - <base>..<commit>" > out.bundle`,
+   `ssh rh1-worker "git -C ~/worker/worktrees/<repo>/<name> bundle create - <base>..HEAD" > out.bundle`
+   after checking that the worktree `HEAD` is the reported commit (a bare SHA as the
+   range end makes git refuse with "empty bundle"),
    then `git bundle verify` and `git fetch out.bundle` in the coordinator/Codex
    checkout.
 
