@@ -339,6 +339,87 @@
       },
       "runner_config": "config/deepseek-runner.json",
       "linear_label": "repo:corp-integrated-dashboard"
+    },
+    "d3hl/pve-orchenv": {
+      "url": "https://github.com/d3hl/pve-orchenv",
+      "orca_repo_id": "db08e4cf-ca90-4098-a7aa-6d681b739086",
+      "base_ref": "origin/main",
+      "linear_projects": [
+        "15fd150b-a694-4264-bf53-85978cb7e578"
+      ],
+      "documentation_entrypoints": [
+        "AGENTS.md",
+        "build/README.md"
+      ],
+      "required_context": [
+        "AGENTS.md",
+        "docs/policies/workflow.md",
+        "docs/policies/context-and-security.md",
+        "docs/contracts/v1.md",
+        "docs/operations/orca.md"
+      ],
+      "allowed_scope": [
+        "ansible/e2e_down.yml",
+        "ansible/e2e_up.yml",
+        "ansible/e2e_vars.yml",
+        "ansible/roles",
+        "ansible/site.yml",
+        "ansible/tasks",
+        "ansible/tests",
+        "bootserver/answer",
+        "build/README.md",
+        "docs"
+      ],
+      "checks": {
+        "test": {
+          "argv": [
+            "sh",
+            "-c",
+            "set -e; t=$(mktemp -d); trap 'rm -rf \"$t\"' EXIT; python3.12 -m venv \"$t/venv\"; \"$t/venv/bin/pip\" install -q --disable-pip-version-check -r requirements-dev.txt -e bootserver/answer; \"$t/venv/bin/pytest\" -q -p no:cacheprovider bootserver/answer/tests"
+          ],
+          "timeout_seconds": 600
+        },
+        "lint": {
+          "argv": [
+            "sh",
+            "-c",
+            "set -e; t=$(mktemp -d); trap 'rm -rf \"$t\"' EXIT; python3.12 -m venv \"$t/venv\"; \"$t/venv/bin/pip\" install -q --disable-pip-version-check -r requirements-dev.txt; printf 'lint-only\\n' > \"$t/vault-pass\"; PATH=\"$t/venv/bin:$PATH\" ANSIBLE_CONFIG=ansible/ansible.cfg ANSIBLE_VAULT_PASSWORD_FILE=\"$t/vault-pass\" ansible-lint ansible/; \"$t/venv/bin/yamllint\" ."
+          ],
+          "timeout_seconds": 600
+        }
+      },
+      "planning_runner": "claude",
+      "implementation_runner": "deepseek-portable",
+      "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_gate_audited": true,
+      "merge_identity": {
+        "login": "d3hl-codex[bot]",
+        "type": "Bot"
+      },
+      "github_apps": {
+        "pr": {
+          "slug": "d3hl-orca",
+          "app_id": 5516831,
+          "installation_id": 176325322,
+          "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"
+        },
+        "merge": {
+          "slug": "d3hl-codex",
+          "app_id": 5511451,
+          "installation_id": 176202750,
+          "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"
+        }
+      },
+      "credential_references": [
+        "op://contract-master/SSH Key-d3hl-orca-github/private key",
+        "op://contract-master/SSH Key-d3hl-codex/private key"
+      ],
+      "dependency_versions": {
+        "python": "3.12.15"
+      },
+      "runner_config": "config/deepseek-runner.json",
+      "linear_label": "repo:pve-orchenv"
     }
   }
 }

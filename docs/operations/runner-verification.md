@@ -149,6 +149,24 @@ it applies only to that dedicated worker account. Worker clones fetch the now-pu
 repositories over HTTPS; the worker still holds no GitHub credential. The probe
 worktrees `cm-probe-cf` and `cm-probe-a1` are preserved on the worker.
 
+## pve-orchenv probe (2026-11-07)
+
+Before registering `d3hl/pve-orchenv`, one supervised worker ran on `rh1-d3` (Run
+`run_0963e7d36ef3`, Task `task_ac0c5757c35f`, Dispatch `ctx_ad25fd4ff9ae`, agent
+`opencode2`, worktree `~/worker/worktrees/pve-orchenv/cm-probe-pve`). It added only
+`docs/contract-master-probe.md`, ran both registered checks and committed locally.
+Nothing was pushed.
+
+- **Identity:** `d3` on `NTNSG-RH1`, OpenCode v2.1.4, OpenRouter
+  `deepseek/deepseek-v4.1-flash-1017`, Python 3.12.15.
+- **Commit:** `5cad6fe` → `fe2c46db1619aaee5ceedae197326ae25b7a2fb4`, authored by
+  `contract-master DeepSeek worker <d3-worker@d3hl.invalid>`.
+- **Independent check:** the coordinator fetched the commit by `git bundle` into a fresh
+  clone on RH3 and ran `inspect_checkout` with the registry argv: diff is exactly the
+  probe file, `test` passes (139) and `lint` passes (0 failures, `production`
+  profile), and the tree stays clean. `worker_done` was treated as a claim.
+- The worker was released. The probe worktree stays on the worker.
+
 ## Scope and remaining gates
 
 This is a user-authorized **capability probe**, not the registered production
