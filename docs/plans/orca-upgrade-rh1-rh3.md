@@ -105,11 +105,14 @@ deliberate (Step 0.4).
 - [x] **Step 1.2: Stop and disable the service** (done 2026-11-26, after Gate 0):
   `sudo systemctl disable --now cm-worker-orca`. Expected: `inactive` / `disabled`, port
   6791 closed, `d3-worker-orca` still `active`. Rollback: `sudo systemctl enable --now cm-worker-orca`.
-- [ ] **Step 1.3: Remove the account** (not done; needs a separate owner go-ahead
-  because it is irreversible): `sudo userdel -r cm-worker`. First reconcile the manager
-  `ownership` rows (HANDOFF: preserved, "reconcile before any cleanup") and keep
-  `/opt/contract-master-worker`, which `d3-worker-orca` still uses. Tarball
-  `/home/cm-worker` before deleting it.
+- [x] **Step 1.3: Remove the account** (done 2026-11-26 on the owner's explicit go-ahead;
+  irreversible): `sudo userdel -r cm-worker`. Checked first: no process ran as
+  `cm-worker`, no file in `/opt/contract-master-worker` was owned by it, and no manager
+  `ownership` row mentions it (HANDOFF: preserved, "reconcile before any cleanup").
+  `/opt/contract-master-worker` is kept because `d3-worker-orca` uses it. Backup:
+  `/home/d3/backups/cm-worker-home-2026-11-26.tgz` on RH1 (452 MB, mode 600, holds the
+  account's old OpenRouter credential: delete it once it is no longer needed).
+  Left over: the disabled unit `/etc/systemd/system/cm-worker-orca.service`.
 
 ## Phase 2: Upgrade the worker host RH1 (canary)
 
@@ -217,5 +220,5 @@ probe leaks credentials, or any step needs a second attempt at the same change.
 | Phase | Status | Evidence |
 |---|---|---|
 | 0 Baseline, freeze, backup | **Gate 0 passed 2026-11-26** | RH3 1.4.274 (app matches disk); RH1 app 1.4.274, `d3-worker-orca` on orcad `6a25fd26e384`; `turn-check` free; `doctor` no blockers; no `dispatched` run; 0 workers on `rh1-d3`; 13 manager tasks, none active; backup `integrity_check` = `ok` in `~/backups/orca-upgrade-2026-11-26/` (database, rest of `.state`, automation config, repo head, automation list) |
-| 1 cm-worker | Steps 1.1-1.2 done; 1.3 waits for owner | `cm-worker-orca` inactive and disabled; `d3-worker-orca` active; `rh1-d3` reachable |
+| 1 cm-worker | **Done 2026-11-26** (Steps 1.1-1.3) | `cm-worker-orca` inactive and disabled; account `cm-worker` deleted, home backed up; `d3-worker-orca` active; `/opt` app intact; `rh1-d3` reachable with 0 workers |
 | 2-6 | not started | Phase 0.3 (release notes) and 0.4 (automation answer) are still open |
