@@ -63,6 +63,11 @@ not store/provision credentials. It does not assert production eligibility.
    the 60 most recent D3S issues has a blocking relation, so relation direction was
    not re-observed live. Unknown relation shapes fail closed; re-observe direction on
    the gate 8 issue if it has a dependency.
+   **Rechecked 2026-11-26 on Orca 1.4.274** (read-only, same adapter code): 5 Linear
+   projects, 29 issues. The default listing and a one-issue-per-page listing returned the
+   same set in every project, each issued cursor advanced and nothing was `partial`; full
+   reads of all 29 passed. A `reconcile` against a copy of the manager database produced
+   44 outcomes, none `retry`, and would have queued nothing.
 5. Audit Linear's GitHub/GitLab workflow automations. Disable any merge/PR rule that
    can mark participating issues Done before final Claude confirmation. Use status-neutral `Related to D3S-123`
    associations, and audit branch/title auto-linking as well as closing keywords. Record a settings screenshot
