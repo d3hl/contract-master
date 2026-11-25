@@ -55,36 +55,45 @@ pve-orchenv `d2492923-…` (added 2026-11-07 with `orca project setup-update
 |---|---|
 | SSH alias | `rh1-worker` in `~/.ssh/config` → `d3@10.203.1.121`, key `~/.ssh/id_ed25519_rh1_worker`, host key alias `NTNSG-RH1` (ED25519 `SHA256:nb82cMH2…K004yOA`) |
 | Tunnel | user unit `~/.config/systemd/user/rh1-d3-tunnel.service` (lingering): `127.0.0.1:6792` → RH1 `127.0.0.1:6792` |
-| Orca environment | `rh1-d3` (`b0a564ff-…`) |
+| Orca environment | `rh1-d3` (`b0a564ff-…`); name used with `worker-start --on` |
 
 The SSH key lives only on RH3 and grants RH3 → RH1, never the reverse. The worker
 cannot see `~/.ssh/authorized_keys` on RH1.
 
 ## Dispatch flow
 
-Every orchestration command for an implementation attempt uses `--environment rh1-d3`.
-The Run, Task and mailbox live on the worker server:
+Place the worker with `--on rh1-d3` (Orca 1.4.274 and later). The Run, Task and mailbox
+stay on the coordinator's own Orca; only the worker lives on the server and it is
+addressed by Dispatch id. `worker-start --environment rh1-d3` is refused with
+`agent_server_route_refused` ([coordination doc](orca.md#deepseek-workers-on-the-paired-rh1-d3-server)).
 
-1. `terminal create --environment rh1-d3 --worktree id:<repo id>::/home/d3/worker/repos/<repo>`
-   → a plain mailbox terminal handle.
-2. `orchestration run-create --environment rh1-d3 --from <mailbox> --objective ...`.
+1. Read the server's project row: `orca project setups --environment rh1-d3 --json`.
+   Use `repoId` of the `ready` git row with `hostId: local` for the target (the ids above).
+   Never use this machine's id.
+2. On the coordinator's own Orca: `orca orchestration run-create --objective ...`, then
+   `task-create --run <run> --spec-file <spec> --retry-request <uuid>`. No `--environment`,
+   no `--from`.
 3. Copy the pinned context in: `scp -r <context dir> rh1-worker:worker/context/`. The
    spec refers to `/home/d3/worker/context/...`.
-4. `orchestration worker-start --environment rh1-d3 --from <mailbox> --run <run>
-   --spec-file <spec> --worktree new-top-level --repo id:<repo id> --name <task>
-   --agent opencode2 --setup skip --json`. Pass `--retry-request` only with a UUID
-   Orca printed for the original request; it rejects made-up ids. Then read the
-   worker (`worker-read --source auto`). If OpenCode shows the prompt pasted but not
-   submitted, send exactly one Enter.
-5. `orchestration check --environment rh1-d3 --terminal <mailbox> --wait`, then
-   `worker-release --environment rh1-d3 --dispatch <id>`. This Orca version has no
-   separate `ack`: `check` consumes the message.
+4. `orca orchestration worker-start --task <task> --run <run> --on rh1-d3
+   --worktree new-top-level --repo id:<repoId> --name <task> --agent opencode2
+   --setup skip --retry-request <uuid> --json` (`worker_command(..., server_repo_id=<repoId>)`
+   builds it). Pass `--retry-request` only with a UUID Orca printed for the original
+   request; it rejects made-up ids. Then read the worker
+   (`orchestration worker-read --dispatch <id>`). If OpenCode shows the prompt pasted but
+   not submitted, send exactly one Enter.
+5. `orca orchestration check --wait` on the coordinator's own terminal, then
+   `worker-release --dispatch <id>`. This Orca version has no separate `ack`: `check`
+   consumes the message.
 6. Fetch the output commit as a bundle:
    `ssh rh1-worker "git -C ~/worker/worktrees/<repo>/<name> bundle create - <base>..HEAD" > out.bundle`
    after checking that the worktree `HEAD` is the reported commit (a bare SHA as the
    range end makes git refuse with "empty bundle"),
    then `git bundle verify` and `git fetch out.bundle` in the coordinator/Codex
    checkout.
+
+Steps 2 and 4 to 5 are documented by Orca 1.4.274's placement guide and are not yet
+proven end to end here; the first probe Dispatch (upgrade plan Step 5.2) settles it.
 
 Orca messages from that server are unverified claims. The manager database
 (coordinator-only) stays authoritative, and Codex verifies the actual output commit
