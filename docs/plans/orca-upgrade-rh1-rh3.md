@@ -87,9 +87,15 @@ deliberate (Step 0.4).
   yet; Phase 5 does that.
 - [ ] **Step 0.5: Freeze.** (a) `python3 -m contract_master turn-check` exits 0, so no
   turn holds the lease. (b) `orca automations runs --id c0e63d16-c147-40b2-bb1b-5698891f2ff0 --limit 20 --json`
-  shows no `dispatched` run. (c) For every recorded Run, `orca orchestration worker-list --run <RUN> --include-remote --json`
-  shows only settled or released Dispatches; any unknown one **stops the plan** and is
-  handled by the orca.md interruption procedure. (d) Keep the automation disabled.
+  shows no `dispatched` run. (c) Implementation Runs, Tasks and the mailbox live on the
+  worker server, so check **both** Orca servers, never only the local one:
+  `orca orchestration worker-list --include-remote --json` and
+  `orca orchestration worker-list --environment rh1-d3 --include-remote --json`
+  (worker-host.md: every orchestration command for an implementation attempt takes
+  `--environment rh1-d3`). Add `--run <RUN>` for each Run recorded in HANDOFF or the
+  manager. Only settled or released Dispatches are acceptable; any unknown one **stops
+  the plan** and is handled by the orca.md interruption procedure. (d) Keep the
+  automation disabled.
 - [ ] **Step 0.6: Back up.** With the coordinator quiescent, take a SQLite online backup
   of the manager database (path from the manager config) plus `.state/`, bundles and
   preserved workspaces together (orca.md, "Durable authority"). On RH1, stop nothing yet;
@@ -166,13 +172,20 @@ deliberate (Step 0.4).
   (add `--skill orca-per-workspace-env` and the rest only if the dry run lists them).
   A copy with extra files may be skipped. Use `--force` only after reading the skip
   list; it moves each replaced copy to `~/.agents/.orca-skill-backups`.
-- [ ] **Step 4.3: Same dry run on RH1 as `d3`** (`ssh rh1-worker 'orca skills update --all --dry-run --json'`).
-  Note the sandbox gets an empty `/home/d3`, so only real-account copies count.
-- [ ] **Step 4.4: Confirm.** `orca skills get orchestration --json` returns the
-  version matching 1.4.274 on both hosts. Skills from `Claude Code home` or the
-  `Codex plugin cache` are not Orca-owned and are out of scope.
-- [ ] **Gate 4:** both hosts report the same orchestration skill version; the
-  backup folder is recorded if `--force` was used.
+- [ ] **Step 4.3: Dry run on RH1 as `d3`** (`ssh rh1-worker 'orca skills update --all --dry-run --json'`).
+  Note the sandbox gets an empty `/home/d3`, so only real-account copies count. Review
+  the plan digest and the skip list exactly as in Step 4.1.
+- [ ] **Step 4.4: Apply selectively on RH1.** Run the same selective update as Step 4.2
+  over SSH, limited to the skills the RH1 dry run lists as installed:
+  `ssh rh1-worker 'orca skills update --skill <name> [--skill <name>…] --json'`. Same
+  precautions: no `--force` until the skip list is read, and record the backup folder
+  `~/.agents/.orca-skill-backups` on RH1 if it is used. If the dry run lists nothing,
+  record "no Orca-owned skill installed for `d3` on RH1" and skip to Step 4.5.
+- [ ] **Step 4.5: Confirm on both hosts.** `orca skills get orchestration --json` returns
+  the version matching 1.4.274 on RH3 and, over SSH, on RH1. Skills from
+  `Claude Code home` or the `Codex plugin cache` are not Orca-owned and are out of scope.
+- [ ] **Gate 4:** both hosts report the same orchestration skill version, and the
+  backup folder of each host is recorded if `--force` was used.
 
 ## Phase 5: Orchestrator update and acceptance
 
@@ -184,7 +197,10 @@ flow (`docs/operations/coordinator-prompt.md`, the `worker_command` flags and th
   `worker-start --help`, `run-create --help`, `task-create --help`, `check --help` and
   `worker-release --help` against what `worker_command` emits
   (`--environment rh1-d3 --from <mailbox> --agent opencode2 --setup skip`). Any renamed
-  or removed flag is a defect to fix in Phase 6 before the automation runs.
+  or removed flag is a defect. Fix it (`worker_command`, `docs/operations/coordinator-prompt.md`,
+  tests) in a reviewed PR and **merge it before Step 5.5**: the coordinator must never
+  resume with a known-incompatible command. Rerun Steps 5.2 and 5.4 on the merged
+  `main` if that PR changed anything.
 - [ ] **Step 5.2: Probe Dispatch on `rh1-d3`** (pilot gate 3 recheck): run the runner
   probe in [runner verification](../operations/runner-verification.md). Expected: model
   `deepseek/deepseek-v4.1-flash-1017`, access to coordinator credentials blocked,
@@ -194,8 +210,8 @@ flow (`docs/operations/coordinator-prompt.md`, the `worker_command` flags and th
   project. Expected: counts match the previous record (6 issues at last check).
 - [ ] **Step 5.4: Dry-run intake.** `python3 -m contract_master reconcile` (read/triage
   only). Expected: no `retry: true` issues, no writes.
-- [ ] **Step 5.5: Unfreeze.** Only after Steps 5.1-5.4 pass and the owner agrees (Step
-  0.4), enable the automation: `orca automations enable --id c0e63d16-c147-40b2-bb1b-5698891f2ff0`
+- [ ] **Step 5.5: Unfreeze.** Only after Steps 5.1-5.4 pass, any flag fix from Step 5.1
+  is merged, and the owner agrees (Step 0.4), enable the automation: `orca automations enable --id c0e63d16-c147-40b2-bb1b-5698891f2ff0`
   (confirm exact syntax with `orca automations --help`). Watch exactly one run finish.
 - [ ] **Gate 5:** one scheduled run completes, takes and ends the turn lease, and
   leaves no `dispatched` run behind.
@@ -204,8 +220,8 @@ flow (`docs/operations/coordinator-prompt.md`, the `worker_command` flags and th
 
 - [ ] **Step 6.1:** Update `docs/operations/orca.md` ("Verified against … rechecked on
   1.4.274 (2026-11-25)"), the Orca server row in `docs/operations/worker-host.md`, the
-  automation `notes` in `config/orca-automation.json`, and a dated HANDOFF entry.
-  Fix any flag change found in Step 5.1.
+  automation `notes` in `config/orca-automation.json`, and a dated HANDOFF entry. Any
+  flag fix from Step 5.1 is already merged by now; list it here.
 - [ ] **Step 6.2:** `python3 -m unittest discover -s tests -v` passes, then commit on a
   branch and open a PR. Codex verifies and merges; Claude confirms.
 
