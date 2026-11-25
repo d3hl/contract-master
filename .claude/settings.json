@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "if [ -n \"$ORCA_CLI_COMMAND\" ]; then c=\"$ORCA_CLI_COMMAND\"; elif [ -n \"$ORCA_DEV_REPO_ROOT\" ]; then c=orca-dev; else c=orca-ide; fi; exec \"$c\" skills get orchestration" } ] }
+    ]
+  }
+}
