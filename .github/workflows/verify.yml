@@ -6,10 +6,18 @@ permissions:
   contents: read
 jobs:
   unit:
-    runs-on: ubuntu-latest
+    # Keep the job names "unit (3.9)" and "unit (3.13)": branch protection requires them.
+    name: unit (${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.9', '3.13']
+        include:
+          # Workers run RHEL 9 python3 (3.9). ubuntu-latest (26.04) has no 3.9 build.
+          - python: '3.9'
+            os: ubuntu-24.04
+          - python: '3.13'
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
