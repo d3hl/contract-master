@@ -217,7 +217,9 @@
         "VALIDATION.md",
         "dashboard/README.md",
         "docs",
-        "features.md"
+        "features.md",
+        "src",
+        "test"
       ],
       "checks": {
         "test": {

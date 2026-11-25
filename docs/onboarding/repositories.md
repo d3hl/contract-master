@@ -61,7 +61,7 @@ pve-orchenv 2026-11-07):
 |---|---|---|---|---|
 | `d3hl/contract-master` | Contract Master Automation | none | `docs/knowledge` | `unit` |
 | `d3-corp/cf-mcp-gw` | Cloudflare MCP Gateway | `repo:cf-mcp-gw` | root plan/runbook `*.md`, `docs`, `pilot.example.json` | `typecheck`, `docs`, `secrets`, `tests` |
-| `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs` | `test` |
+| `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs`, `src`, `test` | `test` |
 | `d3-corp/corp-integrated-dashboard` | Corp Integrated Dashboard | `repo:corp-integrated-dashboard` | `README.md`, `docs`, `src`, `server`, `package.json`, `package-lock.json`, `mcp-app.html`, `vite.mcp.config.ts` | `typecheck`, `build` |
 | `d3hl/pve-orchenv` | PVE Orchestration Env | `repo:pve-orchenv` | `docs`, `build/README.md`, `bootserver/answer`, `ansible/roles`, `ansible/tasks`, `ansible/tests`, `ansible/{site,e2e_up,e2e_down,e2e_vars}.yml` | `test`, `lint` |
 
@@ -89,6 +89,10 @@ CI stay out of scope. It was widened again on 2026-11-02 for MCP App packaging
 (D3S-132): `mcp-app.html` and `vite.mcp.config.ts`, the separate single-file entry
 and build config for the MCP App. They sit beside the standalone build, which stays
 out of scope; the MCP server lives in `server`.
+action1-dashboard was widened on 2026-11-24 for the read-only gateway tools
+(D3S-136): `src` for the gateway modules and `test` for their tests, checked by
+the registered `test` check. Its `AGENTS.md`, CI configuration and credentials
+stay out of scope.
 
 `d3hl/pve-orchenv` (registered 2026-11-07) provisions Proxmox VE on bare metal: a
 PXE boot server, the `bootserver/answer` Flask service and Ansible roles. Use
