@@ -135,9 +135,12 @@ deliberate (Step 0.4).
   `NoNewPrivileges`, empty `CapabilityBoundingSet`, `InaccessiblePaths=/run/docker.sock`,
   `ProtectSystem=strict`). `sudo systemctl daemon-reload && sudo systemctl start d3-worker-orca`.
   Expected: `systemctl is-active d3-worker-orca` prints `active`.
-- [ ] **Step 2.4: Re-check isolation.** From RH1 run
-  `sudo nsenter -t $(systemctl show -p MainPID --value d3-worker-orca) -m ls /home/d3`
-  and expect only `worker` and `.orca-serve`; `sudo -n true` inside must be refused.
+- [x] **Step 2.4: Re-check isolation** (done 2026-11-26). With `M=$(systemctl show -p MainPID --value d3-worker-orca)`:
+  `grep -E '^(NoNewPrivs|CapBnd|CapEff)' /proc/$M/status` shows `NoNewPrivs: 1` and zero
+  capabilities (a `sudo -n true` test through `nsenter -m` proves nothing: it enters the
+  mount namespace, not the no-new-privileges restriction). `sudo nsenter -t $M -m ls -A /home/d3`
+  shows `worker` and `.orca-serve` plus `.agents` and `.orca`; those two are private
+  tmpfs (`stat -f -c %T`), not host directories. `stat -c %a /run/docker.sock` inside is `0`.
 - [ ] **Step 2.5: Reconnect from RH3.** `XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user is-active rh1-d3-tunnel`
   prints `active`; `orca status --environment rh1-d3` shows `runtimeReachable: true`. If
   pairing was lost, re-pair exactly as worker-host.md describes, never echoing the code.
@@ -173,7 +176,9 @@ deliberate (Step 0.4).
   A copy with extra files may be skipped. Use `--force` only after reading the skip
   list; it moves each replaced copy to `~/.agents/.orca-skill-backups`.
 - [ ] **Step 4.3: Dry run on RH1 as `d3`** (`ssh rh1-worker 'orca skills update --all --dry-run --json'`).
-  Note the sandbox gets an empty `/home/d3`, so only real-account copies count. Review
+  The sandbox's own `~/.agents/skills` is a tmpfs the server refills with its bundled
+  skills on every start, so only the real `d3` account's copies (27 entries on the host
+  at 2026-11-26) can go stale; ignore the sandbox's. Review
   the plan digest and the skip list exactly as in Step 4.1.
 - [ ] **Step 4.4: Apply selectively on RH1.** Run the same selective update as Step 4.2
   over SSH, limited to the skills the RH1 dry run lists as installed:
@@ -237,4 +242,6 @@ probe leaks credentials, or any step needs a second attempt at the same change.
 |---|---|---|
 | 0 Baseline, freeze, backup | **Gate 0 passed 2026-11-26** | RH3 1.4.274 (app matches disk); RH1 app 1.4.274, `d3-worker-orca` on orcad `6a25fd26e384`; `turn-check` free; `doctor` no blockers; no `dispatched` run; 0 workers on `rh1-d3`; 13 manager tasks, none active; backup `integrity_check` = `ok` in `~/backups/orca-upgrade-2026-11-26/` (database, rest of `.state`, automation config, repo head, automation list) |
 | 1 cm-worker | **Done 2026-11-26** (Steps 1.1-1.3) | `cm-worker-orca` inactive and disabled; account `cm-worker` deleted, home backed up; `d3-worker-orca` active; `/opt` app intact; `rh1-d3` reachable with 0 workers |
-| 2-6 | not started | Phase 0.3 (release notes) and 0.4 (automation answer) are still open |
+| 2 RH1 worker host | **Done 2026-11-26** (verify only; nothing stopped) | `d3-worker-orca` runs orcad `6a25fd26e384` via drop-in `30-orca-upgrade.conf`; sandbox properties and process flags intact; `rh1-d3` connected with 5 repos and 0 workers |
+| 3 RH3 coordinator | **Done 2026-11-26** | 1.4.274 running (app pid matches the build), runtime `ready`, `doctor` clean, 143 tests OK |
+| 4-6 | not started | Step 0.3 (release notes) is open. Step 0.4 is answered: the owner had enabled and rescheduled the automation (`* 12 * * *`, session reuse on); it ran D3S-136 and was disabled again. **Step 5.1 found its break early:** `worker-start --environment rh1-d3` is refused on 1.4.274, and `--on rh1-d3` is the route. `worker_command` and the docs are changed accordingly; the probe (Step 5.2) must still prove it before Step 5.5 |

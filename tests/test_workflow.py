@@ -209,21 +209,37 @@ class WorkflowTests(WorkflowFixture):
         envelope = self.manager.envelope(self.manager.task(self.task_id))
         with self.assertRaises(ContractError): Orca("fixture-orca").worker_command(envelope, "orca-task", "run", self.runner, "request", "workspace")
 
-    def test_paired_environment_runner_targets_its_server(self):
+    def test_paired_server_runner_uses_the_on_route(self):
+        # Orca 1.4.274 refuses `worker-start --environment <server>` (agent_server_route_refused)
+        # and places remote workers with `--on <server>`; the Run and mailbox stay on this Orca.
         self.start()
         envelope = self.manager.envelope(self.manager.task(self.task_id))
         live = dict(self.runner, mode="live", enabled=True)
         orca = Orca("fixture-orca")
-        local = orca.worker_command(envelope, "orca-task", "run", live, "request", "workspace")["argv"]
-        self.assertNotIn("--environment", local)
-        remote = dict(live, environment="cm-worker")
+        local = orca.worker_command(envelope, "orca-task", "run", live, "request", "/work/task-abc")["argv"]
+        for flag in ("--on", "--environment", "--from", "--repo"):
+            self.assertNotIn(flag, local)
+        self.assertEqual(local[local.index("--worktree") + 1], "/work/task-abc")
+        remote = dict(live, environment="rh1-d3")
         with self.assertRaises(ContractError):
-            orca.worker_command(envelope, "orca-task", "run", remote, "request", "workspace")
-        argv = orca.worker_command(envelope, "orca-task", "run", remote, "request", "workspace", mailbox="term_1")["argv"]
-        self.assertEqual(argv[argv.index("--environment") + 1], "cm-worker")
-        self.assertEqual(argv[argv.index("--from") + 1], "term_1")
-        self.assertNotIn("--on", argv)
+            orca.worker_command(envelope, "orca-task", "run", remote, "request", "/work/task-abc")
+        argv = orca.worker_command(envelope, "orca-task", "run", remote, "request", "/work/task-abc",
+                                   server_repo_id="srv-repo")["argv"]
+        self.assertEqual(argv[argv.index("--on") + 1], "rh1-d3")
+        self.assertEqual(argv[argv.index("--worktree") + 1], "new-top-level")
+        self.assertEqual(argv[argv.index("--repo") + 1], "id:srv-repo")
+        self.assertEqual(argv[argv.index("--name") + 1], "task-abc")
+        self.assertEqual(argv[argv.index("--setup") + 1], "skip")
+        self.assertEqual(argv[argv.index("--task") + 1], "orca-task")
+        self.assertEqual(argv[argv.index("--run") + 1], "run")
+        self.assertEqual(argv[argv.index("--retry-request") + 1], "request")
+        for flag in ("--environment", "--from"):
+            self.assertNotIn(flag, argv)
+        self.assertNotIn("/work/task-abc", argv)  # a local path means nothing on the server
         self.assertEqual(argv[-1], "--json")
+        named = orca.worker_command(envelope, "orca-task", "run", remote, "request", "/work/task-abc",
+                                    server_repo_id="srv-repo", name="custom")["argv"]
+        self.assertEqual(named[named.index("--name") + 1], "custom")
 
     def test_failed_checks_cannot_pass_acceptance(self):
         self.start(); self.implement()

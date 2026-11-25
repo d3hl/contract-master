@@ -59,26 +59,35 @@ class Orca:
                 raise ProviderError("Required issue context is truncated")
         return result
 
-    def worker_command(self, task, orca_task_id, run_id, runner, request_id, workspace, mailbox=None):
+    def worker_command(self, task, orca_task_id, run_id, runner, request_id, workspace,
+                       server_repo_id=None, name=None):
         """Return argv for coordinator review. This method NEVER launches a process.
 
-        A runner with an `environment` lives on a separate paired Orca server. Its Run,
-        Task and mailbox terminal belong to that server, so `mailbox` is required.
+        A runner with an `environment` names a paired Orca server. Since Orca 1.4.274 the
+        worker is placed there with `--on <server>`; `--environment <server>` is refused
+        (`agent_server_route_refused`). The Run, Task and mailbox stay on this Orca and the
+        worker is addressed by Dispatch id. `--worktree current` is not valid with `--on`,
+        so the worker gets a new top-level worktree in the server's own checkout, named by
+        `server_repo_id`: the `repoId` of that server's `project setups` row, read at start
+        time. It differs from this machine's id, and a local path means nothing there.
         """
         validate("runner", runner)
         if not runner["enabled"] or runner["mode"] != "live":
             raise ContractError("Runner has no verified live integration")
-        remote = []
         if runner.get("environment"):
-            if not mailbox:
-                raise ContractError("Runner on a paired environment needs a mailbox terminal on that server")
-            remote = ["--environment", runner["environment"], "--from", mailbox]
+            if not server_repo_id:
+                raise ContractError("Runner on a paired server needs that server's repo id (project setups repoId)")
+            placement = ["--on", runner["environment"], "--worktree", "new-top-level",
+                         "--repo", f"id:{server_repo_id}",
+                         "--name", name or os.path.basename(str(workspace).rstrip("/")), "--setup", "skip"]
+        else:
+            placement = ["--worktree", workspace]
         spec = json.dumps({"target": task["allowed_scope"], "change": task["acceptance_criteria"],
                            "constraints": "Use only the pinned plan/context. One task writer. No Linear writes.",
                            "ownership": workspace, "task": task}, indent=2)
         return {"spec": spec, "argv": [self.executable, "orchestration", "worker-start", "--task", orca_task_id,
-                "--run", run_id, "--worktree", workspace, "--agent", runner["agent"],
-                "--retry-request", request_id, *remote, "--json"]}
+                "--run", run_id, *placement, "--agent", runner["agent"],
+                "--retry-request", request_id, "--json"]}
 
 
 def provider_status(state_type):

@@ -161,6 +161,17 @@
   merge pve-orchenv #1 and this change, one bounded docs pilot issue, then phase B
   after its first `codex-merge`. The owner's `feat/pve-bare-metal-provisioning`
   work is unaffected until phase B, which stops direct pushes to `main`.
+- 2026-11-26: Orca 1.4.274 refuses `worker-start --environment rh1-d3`
+  (`agent_server_route_refused`) and places remote workers with `--on rh1-d3`; the Run and
+  mailbox now stay on the coordinator's Orca. Found when automation `c0e63d16-…`, enabled
+  and rescheduled by the owner (`* 12 * * *`, session reuse on), ran D3S-136 (task
+  `task-543ba26c…`, attempt 1, phase implementing): the launch was refused before anything
+  started (no Orca task, Dispatch or worktree; `request-show` absent on both Orcas). The
+  automation was disabled again the same day. `worker_command` now builds the `--on` route
+  ([Orca doc](orca.md#deepseek-workers-on-the-paired-rh1-d3-server)); it is not yet proven
+  end to end. Before re-enabling: pass a probe Dispatch on 1.4.274, restore `*/60 * * * *`
+  with a fresh session, then resume D3S-136's same attempt with the owner's approval. Plan:
+  [orca-upgrade-rh1-rh3](../plans/orca-upgrade-rh1-rh3.md).
 - Exact next action: merge corp-integrated-dashboard #1, then this registry change;
   then the DeepSeek runner probe and one bounded docs pilot issue for it, then
   phase B after its first `codex-merge`. Other work for the registered

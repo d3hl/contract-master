@@ -2,7 +2,9 @@
 
 Verified against installed Orca **1.4.235**, using its own version-matched guides
 and command help on 2026-10-25, and rechecked on installed **1.4.240** (2026-10-25)
-and **1.4.243** (2026-10-29: Linear listing, pagination and full reads; pilot gate 4).
+and **1.4.243** (2026-10-29: Linear listing, pagination and full reads; pilot gate 4);
+**1.4.274** (2026-11-26) changed the remote worker start route to `--on` (see
+[below](#deepseek-workers-on-the-paired-rh1-d3-server)).
 Re-read the installed guide after upgrades. Resolve the executable once:
 `ORCA_CLI_COMMAND`, otherwise `orca-dev` in an advertised dev session, otherwise
 `orca-ide` on Linux. Never use Linux's bare GNOME `orca`. The Python adapter
@@ -129,30 +131,47 @@ The server runs in a systemd sandbox that hides the rest of that account. The
 coordinator on ntnsg-rh3 reaches it through an SSH tunnel, copies pinned context in
 with `scp` and fetches output commits as git bundles over SSH (exact commands in the
 worker host doc).
-This coordinator's runtime is SSH-managed and refuses `worker-start --on`
-(`server_required`), so every orchestration command for an implementation attempt
-goes to that server with `--environment rh1-d3`, and the Run, Task and mailbox
-live there:
 
-1. `terminal create --environment rh1-d3 --worktree <repo root id>`: one plain
-   terminal used as the coordinator's mailbox handle on that server. Record it.
-2. `orchestration run-create --environment rh1-d3 --from <mailbox> --objective ...`
-   (or `run-use` for the recorded Run), then `task-create --environment rh1-d3
-   --from <mailbox> --run <run> --spec ... --retry-request ...`.
-3. `worker_command(..., mailbox=<mailbox>)` returns `worker-start --task ... --run ...
-   --worktree ... --agent opencode2 --retry-request ... --environment rh1-d3
-   --from <mailbox>`; for a fresh worktree use `--worktree new-top-level --repo
-   id:<worker repo> --setup skip`.
-   Then read the worker terminal: on 2026-10-30 (D3S-115) OpenCode showed the
-   prompt pasted but unsubmitted. Send exactly one Enter in that case and confirm
-   the worker started; never paste the prompt again.
-4. `orchestration check --environment rh1-d3 --terminal <mailbox> --wait`, ack,
-   then `worker-release --environment rh1-d3 --dispatch <id>` (no `--from`).
+**Route (Orca 1.4.274 and later): place the worker with `--on rh1-d3`.** The Run, Task
+and mailbox stay on the coordinator's own Orca; only the worker lives on the server, and
+it is addressed by Dispatch id, never by a terminal handle. Installed 1.4.274 refuses
+`worker-start --environment rh1-d3` before launch with `agent_server_route_refused`
+(first seen on D3S-136, 2026-11-26) and suggests `--on`. Orca 1.4.243 had the opposite
+rule (`--on` refused with `server_required`), so re-read the installed placement guide
+after every upgrade (`skills get orchestration --reference references/placement-and-remote.md`).
+`--worktree current` is not valid with `--on`.
+
+1. Read the server's own project row: `project setups --environment rh1-d3 --json`.
+   Take `repoId` from the row whose `projectId` matches the target and that is `ready`,
+   `kind` git, `hostId` `local`. Never reuse this machine's id (the registry's
+   `orca_repo_id`).
+2. Create the Run and Task on this Orca: `orchestration run-create --objective ...`,
+   then `task-create --run <run> --spec ... --retry-request ...`. No `--environment`,
+   no `--from`, no server mailbox terminal.
+3. `worker_command(..., server_repo_id=<repoId>)` returns `worker-start --task ... --run ...
+   --on rh1-d3 --worktree new-top-level --repo id:<repoId> --name <task> --setup skip
+   --agent opencode2 --retry-request ... --json`. Then read the worker with
+   `orchestration worker-read --dispatch <id>`. On 2026-10-30 (D3S-115) OpenCode showed the
+   prompt pasted but unsubmitted: send exactly one Enter and confirm it started, never
+   paste the prompt again. How to reach the worker terminal on this route is unverified;
+   check it on the first probe.
+4. `orchestration check --wait` on the coordinator's own terminal, ack, then
+   `worker-release --dispatch <id>`. All local; none take `--environment rh1-d3`.
+
+Until the first probe Dispatch on 1.4.274 passes (upgrade plan Step 5.2), this route is
+documented by Orca's own guide and error text, not proven end to end here.
+
+A start refused with `agent_server_route_refused` launched nothing. Evidence for D3S-136:
+the manager receipt `refused/agent_server_route_refused`, `request-show` returning
+`absent` on both Orcas, empty `worker-list` on both and no worktree on the server. The
+Run and mailbox terminal created on `rh1-d3` for that attempt are unused leftovers. Retry
+the **same** attempt on the new route (never a fresh task) only with the owner's approval
+and only while those facts still hold.
 
 Orca messages from that server are unverified claims: the worker can write its
 server's state. The manager database stays authoritative and Codex verifies the
 exact output commit in its own checkout. Linear reads and the manager stay on the
-coordinator side; never pass `--environment` to `linear` or manager commands.
+coordinator side.
 
 Use the installed `coordinator-loop.md` and `placement-and-remote.md` references for
 phase transitions/placement. No generic subagent substitution provides Orca provenance.

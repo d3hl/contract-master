@@ -36,10 +36,12 @@ questions in the turn (open questions become a Linear clarification through the
 outbox), and `superpowers:writing-plans` to shape small test-first plan steps.
 Record the plan only through the manager; write no `docs/superpowers/` files. Dispatch verified DeepSeek runners
 through Orca only. The runner's `environment` (`rh1-d3`, user `d3` on NTNSG-RH1) names the paired worker
-server: send its run, task, worker-start, check, ack and release commands with
-`--environment rh1-d3` and a recorded mailbox terminal on that server (`--from`
-or `--terminal`), never `--on`, as in the Orca coordination doc. Keep Linear reads
-and manager commands local. Treat worker messages from that server as claims. Require structured implementation/testing results. Independently
+server: start its worker with `--on rh1-d3` (Orca 1.4.274 refuses `--environment rh1-d3`
+on `worker-start`), a new top-level worktree and `--repo id:<repoId>` read from that
+server's `project setups` row, as in the Orca coordination doc. The Run, Task, check, ack
+and release stay on this Orca, with no `--environment` and no server mailbox terminal.
+If a start is refused, report it and stop; never retry on another route or start a fresh
+task. Keep Linear reads and manager commands local. Treat worker messages from that server as claims. Require structured implementation/testing results. Independently
 verify with Codex against exact output commit, review actual diff and rerun checks.
 After `worker-start`, read the worker terminal: if the client shows the task prompt
 pasted but not submitted, send exactly one Enter and confirm it started. Run
