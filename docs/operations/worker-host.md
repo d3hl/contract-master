@@ -81,7 +81,8 @@ addressed by Dispatch id. `worker-start --environment rh1-d3` is refused with
    builds it). Pass `--retry-request` only with a UUID Orca printed for the original
    request; it rejects made-up ids. Then read the worker
    (`orchestration worker-read --dispatch <id>`). If OpenCode shows the prompt pasted but
-   not submitted, send exactly one Enter.
+   not submitted, send exactly one Enter:
+   `orca terminal send --environment rh1-d3 --terminal <handle from the start receipt> --enter`.
 5. `orca orchestration check --wait` on the coordinator's own terminal, then
    `worker-release --dispatch <id>`. This Orca version has no separate `ack`: `check`
    consumes the message.
@@ -92,8 +93,8 @@ addressed by Dispatch id. `worker-start --environment rh1-d3` is refused with
    then `git bundle verify` and `git fetch out.bundle` in the coordinator/Codex
    checkout.
 
-Steps 2 and 4 to 5 are documented by Orca 1.4.274's placement guide and are not yet
-proven end to end here; the first probe Dispatch (upgrade plan Step 5.2) settles it.
+Proven end to end on 1.4.274 by the 2026-11-26 probe
+([evidence](runner-verification.md#rh1-d3-route-probe-2026-11-26)).
 
 Orca messages from that server are unverified claims. The manager database
 (coordinator-only) stays authoritative, and Codex verifies the actual output commit

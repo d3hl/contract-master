@@ -168,9 +168,12 @@
   `task-543ba26c…`, attempt 1, phase implementing): the launch was refused before anything
   started (no Orca task, Dispatch or worktree; `request-show` absent on both Orcas). The
   automation was disabled again the same day. `worker_command` now builds the `--on` route
-  ([Orca doc](orca.md#deepseek-workers-on-the-paired-rh1-d3-server)); it is not yet proven
-  end to end. Before re-enabling: pass a probe Dispatch on 1.4.274, restore `*/60 * * * *`
-  with a fresh session, then resume D3S-136's same attempt with the owner's approval. Plan:
+  ([Orca doc](orca.md#deepseek-workers-on-the-paired-rh1-d3-server)). The probe passed the
+  same day (Dispatch `ctx_b0453172b7ad`, [evidence](runner-verification.md#rh1-d3-route-probe-2026-11-26)),
+  and so did the Linear recheck and a reconcile on a database copy (plan Steps 5.3-5.4).
+  The owner keeps the schedule `* 12 * * *` (as cron: every minute 12:00-12:59 SGT; live
+  session reuse is on). The automation stays disabled and D3S-136 parked until the owner
+  decides to re-enable it and approves resuming that same attempt. Plan:
   [orca-upgrade-rh1-rh3](../plans/orca-upgrade-rh1-rh3.md).
 - Exact next action: merge corp-integrated-dashboard #1, then this registry change;
   then the DeepSeek runner probe and one bounded docs pilot issue for it, then

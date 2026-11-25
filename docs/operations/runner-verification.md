@@ -167,6 +167,40 @@ Nothing was pushed.
   profile), and the tree stays clean. `worker_done` was treated as a claim.
 - The worker was released. The probe worktree stays on the worker.
 
+## rh1-d3 route probe (2026-11-26)
+
+Orca 1.4.274 refused `worker-start --environment rh1-d3` (`agent_server_route_refused`),
+so remote workers are placed with `--on rh1-d3` ([flow](orca.md#deepseek-workers-on-the-paired-rh1-d3-server)).
+One supervised worker proved the new route (Run `run_11aca60c494d`, Task
+`task_b56e969c456a`, Dispatch `ctx_b0453172b7ad`, agent `opencode2`, worktree
+`~/worker/worktrees/contract-master/cm-probe-1-4-274`). It reported identity and isolation
+facts, added only `docs/probe/route-probe-1.4.274.md` and committed locally. Nothing was
+pushed: no such branch exists on GitHub.
+
+- **Route:** the start came from `worker_command` (PR #74): `worker-start --task … --run …
+  --on rh1-d3 --worktree new-top-level --repo id:047231de-… --name cm-probe-1-4-274 --setup
+  skip --agent opencode2 --retry-request <uuid4> --json`. Orca accepted it (`state: ready`)
+  and a client-generated `--retry-request`. The Run, Task and inbox stayed on the
+  coordinator's Orca; no server mailbox terminal was created.
+- **Prompt quirk:** OpenCode showed `[Pasted ~100 lines]` unsubmitted. One plain
+  `terminal send --environment rh1-d3 --terminal <handle> --enter` started it
+  (`--wait-submit` is rejected without `--text`).
+- **Mail:** `worker_done` (succeeded) arrived in the local Run inbox through
+  `check --run <run> --wait`; `check` marked it handled, with no separate ack. The Task
+  shows `completed`.
+- **Identity:** `d3` on `NTNSG-RH1`, OpenCode v2.1.4, provider `openrouter`, model
+  `deepseek/deepseek-v4.1-flash-1017` (also on the client's status line), git identity
+  `contract-master DeepSeek worker <d3-worker@d3hl.invalid>`.
+- **Independent checks** (the worker's report was treated as a claim): commit
+  `f6ef8d4fce341c1188b949dbd9d53890e0090101` on parent `6cbbf5f`; fetched by git bundle into
+  a fresh clone on RH3, SHA matched, the diff is exactly the probe file (67 lines) and the
+  tree was clean. From inside the service's mount namespace: `~/.config/gh`, `~/.ssh`,
+  `~/.config/op` and `/home/cm-worker` hidden, `/etc` read-only, `/run/docker.sock` mode
+  000, `NoNewPrivs: 1`. The worktree is on xfs under `/home/d3/worker/worktrees`, not
+  tmpfs. The probe file lists only variable names (three Orca session variables), no
+  values. The worktree has the public HTTPS `origin` and no credential helper, by design.
+- The worker was released. The probe worktree stays on RH1.
+
 ## Scope and remaining gates
 
 This is a user-authorized **capability probe**, not the registered production

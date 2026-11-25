@@ -153,13 +153,17 @@ after every upgrade (`skills get orchestration --reference references/placement-
    --agent opencode2 --retry-request ... --json`. Then read the worker with
    `orchestration worker-read --dispatch <id>`. On 2026-10-30 (D3S-115) OpenCode showed the
    prompt pasted but unsubmitted: send exactly one Enter and confirm it started, never
-   paste the prompt again. How to reach the worker terminal on this route is unverified;
-   check it on the first probe.
-4. `orchestration check --wait` on the coordinator's own terminal, ack, then
-   `worker-release --dispatch <id>`. All local; none take `--environment rh1-d3`.
+   paste the prompt again. The 2026-11-26 probe showed the same on this route. One plain
+   `terminal send --environment rh1-d3 --terminal <handle> --enter` started the worker; the
+   handle is the `terminal` field of the `worker-start` receipt, and `--wait-submit` is
+   rejected without `--text`, so leave it off.
+4. `orchestration check --run <run> --wait`, then `worker-release --dispatch <id>`. All
+   local; none take `--environment rh1-d3`. `check` marks the message handled, so there is
+   no separate ack.
 
-Until the first probe Dispatch on 1.4.274 passes (upgrade plan Step 5.2), this route is
-documented by Orca's own guide and error text, not proven end to end here.
+Proven end to end on 1.4.274 by the 2026-11-26 probe (Run `run_11aca60c494d`, Task
+`task_b56e969c456a`, Dispatch `ctx_b0453172b7ad`;
+[evidence](runner-verification.md#rh1-d3-route-probe-2026-11-26)).
 
 A start refused with `agent_server_route_refused` launched nothing. Evidence for D3S-136:
 the manager receipt `refused/agent_server_route_refused`, `request-show` returning

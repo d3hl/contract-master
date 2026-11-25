@@ -198,7 +198,7 @@ deliberate (Step 0.4).
 flow (`docs/operations/coordinator-prompt.md`, the `worker_command` flags and the
 `config/orca-automation.json` entry).
 
-- [ ] **Step 5.1: Diff the flags.** Compare `orca orchestration --help`,
+- [x] **Step 5.1: Diff the flags** (done 2026-11-26: one break, fixed in PR #74). Compare `orca orchestration --help`,
   `worker-start --help`, `run-create --help`, `task-create --help`, `check --help` and
   `worker-release --help` against what `worker_command` emits
   (`--environment rh1-d3 --from <mailbox> --agent opencode2 --setup skip`). Any renamed
@@ -206,14 +206,14 @@ flow (`docs/operations/coordinator-prompt.md`, the `worker_command` flags and th
   tests) in a reviewed PR and **merge it before Step 5.5**: the coordinator must never
   resume with a known-incompatible command. Rerun Steps 5.2 and 5.4 on the merged
   `main` if that PR changed anything.
-- [ ] **Step 5.2: Probe Dispatch on `rh1-d3`** (pilot gate 3 recheck): run the runner
+- [x] **Step 5.2: Probe Dispatch on `rh1-d3`** (passed 2026-11-26, Dispatch `ctx_b0453172b7ad`) (pilot gate 3 recheck): run the runner
   probe in [runner verification](../operations/runner-verification.md). Expected: model
   `deepseek/deepseek-v4.1-flash-1017`, access to coordinator credentials blocked,
   worker released with no residual terminal.
-- [ ] **Step 5.3: Linear completeness** (pilot gate 4, required after any Orca upgrade):
+- [x] **Step 5.3: Linear completeness** (passed 2026-11-26: 5 projects, 29 issues, 29/29 full reads) (pilot gate 4, required after any Orca upgrade):
   rerun the read-only listing, cursor-paging and full-read check against the D3S
   project. Expected: counts match the previous record (6 issues at last check).
-- [ ] **Step 5.4: Dry-run intake.** `python3 -m contract_master reconcile` (read/triage
+- [x] **Step 5.4: Dry-run intake** (passed 2026-11-26, run on a copy of the manager database with `--database`, because `reconcile` enqueues and is not a dry run on its own). `python3 -m contract_master reconcile` (read/triage
   only). Expected: no `retry: true` issues, no writes.
 - [ ] **Step 5.5: Unfreeze.** Only after Steps 5.1-5.4 pass, any flag fix from Step 5.1
   is merged, and the owner agrees (Step 0.4), enable the automation: `orca automations enable --id c0e63d16-c147-40b2-bb1b-5698891f2ff0`
@@ -244,4 +244,5 @@ probe leaks credentials, or any step needs a second attempt at the same change.
 | 1 cm-worker | **Done 2026-11-26** (Steps 1.1-1.3) | `cm-worker-orca` inactive and disabled; account `cm-worker` deleted, home backed up; `d3-worker-orca` active; `/opt` app intact; `rh1-d3` reachable with 0 workers |
 | 2 RH1 worker host | **Done 2026-11-26** (verify only; nothing stopped) | `d3-worker-orca` runs orcad `6a25fd26e384` via drop-in `30-orca-upgrade.conf`; sandbox properties and process flags intact; `rh1-d3` connected with 5 repos and 0 workers |
 | 3 RH3 coordinator | **Done 2026-11-26** | 1.4.274 running (app pid matches the build), runtime `ready`, `doctor` clean, 143 tests OK |
-| 4-6 | not started | Step 0.3 (release notes) is open. Step 0.4 is answered: the owner had enabled and rescheduled the automation (`* 12 * * *`, session reuse on); it ran D3S-136 and was disabled again. **Step 5.1 found its break early:** `worker-start --environment rh1-d3` is refused on 1.4.274, and `--on rh1-d3` is the route. `worker_command` and the docs are changed accordingly; the probe (Step 5.2) must still prove it before Step 5.5 |
+| 5 Orchestrator | **Steps 5.1-5.4 done 2026-11-26** | 5.1 found the break (`--environment rh1-d3` refused, `--on rh1-d3` is the route), fixed in PR #74. 5.2 probe passed ([evidence](../operations/runner-verification.md#rh1-d3-route-probe-2026-11-26)). 5.3: 5 projects, 29 issues, 29/29 full reads. 5.4: 44 outcomes on a database copy, none `retry`, nothing queued. **5.5 not done:** the automation stays disabled until the owner decides; D3S-136 stays parked |
+| 4, 6 | not started | Step 0.3 (release notes) is open. Step 0.4 is answered: the owner enabled and rescheduled the automation (`* 12 * * *`, session reuse on); it ran D3S-136 and was disabled again |
