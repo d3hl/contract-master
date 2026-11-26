@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "workflow",
+  "quality": "showcase",
+  "startedAt": "2026-11-26T17:27:16.330Z",
+  "specification": {
+    "path": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
+    "sha256": "e28fd1d6c00940e2a5f80b35a17c5eb4db8398afcd32a2e1337553775bbec9af",
+    "bytes": 9124
+  },
+  "artifact": {
+    "path": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+    "sha256": "4a08298baa8c2f85cde4b5a0bda982274aee3c819bb35eccfe006887c86fe444",
+    "bytes": 854273
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/usr/bin/node-22",
+        "/home/d3/.claude/.claude/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
+        "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "e28fd1d6c00940e2a5f80b35a17c5eb4db8398afcd32a2e1337553775bbec9af",
+          "bytes": 9124
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 17207,
+      "command": [
+        "/usr/bin/node-22",
+        "/home/d3/.claude/.claude/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
+        "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "6571a016-087e-4034-a170-eda2022aaca5",
+        "ok": true,
+        "command": "deliver",
+        "type": "workflow",
+        "input": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
+        "output": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+        "specification": {
+          "sha256": "e28fd1d6c00940e2a5f80b35a17c5eb4db8398afcd32a2e1337553775bbec9af",
+          "bytes": 9124
+        },
+        "artifact": {
+          "sha256": "4a08298baa8c2f85cde4b5a0bda982274aee3c819bb35eccfe006887c86fe444",
+          "bytes": 854273
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 768,
+      "command": [
+        "/usr/bin/node-22",
+        "/home/d3/.claude/.claude/skills/archify/bin/archify.mjs",
+        "check",
+        "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+        "artifact": {
+          "sha256": "4a08298baa8c2f85cde4b5a0bda982274aee3c819bb35eccfe006887c86fe444",
+          "bytes": 854273
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 28.8,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.3,
+            "maxBends": 0,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 12,
+            "minInteriorSegmentPx": null,
+            "shortSegmentCount": 2,
+            "shortEndpointSegmentCount": 2,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": false,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "legacy-930",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "limit": "legacy",
+            "requestedTargetPx": null,
+            "requestedTargetMet": null,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "inspect"
+            },
+            "minimumSourceTextPx": 6.3,
+            "minimumProjectedTextPx": 6.3,
+            "semanticTextCount": 33
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "6571a016-087e-4034-a170-eda2022aaca5"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 65,
+      "command": [
+        "/usr/bin/node-22",
+        "/home/d3/.claude/.claude/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+        "--json",
+        "--require-provenance",
+        "--out-dir",
+        "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "6571a016-087e-4034-a170-eda2022aaca5",
+        "artifact": {
+          "path": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+          "sha256": "4a08298baa8c2f85cde4b5a0bda982274aee3c819bb35eccfe006887c86fe444",
+          "bytes": 854273
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "directory": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1",
+          "receipt": "agent-team-archify.browser-check.json",
+          "files": []
+        },
+        "error": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1/agent-team-archify.finalize.json",
+    "summaryReceipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1/agent-team-archify.finalize-summary.json",
+    "browserCheckReceipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1/agent-team-archify.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-11-26T17:27:34.812Z",
+  "durationMs": 18482,
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.3.2",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.3.2",
+    "severity": "normal",
+    "summary": "Includes archify-pr in default installs, adds offline in-page update notices with Agent prompts, speeds slow update checks, and polishes PR diagrams.",
+    "checkedAt": "2026-11-26T17:16:44.289Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.2.0 → 3.3.2. A previous check at 2026-11-26T17:16:44.289Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.3.2. Would you like me to update Archify?",
+    "eventKey": "archify@sha256:932d915f83fdbf44796cc6b20b085455a763491306e1b8dee92047e11dddc0ea"
+  }
+}

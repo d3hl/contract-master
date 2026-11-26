@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
+    "sha256": "e92e2d346c1992273cab725ace39ea8feb2d7fbb39bf56902932f566d64181ce",
+    "bytes": 9154
+  },
+  "artifact": {
+    "path": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+    "sha256": "7679a05b6c12ad0e7cfc412638c0e4777006f79b58459449db2154e3e9ed5215",
+    "bytes": 854321
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-2/agent-team-archify.finalize.json",
+    "summaryReceipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-2/agent-team-archify.finalize-summary.json",
+    "browserCheckReceipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-2/agent-team-archify.browser-check.json"
+  },
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.3.2",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.3.2",
+    "severity": "normal",
+    "summary": "Includes archify-pr in default installs, adds offline in-page update notices with Agent prompts, speeds slow update checks, and polishes PR diagrams.",
+    "checkedAt": "2026-11-26T17:16:44.289Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.2.0 → 3.3.2. A previous check at 2026-11-26T17:16:44.289Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.3.2. Would you like me to update Archify?",
+    "eventKey": "archify@sha256:932d915f83fdbf44796cc6b20b085455a763491306e1b8dee92047e11dddc0ea"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 22107,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

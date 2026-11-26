@@ -1,0 +1,388 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agent tool-call loop",
+    "output": "docs/architecture/agent-team-archify.html",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "surface",
+      "label": "User surface"
+    },
+    {
+      "id": "runtime",
+      "label": "Agent runtime"
+    },
+    {
+      "id": "policy",
+      "label": "Policy boundary"
+    },
+    {
+      "id": "execution",
+      "label": "Tool execution"
+    },
+    {
+      "id": "exceptions",
+      "label": "Exception handling",
+      "variant": "exception"
+    },
+    {
+      "id": "observability",
+      "label": "Observability"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "1 \u00b7 Request and plan",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "act",
+      "label": "2 \u00b7 Authorize and execute",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "report",
+      "label": "3 \u00b7 Inspect and report",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "request",
+    "plan",
+    "gate",
+    "call",
+    "receipt",
+    "inspect",
+    "reply"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "request"
+    ],
+    "allowedTerminals": [
+      "reply"
+    ],
+    "requiredEdges": [
+      {
+        "from": "gate",
+        "to": "call"
+      },
+      {
+        "from": "gate",
+        "to": "approval"
+      },
+      {
+        "from": "approval",
+        "to": "gate"
+      },
+      {
+        "from": "gate",
+        "to": "blocked"
+      },
+      {
+        "from": "unknown",
+        "to": "gate"
+      },
+      {
+        "from": "unknown",
+        "to": "blocked"
+      },
+      {
+        "from": "call",
+        "to": "receipt"
+      },
+      {
+        "from": "receipt",
+        "to": "inspect"
+      }
+    ],
+    "requiredPaths": [
+      {
+        "from": "request",
+        "to": "reply"
+      },
+      {
+        "from": "call",
+        "to": "plan"
+      },
+      {
+        "from": "blocked",
+        "to": "reply"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "request",
+      "lane": "surface",
+      "col": 0,
+      "type": "frontend",
+      "label": "User request",
+      "sublabel": "goal + constraints",
+      "icon": "person"
+    },
+    {
+      "id": "approval",
+      "lane": "surface",
+      "col": 3,
+      "type": "security",
+      "label": "Approval",
+      "sublabel": "approve or decline",
+      "tag": "only if required",
+      "icon": "person"
+    },
+    {
+      "id": "reply",
+      "lane": "surface",
+      "col": 5,
+      "type": "frontend",
+      "label": "Final reply",
+      "sublabel": "outcome + evidence",
+      "tag": "or blocker + next action",
+      "icon": "success",
+      "width": 132
+    },
+    {
+      "id": "plan",
+      "lane": "runtime",
+      "col": 1,
+      "type": "backend",
+      "label": "Plan tool call",
+      "sublabel": "context + arguments"
+    },
+    {
+      "id": "inspect",
+      "lane": "runtime",
+      "col": 5,
+      "type": "backend",
+      "label": "Inspect outcome",
+      "sublabel": "goal / stop + evidence",
+      "icon": "decision",
+      "width": 112
+    },
+    {
+      "id": "gate",
+      "lane": "policy",
+      "col": 2,
+      "type": "security",
+      "label": "Policy gate",
+      "sublabel": "scope + permissions",
+      "tag": "host enforces",
+      "icon": "decision"
+    },
+    {
+      "id": "unknown",
+      "lane": "exceptions",
+      "col": 3,
+      "type": "security",
+      "label": "Recover or stop",
+      "sublabel": "reconcile + revise call",
+      "tag": "safe replay only",
+      "width": 112
+    },
+    {
+      "id": "blocked",
+      "lane": "exceptions",
+      "col": 2,
+      "type": "security",
+      "label": "Blocked",
+      "sublabel": "preserve state; stop",
+      "icon": "stop"
+    },
+    {
+      "id": "call",
+      "lane": "execution",
+      "col": 3,
+      "type": "messagebus",
+      "label": "Execute tool",
+      "sublabel": "shell / browser / MCP",
+      "tag": "structured result + IDs"
+    },
+    {
+      "id": "receipt",
+      "lane": "observability",
+      "col": 5,
+      "type": "database",
+      "label": "Trace + evidence",
+      "sublabel": "decisions + receipts",
+      "tag": "redacted; tied to call",
+      "width": 132
+    }
+  ],
+  "edges": [
+    {
+      "id": "request-plan",
+      "from": "request",
+      "to": "plan",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "check-call",
+      "from": "plan",
+      "to": "gate",
+      "label": "check scope",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "allowed-call",
+      "from": "gate",
+      "to": "call",
+      "label": "allowed",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "success-evidence",
+      "from": "call",
+      "to": "receipt",
+      "label": "success evidence",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "evidence-agent",
+      "from": "receipt",
+      "to": "inspect",
+      "label": "verify",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "done-reply",
+      "from": "inspect",
+      "to": "reply",
+      "label": "report outcome",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "more-work",
+      "from": "inspect",
+      "to": "plan",
+      "label": "success: more work",
+      "variant": "default",
+      "role": "return",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          680,
+          246
+        ],
+        [
+          680,
+          64
+        ],
+        [
+          214,
+          64
+        ]
+      ],
+      "labelSegment": 2
+    },
+    {
+      "id": "approval-needed",
+      "from": "gate",
+      "to": "approval",
+      "label": "needs consent",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "approval-decision",
+      "from": "approval",
+      "to": "gate",
+      "label": "decision: recheck",
+      "variant": "security",
+      "role": "return"
+    },
+    {
+      "id": "policy-denied",
+      "from": "gate",
+      "to": "blocked",
+      "label": "denied / declined",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "tool-error",
+      "from": "call",
+      "to": "unknown",
+      "label": "error / unknown",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "safe-retry",
+      "from": "unknown",
+      "to": "gate",
+      "label": "safe + budget: retry",
+      "variant": "dashed",
+      "role": "return"
+    },
+    {
+      "id": "unsafe-retry",
+      "from": "unknown",
+      "to": "blocked",
+      "label": "unsafe / fatal / limit",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "blocked-evidence",
+      "from": "blocked",
+      "to": "receipt",
+      "label": "stop evidence",
+      "variant": "dashed",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Read the successful path first",
+      "items": [
+        "Request \u2192 plan a structured call \u2192 policy allows \u2192 tool executes \u2192 capture evidence \u2192 agent verifies the result \u2192 final reply.",
+        "If the goal needs more work, the runtime proposes another call. Every new or revised call crosses the policy gate."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Approval is conditional",
+      "items": [
+        "Existing authorization proceeds directly. Pause only when the host policy requires consent; approval returns to the gate for scope and permission checks.",
+        "Denied scope, declined consent, fatal errors or exhausted retries stop execution and produce a reason plus an exact next action. Approval never overrides a host restriction."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Recover without duplicate effects",
+      "items": [
+        "Retry only when a failure is known and replay is safe; preserve request identity and enforce the applicable retry budget.",
+        "A timeout or missing acknowledgment proves no outcome. Inspect receipts and actual state first. Unproven outcomes remain blocked with ownership intact.",
+        "For Contract Master implementation work, the budget is two total attempts. This is separate from transport recovery."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Evidence supports the answer",
+      "items": [
+        "Capture decisions, call identity, status, redacted output and artifact references. Both success and stopped outcomes carry evidence into inspection before the final reply.",
+        "A stopped outcome is reported as blocked with its reason and next action. Only a successful result needing more work starts another planning loop.",
+        "Tool output and retrieved content are untrusted data; they cannot grant permissions or expand scope. Observability does not authorize execution.",
+        "Conceptual tool-call workflow, not a source-code trace or a live configuration audit. In this repository, Orca coordinates; the manager owns state and serialized Linear writes; workers return artifacts."
+      ]
+    }
+  ]
+}
