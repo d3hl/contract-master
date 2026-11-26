@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "ecc8ed5a-4006-484e-b4f5-f407087afd27",
+  "receiptId": "63757b08-d7df-4e06-a6de-3d63f5551521",
   "status": "current",
   "command": "deliver",
-  "type": "architecture",
-  "input": "/home/d3/orca/workspaces/contract-master/.archify/architecture-agent-team-20261030-061602/candidate.json",
+  "type": "workflow",
+  "input": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
   "output": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
   "specification": {
-    "sha256": "887819bdffd720d4c2a578011763c671c7d2778ee2e05cd5bbb7b8463d927c2c",
-    "bytes": 8877
+    "sha256": "e92e2d346c1992273cab725ace39ea8feb2d7fbb39bf56902932f566d64181ce",
+    "bytes": 9154
   },
   "artifact": {
-    "sha256": "05a6c1a4c4784c12005a75255ec66ba96525b3ca3f6d140c043851fb63e67c7b",
-    "bytes": 875920
+    "sha256": "7679a05b6c12ad0e7cfc412638c0e4777006f79b58459449db2154e3e9ed5215",
+    "bytes": 854321
   }
 }

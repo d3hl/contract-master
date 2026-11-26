@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/candidate.json",
+    "sha256": "e28fd1d6c00940e2a5f80b35a17c5eb4db8398afcd32a2e1337553775bbec9af",
+    "bytes": 9124
+  },
+  "artifact": {
+    "path": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html",
+    "sha256": "4a08298baa8c2f85cde4b5a0bda982274aee3c819bb35eccfe006887c86fe444",
+    "bytes": 854273
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/d3/orca/workspaces/contract-master/docs/architecture/agent-team-archify.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1/agent-team-archify.finalize.json",
+    "summaryReceipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1/agent-team-archify.finalize-summary.json",
+    "browserCheckReceipt": "/home/d3/orca/workspaces/contract-master/.archify/workflow-agent-tool-loop-20261127/review-1/agent-team-archify.browser-check.json"
+  },
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.3.2",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.3.2",
+    "severity": "normal",
+    "summary": "Includes archify-pr in default installs, adds offline in-page update notices with Agent prompts, speeds slow update checks, and polishes PR diagrams.",
+    "checkedAt": "2026-11-26T17:16:44.289Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.2.0 → 3.3.2. A previous check at 2026-11-26T17:16:44.289Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.3.2. Would you like me to update Archify?",
+    "eventKey": "archify@sha256:932d915f83fdbf44796cc6b20b085455a763491306e1b8dee92047e11dddc0ea"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 18482,
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  }
+}
