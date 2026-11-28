@@ -55,6 +55,15 @@ class GuardTests(unittest.TestCase):
                         "python3 -m contract_master codex-merge T tok", "codex exec review < /dev/null"):
             self.assertIsNone(self.blocked(bash(command)), command)
 
+    def test_quoted_newlines_stay_inside_one_word(self):
+        review = 'codex exec "Review this diff.\nRun git diff and the registered checks." < /dev/null'
+        self.assertIsNone(self.blocked(bash(review)))
+        self.assertEqual(guard.segments(review)[0][:2], ["codex", "exec"])
+        self.assertIsNone(self.blocked(bash("echo 'a\ngit commit'")))
+        self.assertIsNotNone(self.blocked(bash("git status\ngit commit -m x")))
+        self.assertIsNotNone(self.blocked(bash('echo "a\nb"\ngit push')))
+        self.assertIsNotNone(self.blocked(bash("cd x &&\ngit commit -m x")))
+
     def test_worker_start_must_target_a_registered_runner(self):
         ok = "orca orchestration worker-start --task t --on rh1-d3 --agent opencode2 --json"
         self.assertIsNone(self.blocked(bash(ok)))

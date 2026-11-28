@@ -76,20 +76,20 @@ def _check_edit(path, cwd):
 
 def segments(command):
     """Split a shell command into simple commands (lists of words). Raises ValueError if unparsable."""
-    result = []
-    for line in command.replace("\\\n", " ").splitlines():
-        lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
-        lexer.whitespace_split = True
-        current = []
-        for token in lexer:
-            if token in SEPARATORS:
-                if current:
-                    result.append(current)
-                current = []
-            else:
-                current.append(token)
-        if current:
-            result.append(current)
+    # Lex the whole command so quote state carries across lines; an unquoted newline ends a command.
+    lexer = shlex.shlex(command.replace("\\\n", " "), posix=True, punctuation_chars="();<>|&\n")
+    lexer.whitespace = " \t\r"
+    lexer.whitespace_split = True
+    result, current = [], []
+    for token in lexer:
+        if token in SEPARATORS or (token and set(token) <= set("();<>|&\n") and "\n" in token):
+            if current:
+                result.append(current)
+            current = []
+        else:
+            current.append(token)
+    if current:
+        result.append(current)
     return result
 
 
