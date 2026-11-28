@@ -175,6 +175,17 @@
   session reuse is on). The automation stays disabled and D3S-136 parked until the owner
   decides to re-enable it and approves resuming that same attempt. Plan:
   [orca-upgrade-rh1-rh3](../plans/orca-upgrade-rh1-rh3.md).
+- 2026-11-29: `d3hl/subscription-tracker` onboarding (no Linear issue yet; plan
+  [onboard-subscription-tracker](../plans/onboard-subscription-tracker.md)). Public repo,
+  seed `10fb4a3` (approved design, plan, `AGENTS.md`), phase A protection saved in
+  `.state/branch-protection/`. Orca repo `09015dd3-…` on RH3 (folder project upgraded to
+  git in place) and `05a7fc9e-…` on `rh1-d3`, clone `~/worker/repos/subscription-tracker`.
+  Runner probe passed (Dispatch `ctx_414fd2272d9d`,
+  [evidence](runner-verification.md#subscription-tracker-probe-2026-11-29)). Linear project
+  Subscription Tracker `9121318d-…` and label `repo:subscription-tracker` created; both
+  `d3hl` App installations include the repo (narrowed tokens mint for both) and phase A
+  lets `d3hl-codex` push. Next: merge this registry change, then the first product issue
+  (plan Task 1).
 - Exact next action: merge corp-integrated-dashboard #1, then this registry change;
   then the DeepSeek runner probe and one bounded docs pilot issue for it, then
   phase B after its first `codex-merge`. Other work for the registered

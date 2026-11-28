@@ -47,7 +47,8 @@ Probe evidence: [runner verification](runner-verification.md#rh1-d3-probe-2026-1
 Orca repo ids on `rh1-d3`: contract-master `047231de-…`, cf-mcp-gw `1d201aa6-…`,
 action1-dashboard `340ff8b0-…`, corp-integrated-dashboard `1501836a-…`,
 pve-orchenv `d2492923-…` (added 2026-11-07 with `orca project setup-update
---worktree-base-path /home/d3/worker/worktrees`; `repo add` leaves it unset).
+--worktree-base-path /home/d3/worker/worktrees`; `repo add` leaves it unset),
+subscription-tracker `05a7fc9e-…` (added 2026-11-29 the same way).
 
 ## Coordinator side (ntnsg-rh3)
 

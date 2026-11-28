@@ -201,6 +201,27 @@ pushed: no such branch exists on GitHub.
   values. The worktree has the public HTTPS `origin` and no credential helper, by design.
 - The worker was released. The probe worktree stays on RH1.
 
+## subscription-tracker probe (2026-11-29)
+
+Before registering `d3hl/subscription-tracker`, one supervised worker ran on `rh1-d3`
+(Orca 1.4.280; Run `run_f2eb5989f934`, Task `task_39ec021ff21e`, Dispatch
+`ctx_414fd2272d9d`, agent `opencode2`, worktree
+`~/worker/worktrees/subscription-tracker/cm-probe-subtrack`, base `10fb4a3`). It added
+only `package.json`, `package-lock.json`, `tsconfig.json` and a `better-sqlite3`
+in-memory test, ran both registered checks and committed locally. Nothing was pushed.
+
+- **Identity:** `d3` on `NTNSG-RH1`, OpenRouter `deepseek/deepseek-v4.1-flash-1017`,
+  Node 24.22.3, npm 11.19.1. The `--on rh1-d3` route is unchanged on 1.4.280 and the
+  prompt submitted without an extra Enter.
+- **Commit:** `264e0585eda95861c17e9d5a012467c5e01ec8e3`, authored by
+  `contract-master DeepSeek worker <d3-worker@d3hl.invalid>`.
+- **Independent check:** the commit was fetched by `git bundle` into a fresh clone on RH3
+  (Node 22.23.2, npm 10.9.8) and `inspect_checkout` ran the registry argv: the diff is
+  exactly the four files, `test` passes (1 test), `typecheck` passes, and the tree stays
+  clean. `better-sqlite3` 13.2.0 loads its shipped `prebuilds/linux-x64.node`; neither
+  host ran its install script, so `--ignore-scripts` is kept.
+- The worker was released. The probe worktree stays on RH1.
+
 ## Scope and remaining gates
 
 This is a user-authorized **capability probe**, not the registered production
