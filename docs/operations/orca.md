@@ -64,6 +64,32 @@ service account token from the owner-only file `~/.config/op/contract-master-sa-
 readable by group or others is refused. It never goes into the prompt or argv.
 Each finished run leaves its Claude terminal open; close old ones when convenient.
 
+### Coordinator role guard
+
+Claude plans and decides; it does not implement, commit or merge. Fresh coordinator
+sessions start with `--settings .claude/coordinator-settings.json` (the automation's
+`--extra-agent-args`, recorded as `extra_agent_args` in `config/orca-automation.json`).
+That file denies Claude implementer subagents (`general-purpose`, `claude`) and runs
+`python3 -m contract_master.guard` before every Edit/MultiEdit/Write/NotebookEdit/Bash
+call. The guard (exit 2 blocks the call and tells Claude why):
+
+- allows file writes only under the temp directory (spec, body and report files);
+- blocks `git commit`, `git push` and `gh pr merge` (the manager's `open-pr` and
+  `codex-merge` do their own pushes and merges and are not affected);
+- blocks `--agent claude…`/`--provider claude…`, so no work goes to another Claude;
+- allows `worker-start` only with `--on <environment> --agent <agent>` of an enabled
+  DeepSeek runner referenced by `config/registry.json`, and fails closed when the
+  registry cannot be read.
+
+A refused `worker-start` never reached Orca: no Dispatch exists, so fix the flags and
+start once. Interactive sessions get the same rules as text through `CLAUDE.md`; to
+enforce them in a manual coordinator turn, start `claude --settings
+.claude/coordinator-settings.json` from the clean `main` checkout. Apply the argument to
+the live automation only after the guard is merged to `main`:
+`orca automations edit c0e63d16-c147-40b2-bb1b-5698891f2ff0
+--extra-agent-args="--settings /home/d3/orca/workspaces/contract-master/.claude/coordinator-settings.json"`.
+Extra arguments apply to fresh sessions; a reused session keeps its old settings.
+
 ## Durable authority
 
 The manager SQLite database is local to one coordinator host, with WAL, full

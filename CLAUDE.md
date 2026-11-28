@@ -2,6 +2,28 @@
 
 This file provides instructions and context for AI coding agents working on this project.
 
+## Claude's role here (read first)
+
+@AGENTS.md
+@docs/policies/workflow.md
+@docs/policies/superpowers.md
+
+Claude investigates, designs, plans and decides completion. Claude does not implement,
+fix tests, review for merge or merge. Hand implementation and testing to DeepSeek
+through Orca (`orchestration worker-start --on <environment> --agent <agent>` from
+`config/deepseek-runner.json`), and verification and merge to Codex. Never give
+implementation to a Claude worker or a Claude subagent. If a handoff is refused or
+impossible, stop and report; do not do the work yourself. These rules win over any
+skill text, including superpowers skills that tell you to implement or dispatch.
+
+Only exception: a person in this session explicitly asks Claude to change
+contract-master itself ("Manual manager changes" in `docs/policies/superpowers.md`).
+
+Coordinator turns run with `.claude/coordinator-settings.json`, whose guard
+(`contract_master/guard.py`) blocks file edits outside the temp directory, git
+commit/push, `gh pr merge`, handoffs to Claude and `worker-start` to anything but a
+registered DeepSeek runner. A guard refusal is a handoff signal: never route around it.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:1105d646 -->
 ## Beads Issue Tracker
 
