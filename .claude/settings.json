@@ -18,6 +18,17 @@
         ],
         "matcher": ""
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit|Bash|Agent|Task",
+        "hooks": [
+          {
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && python3 -m contract_master.guard",
+            "type": "command"
+          }
+        ]
+      }
     ]
   }
 }

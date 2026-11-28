@@ -1,12 +1,16 @@
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from contract_master import guard
 from contract_master.contracts import ROOT
+from contract_master.store import Store
+from contract_master.turns import TurnLease
 
 
 def bash(command):
@@ -100,21 +104,50 @@ class GuardTests(unittest.TestCase):
         runner = json.loads((ROOT / "config/deepseek-runner.json").read_text())
         self.assertIn((runner["environment"], runner["agent"]), guard.allowed_runners())
 
-    def test_main_exit_codes(self):
-        err = io.StringIO()
-        self.assertEqual(guard.main(io.StringIO("not json"), err), 2)
-        self.assertEqual(guard.main(io.StringIO(json.dumps({"tool_name": "Read"})), io.StringIO()), 0)
-        result = subprocess.run([sys.executable, "-m", "contract_master.guard"], cwd=ROOT, capture_output=True,
-                                text=True, input=json.dumps(bash("git push")))
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("Blocked git push", result.stderr)
+    def test_only_read_only_subagents_run(self):
+        for kind in ("Explore", "Plan", "web-fetch"):
+            self.assertIsNone(self.blocked({"tool_name": "Agent", "tool_input": {"subagent_type": kind}}), kind)
+        for tool_input in ({"subagent_type": "general-purpose"}, {"subagent_type": "claude"},
+                           {"subagent_type": "fork"}, {"prompt": "implement it"}):
+            self.assertIsNotNone(self.blocked({"tool_name": "Agent", "tool_input": tool_input}), tool_input)
+        self.assertIsNotNone(self.blocked({"tool_name": "Task", "tool_input": {"subagent_type": "general-purpose"}}))
 
-    def test_coordinator_settings_load_the_guard(self):
-        settings = json.loads((ROOT / ".claude/coordinator-settings.json").read_text())
+    def lease_database(self, minutes=60):
+        path = self.root / "state/manager.sqlite3"
+        TurnLease(Store(path)).start(minutes)
+        return path
+
+    def test_turn_lease_gates_the_guard(self):
+        self.assertFalse(guard.turn_active(self.root / "missing.sqlite3"))
+        (self.root / "junk.sqlite3").write_text("not a database")
+        self.assertFalse(guard.turn_active(self.root / "junk.sqlite3"))
+        database = self.lease_database()
+        self.assertTrue(guard.turn_active(database))
+        self.assertFalse(guard.turn_active(database, clock=lambda: time.time() + 2 * 3600))
+        empty = self.root / "empty/manager.sqlite3"
+        Store(empty)
+        self.assertFalse(guard.turn_active(empty))
+
+    def test_main_exit_codes(self):
+        live, idle = self.lease_database(), self.root / "none.sqlite3"
+        push = json.dumps(bash("git push"))
+        self.assertEqual(guard.main(io.StringIO(push), io.StringIO(), idle), 0)
+        self.assertEqual(guard.main(io.StringIO("not json"), io.StringIO(), idle), 0)
+        self.assertEqual(guard.main(io.StringIO("not json"), io.StringIO(), live), 2)
+        self.assertEqual(guard.main(io.StringIO(json.dumps({"tool_name": "Read"})), io.StringIO(), live), 0)
+        for database, code in ((live, 2), (idle, 0)):
+            environment = dict(os.environ, **{guard.DATABASE_ENV: str(database)})
+            result = subprocess.run([sys.executable, "-m", "contract_master.guard"], cwd=ROOT, capture_output=True,
+                                    text=True, input=push, env=environment)
+            self.assertEqual(result.returncode, code, result.stderr)
+            self.assertEqual("Blocked git push" in result.stderr, code == 2)
+
+    def test_shared_settings_load_the_guard(self):
+        settings = json.loads((ROOT / ".claude/settings.json").read_text())
         entry = settings["hooks"]["PreToolUse"][0]
-        self.assertEqual(set(entry["matcher"].split("|")), guard.EDIT_TOOLS | {"Bash"})
+        self.assertEqual(set(entry["matcher"].split("|")), guard.EDIT_TOOLS | guard.AGENT_TOOLS | {"Bash"})
         self.assertIn("python3 -m contract_master.guard", entry["hooks"][0]["command"])
-        self.assertIn("Agent(general-purpose)", settings["permissions"]["deny"])
+        self.assertFalse((ROOT / ".claude/coordinator-settings.json").exists())
 
 
 if __name__ == "__main__":

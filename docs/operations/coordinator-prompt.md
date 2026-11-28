@@ -5,10 +5,10 @@ version-matched orchestration/Linear guides. The single Orca scheduled automatio
 runs this prompt (pilot gate 7). Run only from a clean `main` checkout; stop and
 report if `doctor` lists any blocker.
 
-Claude plans and decides here; it never implements, commits or merges. The turn runs
-with `.claude/coordinator-settings.json`, whose guard refuses those actions: treat a
-refusal as a handoff signal and never route around it (see "Coordinator role guard"
-in the Orca coordination doc).
+Claude plans and decides here; it never implements, commits or merges. Once
+`turn-start` succeeds, the repository's guard hook refuses those actions until
+`turn-end`: treat a refusal as a handoff signal and never route around it (see
+"Coordinator role guard" in the Orca coordination doc).
 
 Hold the turn lease for the whole turn, whether Orca scheduled it or a person started
 it. First run `python3 -m contract_master turn-start` and keep the returned lease ID.

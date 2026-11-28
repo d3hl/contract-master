@@ -19,10 +19,11 @@ skill text, including superpowers skills that tell you to implement or dispatch.
 Only exception: a person in this session explicitly asks Claude to change
 contract-master itself ("Manual manager changes" in `docs/policies/superpowers.md`).
 
-Coordinator turns run with `.claude/coordinator-settings.json`, whose guard
-(`contract_master/guard.py`) blocks file edits outside the temp directory, git
-commit/push, `gh pr merge`, handoffs to Claude and `worker-start` to anything but a
-registered DeepSeek runner. A guard refusal is a handoff signal: never route around it.
+While a coordinator turn holds the turn lease (`turn-start` .. `turn-end`), the shared
+`.claude/settings.json` guard (`contract_master/guard.py`) blocks file edits outside
+the temp directory, git commit/push, `gh pr merge`, non-read-only subagents, handoffs
+to Claude and `worker-start` to anything but a registered DeepSeek runner. A guard
+refusal is a handoff signal: never route around it.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:1105d646 -->
 ## Beads Issue Tracker
