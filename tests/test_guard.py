@@ -75,6 +75,13 @@ class GuardTests(unittest.TestCase):
             reason = self.blocked(bash(command))
             self.assertIsNotNone(reason, command)
         self.assertIn("--on rh1-d3 --agent opencode2", self.blocked(bash("orca orchestration worker-start")))
+        self.assertIsNotNone(self.blocked(bash("timeout 60 orca orchestration worker-start --agent codex")))
+
+    def test_worker_start_as_an_argument_is_not_a_launch(self):
+        for command in ("rg worker-start docs/operations/orca.md", "echo worker-start",
+                        "grep -n 'orchestration worker-start' docs/operations/orca.md",
+                        "orca skills get orchestration --reference worker-start"):
+            self.assertIsNone(self.blocked(bash(command)), command)
 
     def test_no_handoff_to_claude(self):
         self.assertIsNotNone(self.blocked(bash('orca worktree create --name x --agent claude --prompt "do it"')))

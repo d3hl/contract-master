@@ -117,9 +117,14 @@ def _check_words(words, root):
         value = _flag(words, name)
         if value and value.lower().startswith("claude"):
             return "Blocked " + name + " " + value + ": Claude does not hand work to Claude. " + HANDOFF
-    if "worker-start" in words:
+    if _is_worker_start(words):
         return _check_worker_start(words, root)
     return None
+
+
+def _is_worker_start(words):
+    """True for an Orca `orchestration worker-start` launch, not a search term or echoed text."""
+    return any(first == "orchestration" and second == "worker-start" for first, second in zip(words, words[1:]))
 
 
 def _check_worker_start(words, root):
