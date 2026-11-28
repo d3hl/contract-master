@@ -112,8 +112,8 @@ scope; a new playbook needs a reviewed registry change.
 `d3hl/subscription-tracker` (registered 2026-11-29) is the owner's local, single-user
 subscription tracker (TypeScript, Hono, `better-sqlite3`, Vitest). It was onboarded with
 no code: its first commit holds only the approved design, the 6-task implementation plan
-and `AGENTS.md`, so its checks were first proven on the runner probe's output and are
-rerun on `main` after the first product task merges. Each plan task becomes one Linear
+and `AGENTS.md`, so its checks were first proven on the runner probe's output. They
+passed again on `main` after the first product task, D3S-139, merged as `dc2d141`. Each plan task becomes one Linear
 issue, blocked by the previous one; an issue gets its `contract-master` block (with a real
 base commit) only once its predecessor is merged. Use `repo:subscription-tracker`. Both
 checks copy the working tree (without `.git`, `node_modules`, `dist`) into a temporary
@@ -122,8 +122,10 @@ directory and run `npm ci --ignore-scripts` there, so the checkout stays clean;
 need Node.js 22 or newer and registry.npmjs.org, no credentials. The plan's `notify-send`
 check and service smoke test need the owner's desktop session: they are manual acceptance
 steps for the owner, never claimed by a worker. `AGENTS.md`, `docs` and CI stay out of
-scope. It uses the `d3hl` App installations and is on phase A until its first
-`codex-merge`.
+scope. It uses the `d3hl` App installations. It is on phase B since 2026-11-29, after
+its first `codex-merge` (subscription-tracker PR #1): `main` requires
+`codex-verification` from App 5511451, only `d3hl-codex` may push, and admins cannot
+bypass. The phase A settings are saved under `.state/branch-protection/` for rollback.
 
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
 Ordinary product tasks should target other registered repositories. The current

@@ -186,6 +186,13 @@
   `d3hl` App installations include the repo (narrowed tokens mint for both) and phase A
   lets `d3hl-codex` push. Next: merge this registry change, then the first product issue
   (plan Task 1).
+- 2026-11-29: subscription-tracker's first product task D3S-139 (plan Task 1) is Done:
+  DeepSeek `5b78eee` (Dispatch `ctx_d46bbdbaa624`), Codex pass, PR #1 opened by
+  `d3hl-orca[bot]` and squash-merged by `d3hl-codex[bot]` as `dc2d141`; Claude reran
+  `test` and `typecheck` on the merged commit. Phase B protection applied the same day at
+  the owner's request. Child 2, D3S-140 (plan Task 2), is Done the same day: DeepSeek
+  (Dispatch `ctx_247be405d779`), Codex pass, PR #2 merged by `d3hl-codex[bot]` as
+  `6c45d45` under phase B. Next: child 3 (plan Task 3) on base `6c45d45`.
 - Exact next action: merge corp-integrated-dashboard #1, then this registry change;
   then the DeepSeek runner probe and one bounded docs pilot issue for it, then
   phase B after its first `codex-merge`. Other work for the registered
