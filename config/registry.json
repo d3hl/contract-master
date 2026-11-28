@@ -422,6 +422,85 @@
       },
       "runner_config": "config/deepseek-runner.json",
       "linear_label": "repo:pve-orchenv"
+    },
+    "d3hl/subscription-tracker": {
+      "url": "https://github.com/d3hl/subscription-tracker",
+      "orca_repo_id": "09015dd3-7123-4b7f-a4ad-559946ab5c2c",
+      "base_ref": "origin/main",
+      "linear_projects": [
+        "9121318d-d246-4804-b097-496caad1625b"
+      ],
+      "documentation_entrypoints": [
+        "AGENTS.md",
+        "docs/superpowers/plans/2026-11-28-subscription-tracker.md"
+      ],
+      "required_context": [
+        "AGENTS.md",
+        "docs/policies/workflow.md",
+        "docs/policies/context-and-security.md",
+        "docs/contracts/v1.md",
+        "docs/operations/orca.md"
+      ],
+      "allowed_scope": [
+        ".gitignore",
+        "README.md",
+        "package-lock.json",
+        "package.json",
+        "src",
+        "tests",
+        "tsconfig.json",
+        "vitest.config.ts"
+      ],
+      "checks": {
+        "test": {
+          "argv": [
+            "sh",
+            "-c",
+            "set -e; t=$(mktemp -d); trap \"rm -rf \\\"$t\\\"\" EXIT; tar -c --exclude=./.git --exclude=./node_modules --exclude=./dist . | tar -x -C \"$t\"; cd \"$t\"; npm ci --ignore-scripts --no-audit --no-fund; ./node_modules/.bin/vitest run"
+          ],
+          "timeout_seconds": 600
+        },
+        "typecheck": {
+          "argv": [
+            "sh",
+            "-c",
+            "set -e; t=$(mktemp -d); trap \"rm -rf \\\"$t\\\"\" EXIT; tar -c --exclude=./.git --exclude=./node_modules --exclude=./dist . | tar -x -C \"$t\"; cd \"$t\"; npm ci --ignore-scripts --no-audit --no-fund; ./node_modules/.bin/tsc --noEmit"
+          ],
+          "timeout_seconds": 600
+        }
+      },
+      "planning_runner": "claude",
+      "implementation_runner": "deepseek-portable",
+      "verification_runner": "codex",
+      "merge_runner": "codex",
+      "merge_gate_audited": true,
+      "merge_identity": {
+        "login": "d3hl-codex[bot]",
+        "type": "Bot"
+      },
+      "github_apps": {
+        "pr": {
+          "slug": "d3hl-orca",
+          "app_id": 5516831,
+          "installation_id": 176325322,
+          "key_reference": "op://contract-master/SSH Key-d3hl-orca-github/private key"
+        },
+        "merge": {
+          "slug": "d3hl-codex",
+          "app_id": 5511451,
+          "installation_id": 176202750,
+          "key_reference": "op://contract-master/SSH Key-d3hl-codex/private key"
+        }
+      },
+      "credential_references": [
+        "op://contract-master/SSH Key-d3hl-orca-github/private key",
+        "op://contract-master/SSH Key-d3hl-codex/private key"
+      ],
+      "dependency_versions": {
+        "node": "22.23.2"
+      },
+      "runner_config": "config/deepseek-runner.json",
+      "linear_label": "repo:subscription-tracker"
     }
   }
 }

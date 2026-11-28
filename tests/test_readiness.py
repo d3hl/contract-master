@@ -53,5 +53,28 @@ class ReadinessTests(unittest.TestCase):
         self.assertNotIn("config/vault-pass", argv)
         self.assertNotIn("op://", argv)
 
+    def test_subscription_tracker_scope_and_checks(self):
+        policy = self.registry["repositories"]["d3hl/subscription-tracker"]
+        self.assertEqual(policy["linear_label"], "repo:subscription-tracker")
+        self.assertEqual(set(policy["checks"]), {"test", "typecheck"})
+        for path in ("AGENTS.md", "docs/x.md", ".github/workflows/ci.yml", "node_modules/a.js", "dist/main.js"):
+            self.assertFalse(within(path, policy["allowed_scope"]), path)
+        for path in ("src/main.ts", "tests/domain/dates.test.ts", "package.json", "package-lock.json",
+                     "tsconfig.json", "vitest.config.ts", ".gitignore", "README.md"):
+            self.assertTrue(within(path, policy["allowed_scope"]), path)
+        # Checks run in a temporary copy so node_modules never lands in the checkout.
+        for check in policy["checks"].values():
+            text = " ".join(check["argv"])
+            self.assertIn("mktemp -d", text)
+            self.assertIn("--exclude=./.git", text)
+            self.assertNotIn("op://", text)
+
+    def test_no_registered_check_runs_npm_install_scripts(self):
+        for repo_id, policy in self.registry["repositories"].items():
+            for check_id, check in policy["checks"].items():
+                text = " ".join(check["argv"])
+                if "npm ci" in text:
+                    self.assertIn("--ignore-scripts", text, repo_id + " " + check_id)
+
 if __name__ == "__main__":
     unittest.main()

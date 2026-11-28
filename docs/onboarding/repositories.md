@@ -55,7 +55,7 @@ repository. Other labels are ignored. Each label belongs to one repository
 `d3hl/contract-master`, accept issues without a `repo:` label.
 
 Registered repositories (D3S-109, 2026-10-30; corp-integrated-dashboard 2026-11-01;
-pve-orchenv 2026-11-07):
+pve-orchenv 2026-11-07; subscription-tracker 2026-11-29):
 
 | Repository | Linear project | Label | Allowed scope | Checks |
 |---|---|---|---|---|
@@ -64,6 +64,7 @@ pve-orchenv 2026-11-07):
 | `d3-corp/action1-dashboard` | Action1 Dashboard | `repo:action1-dashboard` | `README.md`, `VALIDATION.md`, `CLOUDFLARE.md`, `features.md`, `dashboard/README.md`, `docs`, `src`, `test` | `test` |
 | `d3-corp/corp-integrated-dashboard` | Corp Integrated Dashboard | `repo:corp-integrated-dashboard` | `README.md`, `docs`, `src`, `server`, `package.json`, `package-lock.json`, `mcp-app.html`, `vite.mcp.config.ts` | `typecheck`, `build` |
 | `d3hl/pve-orchenv` | PVE Orchestration Env | `repo:pve-orchenv` | `docs`, `build/README.md`, `bootserver/answer`, `ansible/roles`, `ansible/tasks`, `ansible/tests`, `ansible/{site,e2e_up,e2e_down,e2e_vars}.yml` | `test`, `lint` |
+| `d3hl/subscription-tracker` | Subscription Tracker | `repo:subscription-tracker` | `src`, `tests`, `package.json`, `package-lock.json`, `tsconfig.json`, `vitest.config.ts`, `.gitignore`, `README.md` | `test`, `typecheck` |
 
 Use `repo:cf-mcp-gw` for Cloudflare setup and workflow tasks,
 `repo:action1-dashboard` for Action1 tasks, including the Action1 dashboard, and
@@ -107,6 +108,22 @@ password file; no check decrypts the vault. Tasks never run `make check`, `e2e-*
 `versions.env`, `Makefile`, lint configuration, `ansible/ansible.cfg`,
 `ansible/requirements.yml` and the build and boot-server scripts stay out of
 scope; a new playbook needs a reviewed registry change.
+
+`d3hl/subscription-tracker` (registered 2026-11-29) is the owner's local, single-user
+subscription tracker (TypeScript, Hono, `better-sqlite3`, Vitest). It was onboarded with
+no code: its first commit holds only the approved design, the 6-task implementation plan
+and `AGENTS.md`, so its checks were first proven on the runner probe's output and are
+rerun on `main` after the first product task merges. Each plan task becomes one Linear
+issue, blocked by the previous one; an issue gets its `contract-master` block (with a real
+base commit) only once its predecessor is merged. Use `repo:subscription-tracker`. Both
+checks copy the working tree (without `.git`, `node_modules`, `dist`) into a temporary
+directory and run `npm ci --ignore-scripts` there, so the checkout stays clean;
+`better-sqlite3` ships a prebuilt linux-x64 binary, so no install script is needed. They
+need Node.js 22 or newer and registry.npmjs.org, no credentials. The plan's `notify-send`
+check and service smoke test need the owner's desktop session: they are manual acceptance
+steps for the owner, never claimed by a worker. `AGENTS.md`, `docs` and CI stay out of
+scope. It uses the `d3hl` App installations and is on phase A until its first
+`codex-merge`.
 
 The bootstrap registration is the manager itself for a narrow docs-only pilot.
 Ordinary product tasks should target other registered repositories. The current
