@@ -1,7 +1,8 @@
 # Plan: enforce the coordinator role (Claude plans, DeepSeek implements, Codex merges)
 
-Status: implemented on branch `d3adc3II/coordinator-role-guard` (2026-11-28); live
-automation change waits for merge. Tracking: bead `contract-master-ber`.
+Status: guard merged in PR #77 (2026-11-28). Activation reworked on branch
+`d3adc3II/lease-gated-guard`: Orca refused the planned `--settings` launch argument.
+Tracking: beads `contract-master-ber` (done) and `contract-master-9ol`.
 
 ## Context
 
@@ -16,23 +17,30 @@ agent, so "hand off" quietly became "Claude does it". Nothing blocked Edit/Write
 1. **Load the rules.** `CLAUDE.md` imports `AGENTS.md`, `workflow.md` and
    `superpowers.md` and states the role, the handoff targets and the one exception
    (a person asks for a contract-master change).
-2. **Coordinator-only settings.** `.claude/coordinator-settings.json` denies Claude
-   implementer subagents and runs the guard as a `PreToolUse` hook. It is not in the
-   shared `.claude/settings.json`, so manual manager changes still work.
+2. **Lease-gated shared hook.** The shared `.claude/settings.json` runs the guard as a
+   `PreToolUse` hook for every session, but the guard acts only while a coordinator
+   turn holds a live turn lease. Manual manager changes outside turns still work.
+   (First version: a coordinator-only `--settings` file passed through the
+   automation's `--extra-agent-args`. Orca rejects that: "\"--settings\" isn't allowed
+   in extra arguments for Claude. Allowed: --model, --effort, --add-dir.")
 3. **Guard.** `contract_master/guard.py`: writes only under the temp directory; no
    `git commit`/`git push`/`gh pr merge`; no `--agent`/`--provider claude…`;
-   `worker-start` only to an enabled DeepSeek runner from the registry. Fails closed.
+   `worker-start` only to an enabled DeepSeek runner from the registry; only read-only
+   subagents. Fails closed during a turn; an unreadable lease database means no turn.
 
 ## Rejected
 
 - Deny rules alone: path globs cannot allow temp spec files while denying the rest
   (deny wins over allow), and they cannot check `worker-start` flags.
-- Guard in the shared settings: it would block the manual changes the policy allows.
+- Always-on guard in the shared settings: it would block the manual changes the policy
+  allows. Gating on the turn lease keeps them working outside turns.
+- Orca environment markers: none is documented for automation runs; the lease is the
+  manager's own record of a turn and is already held for the whole turn.
 - Disabling superpowers: the policy still uses four of its skills; the role text and
   the guard override the conflicting ones.
 
 ## Verification
 
-`python3 -m unittest discover -s tests -v` (new `tests/test_guard.py`). After merge,
-set the automation's `--extra-agent-args` (command in `docs/operations/orca.md`) and
-confirm a fresh coordinator turn sees a guard refusal for a test Write in the repo.
+`python3 -m unittest discover -s tests -v` (`tests/test_guard.py`). The automation needs
+no change. After merge, confirm with a throwaway turn: `turn-start`, then a Claude
+session in the checkout tries a Write in the repo (refused), then `turn-end`.

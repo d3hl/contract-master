@@ -1,17 +1,30 @@
 """PreToolUse guard for coordinator turns: Claude plans, DeepSeek implements, Codex merges.
 
-Loaded only by `.claude/coordinator-settings.json`. Reads one Claude Code hook event on stdin.
-Exit 2 blocks the tool call and the stderr reason goes back to Claude. It fails closed on input
-it cannot read. It is a guard rail for an honest agent, not a sandbox: it checks plain commands.
+Loaded for every session by the shared `.claude/settings.json`, but it acts only while a
+coordinator turn holds a live turn lease (`turn-start` .. `turn-end`); otherwise every call
+passes, so person-led contract-master changes keep working. Orca refuses `--settings` in a
+Claude automation's extra arguments, so the lease is how a hook knows a turn is running.
+An unreadable manager database counts as no turn: `turn-start` would fail on it too.
+
+Reads one Claude Code hook event on stdin. Exit 2 blocks the tool call and the stderr reason
+goes back to Claude. During a turn it fails closed on input it cannot read. It is a guard rail
+for an honest agent, not a sandbox: it checks plain commands.
 """
 import json
+import os
 import shlex
+import sqlite3
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+DATABASE = ROOT / ".state/manager.sqlite3"
+DATABASE_ENV = "CONTRACT_MASTER_GUARD_DATABASE"
 EDIT_TOOLS = {"Edit", "MultiEdit", "Write", "NotebookEdit"}
+AGENT_TOOLS = {"Agent", "Task"}
+READ_ONLY_AGENTS = {"Explore", "Plan", "claude-code-guide", "web-fetch"}
 SEPARATORS = {"&&", "||", ";", "|", "&", "|&", "(", ")"}
 GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 HANDOFF = ("Coordinator turns hand implementation and testing to DeepSeek through Orca and "
@@ -43,10 +56,32 @@ def _collect_runner_configs(node, paths):
             _collect_runner_configs(value, paths)
 
 
+def turn_active(database=None, clock=time.time):
+    """True while a coordinator turn holds an unexpired lease in the manager database."""
+    path = Path(database or os.environ.get(DATABASE_ENV) or DATABASE)
+    if not path.is_file():
+        return False
+    try:
+        connection = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=5)
+        try:
+            row = connection.execute("SELECT expires FROM turn_lease WHERE id=1").fetchone()
+        finally:
+            connection.close()
+    except sqlite3.Error:
+        return False
+    return bool(row) and row[0] > clock()
+
+
 def check(event, root=ROOT):
-    """Return the reason to block this tool call, or None to let it run."""
+    """Return the reason to block this tool call during a turn, or None to let it run."""
     tool = event.get("tool_name")
     tool_input = event.get("tool_input") or {}
+    if tool in AGENT_TOOLS:
+        kind = tool_input.get("subagent_type") or "general-purpose"
+        if kind in READ_ONLY_AGENTS:
+            return None
+        return ("Blocked a " + kind + " subagent: only read-only subagents (" + ", ".join(sorted(READ_ONLY_AGENTS))
+                + ") run in a coordinator turn. " + HANDOFF)
     if tool in EDIT_TOOLS:
         return _check_edit(tool_input.get("file_path") or tool_input.get("notebook_path"), event.get("cwd"))
     if tool == "Bash":
@@ -179,10 +214,13 @@ def _flag(words, name):
     return None
 
 
-def main(stdin=None, stderr=None):
+def main(stdin=None, stderr=None, database=None):
     stdin, stderr = stdin or sys.stdin, stderr or sys.stderr
+    raw = stdin.read()
+    if not turn_active(database):
+        return 0
     try:
-        event = json.load(stdin)
+        event = json.loads(raw)
     except ValueError:
         print("Blocked: the coordinator guard could not read the hook event.", file=stderr)
         return 2

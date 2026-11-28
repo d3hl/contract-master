@@ -66,14 +66,19 @@ Each finished run leaves its Claude terminal open; close old ones when convenien
 
 ### Coordinator role guard
 
-Claude plans and decides; it does not implement, commit or merge. Fresh coordinator
-sessions start with `--settings .claude/coordinator-settings.json` (the automation's
-`--extra-agent-args`, recorded as `extra_agent_args` in `config/orca-automation.json`).
-That file denies Claude implementer subagents (`general-purpose`, `claude`) and runs
-`python3 -m contract_master.guard` before every Edit/MultiEdit/Write/NotebookEdit/Bash
-call. The guard (exit 2 blocks the call and tells Claude why):
+Claude plans and decides; it does not implement, commit or merge. The shared
+`.claude/settings.json` runs `python3 -m contract_master.guard` before every
+Edit/MultiEdit/Write/NotebookEdit/Bash/Agent call in every Claude session in this
+checkout. The guard acts only while a coordinator turn holds a live turn lease in
+`.state/manager.sqlite3` (from `turn-start` to `turn-end`, or until a crashed turn's
+lease expires); otherwise every call passes. A missing or unreadable database counts as
+no turn, since `turn-start` would fail on it too. Orca does not let a Claude automation
+pass `--settings` (its extra arguments allow only `--model`, `--effort` and `--add-dir`),
+so the lease, not a launch flag, marks a turn, and the automation needs no change.
+During a turn the guard (exit 2 blocks the call and tells Claude why):
 
 - allows file writes only under the temp directory (spec, body and report files);
+- allows only read-only subagents (`Explore`, `Plan`, `claude-code-guide`, `web-fetch`);
 - blocks `git commit`, `git push` and `gh pr merge` (the manager's `open-pr` and
   `codex-merge` do their own pushes and merges and are not affected);
 - blocks `--agent claude…`/`--provider claude…`, so no work goes to another Claude;
@@ -82,13 +87,11 @@ call. The guard (exit 2 blocks the call and tells Claude why):
   registry cannot be read.
 
 A refused `worker-start` never reached Orca: no Dispatch exists, so fix the flags and
-start once. Interactive sessions get the same rules as text through `CLAUDE.md`; to
-enforce them in a manual coordinator turn, start `claude --settings
-.claude/coordinator-settings.json` from the clean `main` checkout. Apply the argument to
-the live automation only after the guard is merged to `main`:
-`orca automations edit c0e63d16-c147-40b2-bb1b-5698891f2ff0
---extra-agent-args="--settings /home/d3/orca/workspaces/contract-master/.claude/coordinator-settings.json"`.
-Extra arguments apply to fresh sessions; a reused session keeps its old settings.
+start once. A manual coordinator turn is guarded the same way once it runs
+`turn-start`. Outside turns, sessions get the rules as text through `CLAUDE.md`.
+While any turn lease is live, every Claude session in this checkout is guarded,
+including a person's; that matches the precheck's clean-`main` rule. To release a lease
+left by a crashed turn, wait for it to expire rather than deleting it.
 
 ## Durable authority
 
